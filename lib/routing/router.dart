@@ -11,6 +11,8 @@ import '../features/import/presentation/import_progress_screen.dart';
 import '../features/import/presentation/import_screen.dart';
 import '../features/import/presentation/import_summary_screen.dart';
 import '../features/import/providers/import_notifier.dart';
+import '../features/models/presentation/model_management_screen.dart';
+import '../features/models/presentation/settings_screen.dart';
 import '../features/quiz/presentation/quiz_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
 
@@ -81,6 +83,17 @@ final GoRouter appRouter = GoRouter(
       },
       builder: (BuildContext context, GoRouterState state) =>
           const ImportSummaryScreen(),
+    ),
+    // Phase 3: 模型管理路由
+    GoRoute(
+      path: '/settings',
+      builder: (BuildContext context, GoRouterState state) =>
+          const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/settings/models',
+      builder: (BuildContext context, GoRouterState state) =>
+          const ModelManagementScreen(),
     ),
   ],
   errorBuilder: (BuildContext context, GoRouterState state) => Scaffold(

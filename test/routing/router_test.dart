@@ -5,14 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:redclass/routing/router.dart';
 
 void main() {
-  group('appRouter (go_router — 6 routes)', () {
+  group('appRouter (go_router — 11 routes)', () {
     testWidgets('initial location renders HomeScreen', (tester) async {
       await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
       await tester.pumpAndSettle();
       expect(find.text('红课复习'), findsOneWidget);
     });
 
-    test('routes are registered for all 6 paths', () {
+    test('routes are registered for all 11 paths', () {
       // Inspect GoRouter's internal configuration via the configuration list
       final configuration = appRouter.configuration;
       final paths = configuration.routes
@@ -28,9 +28,14 @@ void main() {
           '/stats',
           '/bookmarks',
           '/import',
+          '/import/progress',
+          '/import/preview/:jobId',
+          '/import/summary/:jobId',
+          '/settings',
+          '/settings/models',
         ]),
       );
-      expect(paths.length, 6);
+      expect(paths.length, 11);
     });
 
     testWidgets('navigates to /stats renders StatsScreen', (tester) async {

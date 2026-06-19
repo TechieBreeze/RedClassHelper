@@ -19,6 +19,12 @@ import 'import_state.dart';
 
 part 'import_notifier.g.dart';
 
+/// Backward-compatible alias — generated provider is `importProvider`
+/// (Riverpod 4.x strips `Notifier` suffix), but all existing screen code
+/// references `importNotifierProvider`.
+// ignore: non_constant_identifier_names
+final importNotifierProvider = importProvider;
+
 /// 导入管道 Notifier。
 ///
 /// 通过 Riverpod 管理导入全流程状态，依赖 PathResolver 和 AppDatabase。

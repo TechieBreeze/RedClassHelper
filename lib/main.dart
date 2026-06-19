@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:redclass/core/paths.dart';
+import 'package:redclass/routing/router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,14 +19,14 @@ Future<void> main() async {
 
 /// RedClass 根 Widget。
 ///
-/// Plan 01-04 (router) 将替换为 MaterialApp.router，
-/// Plan 01-05 (theme) 将包装 DynamicColorBuilder。
+/// Plan 01-04: MaterialApp.router wired with go_router appRouter.
+/// Plan 01-05 (theme): will wrap DynamicColorBuilder.
 class RedClassApp extends StatelessWidget {
   const RedClassApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: '红课复习',
       theme: ThemeData(
         useMaterial3: true,
@@ -41,15 +42,9 @@ class RedClassApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
       ),
-      themeMode: ThemeMode.system,
-      home: const Scaffold(
-        body: Center(
-          child: Text(
-            '红课复习\nPhase 1 — PathResolver wired',
-            textAlign: TextAlign.center,
-          ),
-          ),
-          ),
+      themeMode: ThemeMode.system, // D-21
+      routerConfig: appRouter, // Phase 1 routing
+      locale: const Locale('zh', 'CN'),
     );
   }
 }

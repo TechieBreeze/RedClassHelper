@@ -1,0 +1,35 @@
+[√] Flutter (Channel stable, 3.44.2, on Microsoft Windows [版本 10.0.26200.8655], locale zh-CN) [664ms]
+    • Flutter version 3.44.2 on channel stable at C:\Users\Lenovo\flutter
+    • Upstream repository https://github.com/flutter/flutter.git
+    • Framework revision c9a6c48423 (8 days ago), 2026-06-10 15:52:41 -0700
+    • Engine revision 77e2e94772
+    • Dart version 3.12.2
+    • DevTools version 2.57.0
+    • Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, enable-swift-package-manager, omit-legacy-version-file, enable-lldb-debugging, enable-uiscene-migration
+
+[√] Windows Version (11 家庭版 中文版 64-bit, 25H2, 2009) [1,679ms]
+
+[!] Android toolchain - develop for Android devices (Android SDK version 35.0.0) [1,565ms]
+    • Android SDK at C:/Users/Lenovo/AppData/Local/Android/Sdk
+    • Emulator version unknown
+    X Flutter requires Android SDK 36 and the Android BuildTools 28.0.3
+      To update the Android SDK visit https://flutter.dev/to/windows-android-setup for detailed instructions.
+    • All Android licenses accepted.
+
+[√] Chrome - develop for the web [369ms]
+    • Chrome at C:\Program Files\Google\Chrome\Application\chrome.exe
+
+[√] Visual Studio - develop Windows apps (Visual Studio 生成工具 2026 18.1.1) [368ms]
+    • Visual Studio at D:\VisualStudio
+    • Visual Studio 生成工具 2026 version 18.1.11312.151
+    • Windows 10 SDK version 10.0.26100.0
+
+[√] Connected device (3 available) [208ms]
+    • Windows (desktop) • windows • windows-x64    • Microsoft Windows [版本 10.0.26200.8655]
+    • Chrome (web)      • chrome  • web-javascript • Google Chrome 149.0.7827.114
+    • Edge (web)        • edge    • web-javascript • Microsoft Edge 149.0.4022.69
+
+[!] Network resources [23.2s]
+    X A network error occurred while checking "https://maven.google.com/": 信号灯超时时间已到
+
+! Doctor found issues in 2 categories.

@@ -81,6 +81,10 @@ class ImportState {
   /// D-09: 追踪每题的解析路径，用于汇总页展示
   final Map<int, ParseSource> parseSources;
 
+  /// 当前逐题解析状态消息（用于 LLM 进度 UI）。
+  /// 例如 "正在解析第 12 题…" / "第 47 题重试中（2/3）…" 等。
+  final String? parseStatus;
+
   const ImportState({
     this.jobId = '',
     this.phase = ImportPhase.idle,
@@ -93,6 +97,7 @@ class ImportState {
     this.committedCount = 0,
     this.bankName = '',
     this.parseSources = const {},
+    this.parseStatus,
   });
 
   /// 便捷检查器
@@ -143,7 +148,9 @@ class ImportState {
     int? committedCount,
     String? bankName,
     Map<int, ParseSource>? parseSources,
+    String? parseStatus,
     bool clearError = false,
+    bool clearParseStatus = false,
   }) {
     return ImportState(
       jobId: jobId ?? this.jobId,
@@ -157,6 +164,8 @@ class ImportState {
       committedCount: committedCount ?? this.committedCount,
       bankName: bankName ?? this.bankName,
       parseSources: parseSources ?? this.parseSources,
+      parseStatus:
+          clearParseStatus ? null : (parseStatus ?? this.parseStatus),
     );
   }
 }

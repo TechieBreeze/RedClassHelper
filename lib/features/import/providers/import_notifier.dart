@@ -314,6 +314,7 @@ class ImportNotifier extends _$ImportNotifier {
     for (var i = 0; i < blocks.length; i++) {
       state = state.copyWith(
         progress: (i / blocks.length) * 0.95,
+        parseStatus: '正在解析第 ${i + 1} 题…',
       );
 
       ParseCandidate? candidate;
@@ -343,6 +344,10 @@ class ImportNotifier extends _$ImportNotifier {
         source = ParseSource.fallback;
         candidate = _fallbackParseSingle(blocks[i], i);
 
+        state = state.copyWith(
+          parseStatus: '第 ${i + 1} 题切换启发式兜底…',
+        );
+
         // 写入 parse_log（D-09: 失败记录可在汇总页展示）
         await _logParseEvent(
           db: db,
@@ -359,6 +364,10 @@ class ImportNotifier extends _$ImportNotifier {
         // 意外错误 → 回退启发式兜底
         source = ParseSource.fallback;
         candidate = _fallbackParseSingle(blocks[i], i);
+
+        state = state.copyWith(
+          parseStatus: '第 ${i + 1} 题切换启发式兜底…',
+        );
 
         await _logParseEvent(
           db: db,

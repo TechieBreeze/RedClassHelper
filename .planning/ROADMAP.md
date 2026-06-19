@@ -16,7 +16,7 @@ Phases execute bottom-up: stable Flutter + SQLite foundation → read-only file 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & Persistence** - Flutter project skeleton (3 v1 platforms + iOS/macOS source support), drift schema, go_router, Material 3 theme, PathResolver
+- [x] **Phase 1: Foundation & Persistence** - Flutter project skeleton (3 v1 platforms + iOS/macOS source support), drift schema, go_router, Material 3 theme, PathResolver
 - [ ] **Phase 2: Desktop File Import Pipeline** - `.docx`/`.pdf` text extraction + heuristic parser + import preview screen (desktop-only entry points)
 - [ ] **Phase 3: Desktop LLM Integration** - `LlmClient` abstraction (Stub + HTTP), model picker, GBNF-constrained JSON parsing — **desktop-only**, gated on `Platform.isWindows || Platform.isLinux`
 - [ ] **Phase 4: Quiz Core & Wrong-Question Ledger** - Quiz screen, single-choice grading, three review modes, shared ledger state machine
@@ -37,9 +37,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Schema migration scaffolding exists (version 1 baseline + `onUpgrade` chain) so future schema changes won't lose data
   5. `PathResolver` is the single source of truth for db, model, JSON-import, and JSON-export paths; no other file in the repo calls `path_provider` directly
   6. go_router routes exist for: `/` (home), `/bank/:id` (bank detail), `/quiz/:bankId/:mode` (quiz), `/stats`, `/bookmarks`, `/import`
-**Plans**: TBD (estimated 5-7 plans for "standard" granularity)
+**Plans**: 7 plans (1 toolchain + 6 implementation)
 
 Plans:
+- [x] 01-00: Toolchain bootstrap — Flutter 3.44.2 + Android SDK 35 + VS Build Tools 2026 installed; flutter doctor green for Flutter / Windows / Visual Studio / Connected device; Android toolchain recognized (SDK 35.0.0). End-to-end smoke test (flutter create --platforms=windows) passes.
 - [ ] 01-01: Create Flutter project (`flutter create --platforms=windows,linux,android,ios,macos`) + pubspec deps
 - [ ] 01-02: drift schema (QuestionBank / Question / AnswerAttempt / WrongLedger / Bookmark / ParseJob) + migrations
 - [ ] 01-03: PathResolver + database provider wiring + per-platform path tests

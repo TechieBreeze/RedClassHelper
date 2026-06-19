@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-06-19T08:10:03.608Z"
-last_activity: 2025-01-14 — Platform scope contracted to 3 distributable targets (Windows / Linux / Android); iOS / macOS source compiles but no distributable (developer lacks macOS toolchain + Apple Developer account)
+status: executing
+stopped_at: Plan 01-00 complete — toolchain foundation ready (Flutter 3.44.2 + Android SDK 35 + VS Build Tools 2026); next plan 01-01 scaffold pending
+last_updated: "2026-06-19T09:39:00.000Z"
+last_activity: 2026-06-19 — Plan 01-00 (toolchain bootstrap) fully completed: Flutter 3.44.2 stable + Android SDK Platform 35 + Build-Tools 35.0.0 + platform-tools 37.0.0 + VS Build Tools 2026 18.1.1; flutter create end-to-end smoke test green. 4 commits (8afe513, 8761988, fd641df + plan-metadata) + SUMMARY.md + 4 evidence files committed.
 progress:
   total_phases: 7
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 7
+  completed_plans: 1
+  percent: 14
 ---
 
 # Project State
@@ -25,24 +25,24 @@ See: .planning/PROJECT.md (updated 2025-01-14 after platform-scope contraction)
 
 ## Current Position
 Phase: 1 of 7 (Foundation & Persistence)
-Plan: 1 of 7 in current phase (01-00 done; 01-01 in progress)
+Plan: 1 of 7 in current phase (01-00 complete; 01-01 next)
 Status: Executing
-Last activity: 2026-06-19 — Plan 01-00 (toolchain bootstrap) completed: Flutter 3.44.2 stable + Android SDK Platform 35 + Build-Tools 35.0.0 + platform-tools installed; Visual Studio Build Tools 2026 18.1.1 pre-existing. 3 commits (8afe513, 9d220d3, 61af588) + SUMMARY.md + 3 evidence files committed.
+Last activity: 2026-06-19 — Plan 01-00 (toolchain bootstrap) fully completed. flutter create end-to-end smoke test passed.
 Progress: [▓░░░░░░░░░] 14% (1/7 plans)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: — min
-- Total execution time: 0.0 hours
+- Total plans completed: 1
+- Average duration: 25 min
+- Total execution time: 0.4 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Foundation & Persistence | 0/6 | — | — |
+| 1. Foundation & Persistence | 1/7 | 25 min | 25 min |
 | 2. Desktop File Import Pipeline | 0/8 | — | — |
 | 3. Desktop LLM Integration | 0/8 | — | — |
 | 4. Quiz Core & Wrong-Question Ledger | 0/9 | — | — |
@@ -93,6 +93,13 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-19T08:10:03.602Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-foundation-persistence/01-CONTEXT.md
+Last session: 2026-06-19T09:39:00.000Z
+Stopped at: Plan 01-00 complete — toolchain foundation ready
+Resume file: .planning/phases/01-foundation-persistence/01-00-SUMMARY.md
+
+### Recent plan-completion decisions
+
+- **Plan 01-00 (this plan, latest)**: Flutter SDK installed via direct git clone (not FVM) at `C:\Users\Lenovo\flutter`. Version 3.44.2 stable (newer than plan's 3.35.7; satisfies "3.35.7+" must-have).
+- **Plan 01-00 (this plan)**: Android SDK installed via cmdline-tools CLI (not Android Studio GUI) at `C:\Users\Lenovo\AppData\Local\Android\Sdk`. Platform 35 + Build-Tools 35.0.0 + platform-tools 37.0.0; all 17 licenses accepted. Java 21 from `D:\Java\jdk-21` used as JAVA_HOME.
+- **Plan 01-00 (this plan)**: Visual Studio Build Tools 2026 18.1.1 was pre-existing (not VS 2022 Community); flutter doctor confirms green for VS toolchain. No install needed.
+- **Plan 01-00 (this plan)**: `flutter create --template=app --platforms=windows` end-to-end smoke test passed (27 files, pub deps resolved). Toolchain ready for Plan 01-01's `flutter create --platforms=windows,linux,android,ios,macos`.

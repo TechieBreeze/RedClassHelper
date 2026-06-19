@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2025-01-14 after platform-scope contraction)
 
 ## Current Position
 Phase: 1 of 7 (Foundation & Persistence)
-Plan: 1 of 7 in current phase (01-00 complete; 01-01 next)
+Plan: 2 of 7 in current phase (01-00 ✓ 01-01 ✓; 01-02 next)
 Status: Executing
-Last activity: 2026-06-19 — Plan 01-00 (toolchain bootstrap) fully completed. flutter create end-to-end smoke test passed.
-Progress: [▓░░░░░░░░░] 14% (1/7 plans)
+Last activity: 2026-06-19 — Plan 01-01 (project scaffold) completed: 5 platform folders, 16 deps (8 runtime + 8 dev), ProviderScope entry point, flutter analyze green. 4 commits (aeb5ee0, ca9fd8c, 8ba6e93, bc45a4c).
+Progress: [▓▓▓░░░░░░░] 29% (2/7 plans)
 
 ## Performance Metrics
 

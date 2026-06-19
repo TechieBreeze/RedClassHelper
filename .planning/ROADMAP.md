@@ -41,7 +41,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-00: Toolchain bootstrap — Flutter 3.44.2 + Android SDK 35 + VS Build Tools 2026 installed; flutter doctor green for Flutter / Windows / Visual Studio / Connected device; Android toolchain recognized (SDK 35.0.0). End-to-end smoke test (flutter create --platforms=windows) passes.
-- [ ] 01-01: Create Flutter project (`flutter create --platforms=windows,linux,android,ios,macos`) + pubspec deps
+- [x] 01-01: Create Flutter project (`flutter create --platforms=windows,linux,android,ios,macos`) + pubspec deps
 - [ ] 01-02: drift schema (QuestionBank / Question / AnswerAttempt / WrongLedger / Bookmark / ParseJob) + migrations
 - [ ] 01-03: PathResolver + database provider wiring + per-platform path tests
 - [ ] 01-04: go_router config + placeholder screens for all routes

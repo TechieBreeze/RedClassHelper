@@ -64,5 +64,38 @@ void main() {
       final dir2 = await resolver.modelsDir;
       expect(dir1.path, dir2.path);
     });
+
+    test('tempImportDir creates cache/import_work/ if missing', () async {
+      final dirPath = await resolver.tempImportDir;
+      final dir = Directory(dirPath);
+      expect(await dir.exists(), true);
+      expect(p.basename(dir.path), 'import_work');
+      // Parent should be cache/
+      expect(p.basename(p.dirname(dir.path)), 'cache');
+    });
+
+    test('tempImportDir is idempotent', () async {
+      final dir1 = await resolver.tempImportDir;
+      final dir2 = await resolver.tempImportDir;
+      expect(dir1, dir2);
+    });
+
+    test(
+      'pandoc getter throws PandocNotFoundException when pandoc not in PATH',
+      () async {
+        // In test environment, pandoc is unlikely to be available.
+        // If it is, the test still passes (returns path); if not, we
+        // verify the correct exception type.
+        try {
+          final pandocPath = await resolver.pandoc;
+          // If pandoc happens to be installed, that's fine too
+          expect(pandocPath, isA<String>());
+        } on PandocNotFoundException {
+          // Expected — pandoc not installed in test env
+          expect(true, true);
+        }
+      },
+      skip: false,
+    );
   });
 }

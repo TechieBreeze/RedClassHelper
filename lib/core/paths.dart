@@ -8,7 +8,7 @@
 //   - Temp:       下载中分片 / 解析中临时文件
 // D-17: DB 放 getApplicationSupportDirectory() 避免 OneDrive 污染
 // D-18: models/ 子目录延迟创建 (recursive: true)
-// D-19: 5 个 getter: databasePath / modelsDir / cacheDir / diagnosticsDir / tempDir
+// D-19: 7 个 getter: databasePath / modelsDir / cacheDir / diagnosticsDir / tempDir / pandoc / tempImportDir
 
 import 'dart:io';
 
@@ -17,6 +17,18 @@ import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'paths.g.dart';
+
+/// 系统中未找到 pandoc 时抛出的异常
+class PandocNotFoundException implements Exception {
+  PandocNotFoundException()
+      : message =
+            '需要安装 pandoc 来导入 .doc 文件。下载地址：https://pandoc.org/installing.html';
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
 
 /// 唯一允许调用 `package:path_provider` 的类 (D-15)
 /// 所有文件系统路径必须从此处取得,业务代码禁止直接 import path_provider
@@ -57,6 +69,71 @@ class PathResolver {
 
   /// 临时目录(下载中分片 / 解析中临时文件)
   String get tempDir => _temp.path;
+
+  /// pandoc 二进制路径。
+  /// 按顺序检查: PATH → 常见安装位置 → 抛出 [PandocNotFoundException]
+  Future<String> get pandoc => _resolvePandoc();
+
+  /// 导入过程临时工作目录: cacheDir/import_work/
+  /// 用于 pandoc .doc→.docx 转换、PDF 临时文件等。
+  Future<String> get tempImportDir async {
+    final cache = await cacheDir;
+    final dir = Directory(p.join(cache.path, 'import_work'));
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return dir.path;
+  }
+
+  /// 解析 pandoc 二进制路径
+  Future<String> _resolvePandoc() async {
+    // 1. 先尝试 PATH 中的 pandoc
+    if (await _commandExists('pandoc')) {
+      return 'pandoc'; // 在 PATH 中可直接调用
+    }
+
+    // 2. 检查常见安装位置
+    final candidates = _pandocCandidates();
+    for (final candidate in candidates) {
+      if (await File(candidate).exists()) {
+        return candidate;
+      }
+    }
+
+    throw PandocNotFoundException();
+  }
+
+  /// 检查命令行工具是否在 PATH 中可用
+  static Future<bool> _commandExists(String command) async {
+    try {
+      final result = await Process.run(
+        Platform.isWindows ? 'where' : 'which',
+        [command],
+      );
+      return result.exitCode == 0;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 按平台返回 pandoc 候选安装路径
+  static List<String> _pandocCandidates() {
+    if (Platform.isWindows) {
+      final localAppData = Platform.environment['LOCALAPPDATA'] ?? '';
+      return [
+        r'C:\Program Files\Pandoc\pandoc.exe',
+        if (localAppData.isNotEmpty)
+          p.join(localAppData, r'Pandoc\pandoc.exe'),
+        r'C:\Program Files (x86)\Pandoc\pandoc.exe',
+      ];
+    }
+    return [
+      '/usr/bin/pandoc',
+      '/usr/local/bin/pandoc',
+      '/snap/bin/pandoc',
+      p.join(Platform.environment['HOME'] ?? '/home', '.local/bin/pandoc'),
+    ];
+  }
 
   static Future<Directory> _ensureSubdir(Directory parent, String name) async {
     final dir = Directory(p.join(parent.path, name));

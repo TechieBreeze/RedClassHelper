@@ -1,0 +1,32 @@
+# build.yaml — drift build_runner target config
+#
+# 驱动 dart run build_runner build 生成 database.g.dart
+# 与 riverpod/freezed/json_serializable 共享同一个 build_runner (D-06)
+
+targets:
+  $default:
+    builders:
+      drift_dev:
+        # drift_dev 的 builder key: prepending_builder
+        # 确保 drift 代码在 freezed/json_serializable 之前生成
+        options:
+          # 生成 .drift.dart 文件到同目录 (默认行为)
+          store_date_time_values_as_text: false
+          # 使用 SQLite 原生日期时间类型 (不用 TEXT 存 DateTime)
+          data_class_to_companions: true
+          # 为 DataClass 生成对应的 Companions (用于 insert)
+          generate_values_in_copy_with: false
+      riverpod_generator:
+        options:
+          # riverpod_generator 生成 .g.dart 到同目录
+          null_safety: true
+      json_serializable:
+        options:
+          # json_serializable 选项
+          explicit_to_json: true
+      freezed:
+        options:
+          # freezed 选项
+          map: false
+          when: false
+          make_collections_unmodifiable: true

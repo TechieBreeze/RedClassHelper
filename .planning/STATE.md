@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Plan 01-00 complete — toolchain foundation ready (Flutter 3.44.2 + Android SDK 35 + VS Build Tools 2026); next plan 01-01 scaffold pending
-last_updated: "2026-06-19T09:39:00.000Z"
-last_activity: 2026-06-19 — Plan 01-00 (toolchain bootstrap) fully completed: Flutter 3.44.2 stable + Android SDK Platform 35 + Build-Tools 35.0.0 + platform-tools 37.0.0 + VS Build Tools 2026 18.1.1; flutter create end-to-end smoke test green. 4 commits (8afe513, 8761988, fd641df + plan-metadata) + SUMMARY.md + 4 evidence files committed.
+stopped_at: Completed 01-02-PLAN.md — drift 7-table schema, schemaVersion=1, 5 migration tests green
+last_updated: "2026-06-19T09:49:22.834Z"
+last_activity: 2026-06-19
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 7
-  completed_plans: 1
-  percent: 14
+  completed_plans: 3
+  percent: 43
 ---
 
 # Project State
@@ -24,10 +24,11 @@ See: .planning/PROJECT.md (updated 2025-01-14 after platform-scope contraction)
 **Current focus:** Phase 1 — Foundation & Persistence (3-platform Flutter skeleton + drift + go_router + PathResolver; iOS/macOS source-level support)
 
 ## Current Position
+
 Phase: 1 of 7 (Foundation & Persistence)
-Plan: 2 of 7 in current phase (01-00 ✓ 01-01 ✓; 01-02 next)
-Status: Executing
-Last activity: 2026-06-19 — Plan 01-01 (project scaffold) completed: 5 platform folders, 16 deps (8 runtime + 8 dev), ProviderScope entry point, flutter analyze green. 4 commits (aeb5ee0, ca9fd8c, 8ba6e93, bc45a4c).
+Plan: 3 of 7 in current phase (01-00 ✓ 01-01 ✓; 01-02 next)
+Status: Ready to execute
+Last activity: 2026-06-19
 Progress: [▓▓▓░░░░░░░] 29% (2/7 plans)
 
 ## Performance Metrics
@@ -56,6 +57,7 @@ Progress: [▓▓▓░░░░░░░] 29% (2/7 plans)
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01-foundation-persistence P02 | 13min | 4 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -74,6 +76,9 @@ Recent decisions affecting current work:
 - **Phase 5 (planned)**: Public JSON question-bank format documented in `doc/question-bank-json.md`; desktop exports, all 3 v1 platforms import.
 - **Cross-phase**: Three review modes share one `wrongQuestionsProvider` exposed as `Stream<List<WrongQuestionEntry>>`; ledger transitions go through a single `LedgerRepository` method in a DB transaction.
 - **Cross-phase (latest)**: Platform-conditional UI is the explicit architectural choice. The home page and import page branch on `Platform.isWindows || Platform.isLinux` (desktop) vs Android. iOS / macOS compile paths exist but are not exercised by v1 logic.
+- [Phase 01-foundation-persistence]: UNIQUE 约束放在表级 customConstraints 而非列级 customConstraint——当列同时有 references() FK 时，列级 customConstraint 会覆盖 FK
+- [Phase 01-foundation-persistence]: autoIncrement() 列自动设为主键，不需要再 override primaryKey
+- [Phase 01-foundation-persistence]: databaseProvider 延后到 Plan 01-03，当前 AppDatabase 提供静态工厂方法 openAppDatabase/openInMemoryDatabase
 
 ### Pending Todos
 
@@ -93,9 +98,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-19T09:39:00.000Z
-Stopped at: Plan 01-00 complete — toolchain foundation ready
-Resume file: .planning/phases/01-foundation-persistence/01-00-SUMMARY.md
+Last session: 2026-06-19T09:49:22.831Z
+Stopped at: Completed 01-02-PLAN.md — drift 7-table schema, schemaVersion=1, 5 migration tests green
+Resume file: None
 
 ### Recent plan-completion decisions
 

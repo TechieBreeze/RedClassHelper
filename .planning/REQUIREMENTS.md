@@ -17,14 +17,14 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **IMP-02**: Desktop user can select a `.pdf` file from local filesystem and import it as a question bank
 - [ ] **IMP-03**: Desktop app invokes a local on-device small LLM to parse raw text into structured questions (stem / options / answer)
 - [ ] **IMP-04**: Parse process shows progress and failure reasons; user can retry on failure
-- [ ] **IMP-05**: Imported questions are persisted to local database for long-term reuse
+- [x] **IMP-05**: Imported questions are persisted to local database for long-term reuse
 - [ ] **IMP-06**: Desktop user can export a parsed question bank as a standard JSON file (public format, see `doc/question-bank-json.md`)
 - [ ] **IMP-07**: Android user can select a `.json` file from local filesystem and import it as a question bank (LLM not invoked)
 
 ### Storage (持久化)
 
-- [ ] **STOR-01**: App uses a local SQLite database for all question/attempt/ledger/bookmark data (no backend)
-- [ ] **STOR-02**: Wrong-question ledger, bookmarks, and statistics are all locally accessible from Windows / Linux / Android
+- [x] **STOR-01**: App uses a local SQLite database for all question/attempt/ledger/bookmark data (no backend)
+- [x] **STOR-02**: Wrong-question ledger, bookmarks, and statistics are all locally accessible from Windows / Linux / Android
 
 ### Question Types (题目类型)
 
@@ -57,7 +57,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **PLT-02**: Linux build can be packaged as an executable + `.AppImage` / `.deb`
 - [ ] **PLT-03**: Android build can be packaged as a `.apk` (arm64-v8a mandatory, x86_64 optional)
 - [ ] **PLT-04**: A single Flutter codebase serves all three v1 platforms, with UI that adapts to window size and touch/mouse input
-- [ ] **PLT-05**: Local SQLite database file is accessible and stable on all three v1 platforms
+- [x] **PLT-05**: Local SQLite database file is accessible and stable on all three v1 platforms
 - [ ] **PLT-06**: JSON question-bank file is portable across all three v1 platforms (desktop exports → Android imports)
 
 ### UI (用户界面)
@@ -135,11 +135,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | IMP-02 | Phase 2 | Pending |
 | IMP-03 | Phase 3 | Pending |
 | IMP-04 | Phase 2 | Pending |
-| IMP-05 | Phase 1 | Pending |
+| IMP-05 | Phase 1 | Complete |
 | IMP-06 | Phase 5 | Pending |
 | IMP-07 | Phase 5 | Pending |
-| STOR-01 | Phase 1 | Pending |
-| STOR-02 | Phase 1 | Pending |
+| STOR-01 | Phase 1 | Complete |
+| STOR-02 | Phase 1 | Complete |
 | QST-01 | Phase 4 | Pending |
 | QST-02 | Phase 5 | Pending |
 | QST-03 | Phase 2 | Pending |
@@ -157,7 +157,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLT-02 | Phase 7 | Pending |
 | PLT-03 | Phase 7 | Pending |
 | PLT-04 | Phase 1 | Pending |
-| PLT-05 | Phase 1 | Pending |
+| PLT-05 | Phase 1 | Complete |
 | PLT-06 | Phase 5 | Pending |
 | UI-01 | Phase 6 | Pending |
 | UI-02 | Phase 1 | Pending |

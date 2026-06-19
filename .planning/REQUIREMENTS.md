@@ -56,7 +56,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **PLT-01**: Windows build can be packaged as a `.exe` (single-file or portable)
 - [ ] **PLT-02**: Linux build can be packaged as an executable + `.AppImage` / `.deb`
 - [ ] **PLT-03**: Android build can be packaged as a `.apk` (arm64-v8a mandatory, x86_64 optional)
-- [ ] **PLT-04**: A single Flutter codebase serves all three v1 platforms, with UI that adapts to window size and touch/mouse input
+- [x] **PLT-04**: A single Flutter codebase serves all three v1 platforms, with UI that adapts to window size and touch/mouse input
 - [x] **PLT-05**: Local SQLite database file is accessible and stable on all three v1 platforms
 - [ ] **PLT-06**: JSON question-bank file is portable across all three v1 platforms (desktop exports → Android imports)
 
@@ -156,7 +156,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLT-01 | Phase 7 | Pending |
 | PLT-02 | Phase 7 | Pending |
 | PLT-03 | Phase 7 | Pending |
-| PLT-04 | Phase 1 | Pending |
+| PLT-04 | Phase 1 | Complete |
 | PLT-05 | Phase 1 | Complete |
 | PLT-06 | Phase 5 | Pending |
 | UI-01 | Phase 6 | Pending |

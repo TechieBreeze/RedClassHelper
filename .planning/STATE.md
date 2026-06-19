@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-03-PLAN.md — PathResolver + appDatabaseProvider + 6 tests green
-last_updated: "2026-06-19T09:59:04.261Z"
+stopped_at: Completed 01-04-PLAN.md — GoRouter 6 routes + 8 tests green
+last_updated: "2026-06-19T10:05:39.416Z"
 last_activity: 2026-06-19
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 7
-  completed_plans: 4
-  percent: 57
+  completed_plans: 5
+  percent: 71
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2025-01-14 after platform-scope contraction)
 ## Current Position
 
 Phase: 1 of 7 (Foundation & Persistence)
-Plan: 4 of 7 in current phase (01-00 ✓ 01-01 ✓ 01-02 ✓; 01-03 next)
+Plan: 5 of 7 in current phase (01-00 ✓ 01-01 ✓ 01-02 ✓; 01-03 next)
 Status: Ready to execute
 Last activity: 2026-06-19
 Progress: [▓▓▓░░░░░░░] 29% (2/7 plans)
@@ -59,6 +59,7 @@ Progress: [▓▓▓░░░░░░░] 29% (2/7 plans)
 *Updated after each plan completion*
 | Phase 01-foundation-persistence P02 | 13min | 4 tasks | 11 files |
 | Phase 01-foundation-persistence P03 | 8min | 3 tasks | 6 files |
+| Phase 01-foundation-persistence P04 | 4min 12s | 4 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,8 @@ Recent decisions affecting current work:
 - [Phase 01-foundation-persistence]: @Riverpod(keepAlive:true) for both pathResolverProvider and appDatabaseProvider — prevents premature disposal during app lifetime
 - [Phase 01-foundation-persistence]: PathResolver pre-resolved in main() before runApp — avoids late-init error from path_provider in ref.watch chain (Pitfall 4)
 - [Phase 01-foundation-persistence]: Fake-directory test pattern for PathResolver — construct with temp Directory objects, no path_provider mock needed
+- [Phase 01-foundation-persistence]: GoRouter 配置使用 6 条 GoRoute,无 ShellRoute (StatefulShellRoute 推迟到 Phase 5)
+- [Phase 01-foundation-persistence]: go_router 是唯一导航 API — 静态 grep 确认 lib/ 中无 Navigator.push 调用
 
 ### Pending Todos
 
@@ -102,8 +105,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-19T09:59:04.258Z
-Stopped at: Completed 01-03-PLAN.md — PathResolver + appDatabaseProvider + 6 tests green
+Last session: 2026-06-19T10:05:39.413Z
+Stopped at: Completed 01-04-PLAN.md — GoRouter 6 routes + 8 tests green
 Resume file: None
 
 ### Recent plan-completion decisions

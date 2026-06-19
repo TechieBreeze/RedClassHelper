@@ -230,7 +230,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Persistence | 6/7 | In Progress|  |
+| 1. Foundation & Persistence | 7/7 | Complete | ✅ |
 | 2. Desktop File Import Pipeline | 0/8 | Not started | - |
 | 3. Desktop LLM Integration | 0/8 | Not started | - |
 | 4. Quiz Core & Wrong-Question Ledger | 0/9 | Not started | - |

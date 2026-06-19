@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 2 context gathered
+status: executing
+stopped_at: Phase 2 context gathered — 文件选取入口 + .doc 格式范围扩展
 last_updated: "2026-06-19T13:02:36.538Z"
 last_activity: 2026-06-19
 progress:
@@ -11,7 +11,7 @@ progress:
   completed_phases: 1
   total_plans: 7
   completed_plans: 7
-  percent: 100
+  percent: 14
 ---
 
 # Project State
@@ -21,30 +21,29 @@ progress:
 See: .planning/PROJECT.md (updated 2025-01-14 after platform-scope contraction)
 
 **Core value:** 把"老师发的题库文件"零摩擦地变成"可立刻投入复习的结构化题库"，让本地刷题体验比任何在线刷题网站都更顺手——**离线可用、零配置、解析即用、桌面解析、移动轻量**。
-**Current focus:** Phase 1 — Foundation & Persistence (3-platform Flutter skeleton + drift + go_router + PathResolver; iOS/macOS source-level support)
+**Current focus:** Phase 2 — Desktop File Import Pipeline (.doc/.docx/.pdf 文本提取 + 启发式解析 + 预览编辑 + 入库)
 
 ## Current Position
 
-Phase: 1 of 7 (Foundation & Persistence) — ✅ COMPLETE
-Plan: 7 of 7 in current phase — ALL DONE
-Status: Phase 1 complete. Ready for Phase 2 (Desktop File Import Pipeline)
-Last milestone: 2026-06-19 — Cross-platform smoke: Windows ✅, Android deferred (disk space), 39/39 tests, flutter analyze green
-Last activity: 2026-06-19
-Progress: [▓▓▓░░░░░░░] 29% (2/7 plans)
+Phase: 2 of 7 (Desktop File Import Pipeline) — 🔵 Context gathered
+Plan: 0 of 8 in current phase — Not yet planned
+Status: Phase 1 complete. Phase 2 context gathered (02-CONTEXT.md), ready for planning.
+Last activity: 2026-06-19 — Phase 2 discuss-phase: 文件选取入口 + .doc format scope expansion
+Progress: [█░░░░░░░░░] 14% (1/7 phases, 7/53 plans)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 1
+- Total plans completed: 7
 - Average duration: 25 min
-- Total execution time: 0.4 hours
+- Total execution time: ~5 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Foundation & Persistence | 1/7 | 25 min | 25 min |
+| 1. Foundation & Persistence | 7/7 | ~5 hrs | 25 min |
 | 2. Desktop File Import Pipeline | 0/8 | — | — |
 | 3. Desktop LLM Integration | 0/8 | — | — |
 | 4. Quiz Core & Wrong-Question Ledger | 0/9 | — | — |
@@ -102,7 +101,7 @@ None yet.
 
 [Issues that affect future work]
 
-- **Phase 2 — docx parsing**: No mature pure-Dart `.docx` reader on pub.dev; `archive + xml` works but requires hand-rolled WordprocessingML traversal. Mitigation: pull 3-5 real Chinese university `.docx` files during planning and write unit tests against them. (PITFALL 6, MEDIUM confidence)
+- **Phase 2 — docx/doc parsing**: No mature pure-Dart `.docx` reader on pub.dev; `archive + xml` works but requires hand-rolled WordprocessingML traversal. `.doc` (Word 97-2003 OLE2 binary) is now in scope — no known pure Dart OLE2 reader; may need pandoc/LibreOffice CLI fallback. Mitigation: pull 3-5 real Chinese university `.docx` files during planning; `doc/example/` has 4 real samples (2 `.doc`, 1 `.docx`, 1 `.pdf`). (PITFALL 6, MEDIUM confidence)
 - **Phase 3 — LLM FFI**: No pub.dev wrapper covers Windows + Linux; ~1-2 weeks of FFI shim work expected. Mitigation: 1-week spike before locking plan; HTTP-only fallback documented. (PITFALL 4, MEDIUM confidence)
 - **Phase 3 — desktop OOM**: 1.5B Q4_K_M model needs ~2-2.5 GB peak RAM; low-end laptops are at risk. Mitigation: capability probe + lazy model load + n_ctx=1024 + "Fast/Recommended/Experimental" tier UI. (PITFALL 4)
 - **Phase 7 — Cross-platform real-device validation**: Builds behave differently per platform; real device smoke tests required before shipping. Windows SmartScreen, Linux distro compatibility, Android signing key management are all non-trivial.

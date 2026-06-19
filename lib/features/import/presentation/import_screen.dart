@@ -1,6 +1,6 @@
 // lib/features/import/presentation/import_screen.dart
 // ── 导入题库入口页 ──
-// 平台分支：桌面端显示 .docx/.pdf/.json 图块 + 拖放；
+// 平台分支：桌面端显示 .docx/.pdf/.json 图块 + 拖放 + 解析方式选择；
 // Android 仅显示 .json（禁用）。
 
 import 'dart:io';
@@ -9,23 +9,27 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
+import '../../models/widgets/parser_choice_dialog.dart';
+import '../providers/import_notifier.dart';
+import '../providers/import_state.dart';
 import '../widgets/file_format_tile.dart';
 
 /// 导入题库入口页。
 ///
-/// 桌面端：3 个格式图块 + 拖放 + 提示文字。
+/// 桌面端：3 个格式图块 + 拖放 + 解析方式选择对话框。
 /// Android 端：仅 .json 图块（禁用）。
-class ImportScreen extends StatefulWidget {
+class ImportScreen extends ConsumerStatefulWidget {
   const ImportScreen({super.key});
 
   @override
-  State<ImportScreen> createState() => _ImportScreenState();
+  ConsumerState<ImportScreen> createState() => _ImportScreenState();
 }
 
-class _ImportScreenState extends State<ImportScreen> {
+class _ImportScreenState extends ConsumerState<ImportScreen> {
   /// 支持的桌面端文件扩展名（用于拖放验证）
   static const _supportedExtensions = [
     'doc',
@@ -74,7 +78,7 @@ class _ImportScreenState extends State<ImportScreen> {
         setState(() => _isDragOver = false);
         final filePath = details.files.firstOrNull?.path;
         if (filePath != null && _isSupportedFile(filePath)) {
-          _navigateToProgress(context, filePath);
+          _onFileSelected(context, filePath);
         } else if (filePath != null) {
           _showUnsupportedError(context);
         }
@@ -234,7 +238,7 @@ class _ImportScreenState extends State<ImportScreen> {
     if (result != null && result.files.isNotEmpty) {
       final filePath = result.files.first.path;
       if (filePath != null) {
-        _navigateToProgress(context, filePath);
+        await _onFileSelected(context, filePath);
       }
     }
   }
@@ -249,7 +253,7 @@ class _ImportScreenState extends State<ImportScreen> {
     if (result != null && result.files.isNotEmpty) {
       final filePath = result.files.first.path;
       if (filePath != null) {
-        _navigateToProgress(context, filePath);
+        await _onFileSelected(context, filePath);
       }
     }
   }
@@ -264,16 +268,65 @@ class _ImportScreenState extends State<ImportScreen> {
     if (result != null && result.files.isNotEmpty) {
       final filePath = result.files.first.path;
       if (filePath != null) {
-        _navigateToProgress(context, filePath);
+        await _onFileSelected(context, filePath);
       }
     }
   }
 
-  // ── 导航与错误处理 ──
+  // ── 文件选择后处理 ──
 
-  void _navigateToProgress(BuildContext context, String filePath) {
+  /// 文件选择完成后：桌面端展示解析方式选择对话框；
+  /// Android 直接触发启发式解析。
+  Future<void> _onFileSelected(BuildContext context, String filePath) async {
+    final isDesktop = !kIsWeb && (Platform.isWindows || Platform.isLinux);
+
+    if (!isDesktop) {
+      // Android: 直接触发启发式解析（Phase 2 行为）
+      _startParseAndNavigate(context, filePath, ParseMethod.heuristic);
+      return;
+    }
+
+    // Desktop: 展示解析方式选择对话框
+    if (!mounted) return;
+    final parseMethod = await showDialog<ParseMethod>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const ParserChoiceDialog(),
+    );
+
+    if (parseMethod == null || !mounted) return;
+
+    _startParseAndNavigate(context, filePath, parseMethod);
+  }
+
+  /// 启动解析并导航到进度页。
+  void _startParseAndNavigate(
+    BuildContext context,
+    String filePath,
+    ParseMethod method,
+  ) {
+    final file = File(filePath);
+    final stat = file.statSync();
+    final notifier = ref.read(importNotifierProvider.notifier);
+
+    notifier.pickFiles([
+      ImportFile(
+        path: filePath,
+        name: p.basename(filePath),
+        sizeBytes: stat.size,
+      ),
+    ]);
+
+    if (method == ParseMethod.llm) {
+      notifier.llmParse();
+    } else {
+      notifier.extractAndParse();
+    }
+
     context.push('/import/progress', extra: filePath);
   }
+
+  // ── 错误处理 ──
 
   void _showUnsupportedError(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(

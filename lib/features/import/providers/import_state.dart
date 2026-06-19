@@ -2,6 +2,7 @@
 // ── 导入管道状态模型 ──
 // 表示导入管道从文件选择到持久化的完整生命周期。
 
+import '../../import/parsing/llm/canonicalizer.dart';
 import '../../import/parsing/parse_candidate.dart';
 
 /// 导入管道阶段
@@ -15,8 +16,11 @@ enum ImportPhase {
   /// 正在提取文本（可能耗时较长）
   extracting,
 
-  /// 正在解析候选题目
+  /// 正在解析候选题目（启发式）
   parsing,
+
+  /// LLM 解析子阶段（D-07: LLM 解析完成后直接进入编辑）
+  llmParsing,
 
   /// 等待用户审核/编辑
   editing,
@@ -73,6 +77,10 @@ class ImportState {
   /// 题库名称（从文件名推导）
   final String bankName;
 
+  /// 每题解析来源：LLM / 启发式 / 兜底（LLM 失败后启发式重试）
+  /// D-09: 追踪每题的解析路径，用于汇总页展示
+  final Map<int, ParseSource> parseSources;
+
   const ImportState({
     this.jobId = '',
     this.phase = ImportPhase.idle,
@@ -84,12 +92,14 @@ class ImportState {
     this.error,
     this.committedCount = 0,
     this.bankName = '',
+    this.parseSources = const {},
   });
 
   /// 便捷检查器
   bool get isIdle => phase == ImportPhase.idle;
   bool get isExtracting => phase == ImportPhase.extracting;
   bool get isParsing => phase == ImportPhase.parsing;
+  bool get isLlmParsing => phase == ImportPhase.llmParsing;
   bool get isEditing => phase == ImportPhase.editing;
   bool get isCommitting => phase == ImportPhase.committing;
   bool get isDone => phase == ImportPhase.done;
@@ -132,6 +142,7 @@ class ImportState {
     String? error,
     int? committedCount,
     String? bankName,
+    Map<int, ParseSource>? parseSources,
     bool clearError = false,
   }) {
     return ImportState(
@@ -145,6 +156,7 @@ class ImportState {
       error: clearError ? null : (error ?? this.error),
       committedCount: committedCount ?? this.committedCount,
       bankName: bankName ?? this.bankName,
+      parseSources: parseSources ?? this.parseSources,
     );
   }
 }

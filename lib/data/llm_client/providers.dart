@@ -8,6 +8,7 @@ import 'dart:io' show Platform;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'llm_client.dart';
+import 'stub_llm_client.dart';
 
 part 'providers.g.dart';
 
@@ -22,8 +23,8 @@ LlmMode llmMode(Ref ref) => LlmMode.stub;
 ///
 /// 在非桌面平台（Android/iOS）上访问此 provider 抛出 [UnsupportedError]。
 /// 在桌面平台上根据 [llmModeProvider] 的值切换具体实现：
-///   - [LlmMode.stub] → TODO: StubLlmClient (03-02)
-///   - [LlmMode.http]  → TODO: HttpLlmClient (03-03)
+///   - [LlmMode.stub] → [StubLlmClient] (deterministic, for dev/CI)
+///   - [LlmMode.http] → TODO: HttpLlmClient (03-03)
 @Riverpod(keepAlive: true)
 LlmClient llmClient(Ref ref) {
   if (!(Platform.isWindows || Platform.isLinux)) {
@@ -34,9 +35,7 @@ LlmClient llmClient(Ref ref) {
 
   final mode = ref.watch(llmModeProvider);
   return switch (mode) {
-    LlmMode.stub => throw UnimplementedError(
-        'LlmMode.stub not yet implemented (03-02)',
-      ),
+    LlmMode.stub => StubLlmClient(),
     LlmMode.http => throw UnimplementedError(
         'LlmMode.http not yet implemented (03-03)',
       ),

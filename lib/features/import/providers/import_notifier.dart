@@ -36,6 +36,7 @@ class ImportNotifier extends _$ImportNotifier {
 
     final bankName = _deriveBankName(files.first.name);
     state = state.copyWith(
+      jobId: _uuid.v4(),
       phase: ImportPhase.picking,
       files: files,
       bankName: bankName,

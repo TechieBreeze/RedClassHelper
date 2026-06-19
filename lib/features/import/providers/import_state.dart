@@ -43,6 +43,9 @@ class ImportFile {
 
 /// 导入管道状态
 class ImportState {
+  /// 当前解析任务 ID（用于路由参数和日志关联）
+  final String jobId;
+
   /// 当前阶段
   final ImportPhase phase;
 
@@ -71,6 +74,7 @@ class ImportState {
   final String bankName;
 
   const ImportState({
+    this.jobId = '',
     this.phase = ImportPhase.idle,
     this.files = const [],
     this.extractedText = '',
@@ -95,6 +99,7 @@ class ImportState {
   bool get hasCandidates => candidates.isNotEmpty;
 
   ImportState copyWith({
+    String? jobId,
     ImportPhase? phase,
     List<ImportFile>? files,
     String? extractedText,
@@ -107,6 +112,7 @@ class ImportState {
     bool clearError = false,
   }) {
     return ImportState(
+      jobId: jobId ?? this.jobId,
       phase: phase ?? this.phase,
       files: files ?? this.files,
       extractedText: extractedText ?? this.extractedText,

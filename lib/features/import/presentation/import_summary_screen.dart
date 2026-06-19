@@ -115,6 +115,11 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                       ),
                     ),
                   ),
+                  // ── 跳过题目列表（D-09）──
+                  if (state.skippedCandidates.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    _buildSkippedSection(context),
+                  ],
                   const SizedBox(height: 32),
 
                   // ── CTA 按钮 ──
@@ -225,6 +230,88 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSkippedSection(BuildContext context) {
+    final state = ref.watch(importNotifierProvider);
+    final theme = Theme.of(context);
+    final skipped = state.skippedCandidates;
+
+    return Card(
+      color: Colors.orange.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.warning_amber_rounded,
+                    color: Colors.orange.shade700, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  '⚠ 跳过 ${skipped.length} 题',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.orange.shade900,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...skipped.map((item) {
+              final displayIndex = item.index + 1; // 人类可读编号从1开始
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '#$displayIndex: ${item.reason}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.orange.shade900,
+                            ),
+                          ),
+                          if (item.candidate.title.isNotEmpty)
+                            Text(
+                              item.candidate.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.orange.shade700,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        ref
+                            .read(importNotifierProvider.notifier)
+                            .retryParseCandidate(item.index);
+                        setState(() {}); // 刷新 UI
+                      },
+                      child: const Text('重试'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        // 手动编辑：导航回预览页
+                        context.go('/import/preview/${state.jobId}');
+                      },
+                      child: const Text('手动编辑'),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
     );
   }
 

@@ -4,7 +4,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -242,6 +241,32 @@ class ImportNotifier extends _$ImportNotifier {
         error: '保存失败: ${e.toString()}',
       );
     }
+  }
+
+  /// 设置题库名称（用户在预览页编辑时调用）
+  void setBankName(String name) {
+    state = state.copyWith(bankName: name);
+  }
+
+  /// 重新解析单个候选题目（摘要页"重试"按钮触发）
+  void retryParseCandidate(int index) {
+    if (index < 0 || index >= state.candidates.length) return;
+
+    final rawText = state.candidates[index].rawText;
+    final reparsed = _parser.parse(rawText, bankName: state.bankName);
+
+    final candidates = List<ParseCandidate>.from(state.candidates);
+    if (reparsed.isNotEmpty) {
+      // 保留原始行号信息
+      candidates[index] = reparsed.first.copyWith(
+        startLine: candidates[index].startLine,
+        endLine: candidates[index].endLine,
+      );
+    }
+    // 无论重解析成功与否，都加入确认集
+    final confirmed = Set<int>.from(state.confirmedIndices);
+    confirmed.add(index);
+    state = state.copyWith(candidates: candidates, confirmedIndices: confirmed);
   }
 
   /// 重置管道

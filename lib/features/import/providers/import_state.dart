@@ -98,6 +98,29 @@ class ImportState {
   /// 有候选可供审核
   bool get hasCandidates => candidates.isNotEmpty;
 
+  /// 未被用户确认的候选题目（即跳过项），带跳过原因。
+  List<({int index, ParseCandidate candidate, String reason})>
+      get skippedCandidates {
+    return candidates.asMap().entries
+        .where((e) => !confirmedIndices.contains(e.key))
+        .map((e) {
+          final c = e.value;
+          final reason = _deriveSkipReason(c);
+          return (index: e.key, candidate: c, reason: reason);
+        })
+        .toList();
+  }
+
+  /// 推导跳过原因
+  String _deriveSkipReason(ParseCandidate c) {
+    if (c.confidence < 0.3) return '置信度过低';
+    if (c.candidateType == CandidateType.unknown) return '题型未识别';
+    if (c.title.isEmpty && c.options.isEmpty) return '题干和选项均缺失';
+    if (c.options.length < 2) return '选项不足（少于2个）';
+    if (c.answer.isEmpty) return '答案未识别';
+    return '用户跳过';
+  }
+
   ImportState copyWith({
     String? jobId,
     ImportPhase? phase,

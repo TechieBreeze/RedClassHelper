@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 
 import '../parsing/parse_candidate.dart';
 import '../providers/import_notifier.dart';
-import '../providers/import_state.dart';
 import '../widgets/candidate_card.dart';
 
 /// 导入预览编辑页——审核解析出的候选题目。
@@ -27,6 +26,31 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
   CandidateType? _filterType;
   bool _selectAll = true;
 
+  late final TextEditingController _bankNameController;
+  String? _bankNameError;
+
+  @override
+  void initState() {
+    super.initState();
+    // 从 state 初始化 controller
+    final bankName = ref.read(importNotifierProvider).bankName;
+    _bankNameController = TextEditingController(text: bankName);
+
+    // jobId 有效性守卫——过期路由重定向到首页
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = ref.read(importNotifierProvider);
+      if (!state.isEditing && !state.isCommitting) {
+        if (mounted) context.go('/');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _bankNameController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(importNotifierProvider);
@@ -35,16 +59,12 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
 
     // 题型筛选
     final filteredCandidates = _filterType == null
-        ? candidates
+        ? candidates.asMap().entries.toList()
         : candidates
             .asMap()
             .entries
             .where((e) => e.value.candidateType == _filterType)
             .toList();
-
-    // 是否有修改
-    final hasModifications = confirmedIndices.length != candidates.length ||
-        candidates.any((c) => c.confidence < 0.5);
 
     return PopScope(
       canPop: false,
@@ -80,6 +100,30 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
             ? _buildEmptyState(context)
             : Column(
                 children: [
+                  // ── 题库名称编辑区（D-18 CJK 感知）──
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: TextField(
+                      controller: _bankNameController,
+                      decoration: InputDecoration(
+                        labelText: '题库名称',
+                        hintText: '输入题库名称',
+                        errorText: _bankNameError,
+                        helperText: '中文/全角=2字符，ASCII=1字符，上限20',
+                        border: const OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      onChanged: (value) {
+                        setState(
+                            () => _bankNameError = _validateBankName(value));
+                        if (_bankNameError == null) {
+                          ref
+                              .read(importNotifierProvider.notifier)
+                              .setBankName(value.trim());
+                        }
+                      },
+                    ),
+                  ),
                   // ── 底部 Sheet：批量操作 + 题型筛选 ──
                   _buildToolbar(context, confirmedIndices, candidates),
                   // ── 候选列表 ──
@@ -89,9 +133,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                           horizontal: 16, vertical: 8),
                       itemCount: filteredCandidates.length,
                       itemBuilder: (context, index) {
-                        final entry = _filterType == null
-                            ? MapEntry(index, candidates[index])
-                            : filteredCandidates[index];
+                        final entry = filteredCandidates[index];
                         final i = entry.key;
                         final candidate = entry.value;
                         final isConfirmed = confirmedIndices.contains(i);
@@ -277,6 +319,16 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
   }
 
   Future<void> _onSave(BuildContext context) async {
+    // 验证题库名称
+    final nameError = _validateBankName(_bankNameController.text);
+    if (nameError != null) {
+      setState(() => _bankNameError = nameError);
+      return;
+    }
+    // 确保 state 中的 bankName 是最新的
+    ref.read(importNotifierProvider.notifier)
+        .setBankName(_bankNameController.text.trim());
+
     final notifier = ref.read(importNotifierProvider.notifier);
     await notifier.commitToDatabase();
 
@@ -284,6 +336,35 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     if (state.isDone && mounted) {
       context.go('/import/summary/${state.jobId}');
     }
+  }
+
+  /// 计算字符串的 CJK 感知长度：中文/全角字符=2，ASCII=1
+  int _cjkAwareLength(String text) {
+    int len = 0;
+    for (final char in text.characters) {
+      final code = char.codeUnitAt(0);
+      // CJK统一表意文字 (U+4E00–U+9FFF)、CJK扩展A (U+3400–U+4DBF)、
+      // CJK兼容表意文字 (U+F900–U+FAFF)、中文标点 (U+3000–U+303F)、
+      // 全角字母/数字 (U+FF01–U+FF5E)
+      if ((code >= 0x4E00 && code <= 0x9FFF) ||
+          (code >= 0xFF01 && code <= 0xFF5E) ||
+          (code >= 0x3000 && code <= 0x303F) ||
+          (code >= 0x3400 && code <= 0x4DBF) ||
+          (code >= 0xF900 && code <= 0xFAFF)) {
+        len += 2;
+      } else {
+        len += 1;
+      }
+    }
+    return len;
+  }
+
+  /// 验证题库名称，返回 null 表示有效
+  String? _validateBankName(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return '请输入题库名称';
+    if (_cjkAwareLength(trimmed) > 20) return '题库名称过长（上限20字符，中文=2）';
+    return null;
   }
 
   String _typeLabel(CandidateType type) {

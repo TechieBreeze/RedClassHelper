@@ -1,5 +1,6 @@
 // lib/routing/router.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/bank_detail/presentation/bank_detail_screen.dart';
@@ -9,6 +10,7 @@ import '../features/import/presentation/import_preview_screen.dart';
 import '../features/import/presentation/import_progress_screen.dart';
 import '../features/import/presentation/import_screen.dart';
 import '../features/import/presentation/import_summary_screen.dart';
+import '../features/import/providers/import_notifier.dart';
 import '../features/quiz/presentation/quiz_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
 
@@ -56,11 +58,27 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/import/preview/:jobId',
+      redirect: (BuildContext context, GoRouterState state) {
+        final container = ProviderScope.containerOf(context);
+        final importState = container.read(importNotifierProvider);
+        if (!importState.isEditing && !importState.isCommitting) {
+          return '/';
+        }
+        return null;
+      },
       builder: (BuildContext context, GoRouterState state) =>
           const ImportPreviewScreen(),
     ),
     GoRoute(
       path: '/import/summary/:jobId',
+      redirect: (BuildContext context, GoRouterState state) {
+        final container = ProviderScope.containerOf(context);
+        final importState = container.read(importNotifierProvider);
+        if (!importState.isDone && importState.committedCount == 0) {
+          return '/';
+        }
+        return null;
+      },
       builder: (BuildContext context, GoRouterState state) =>
           const ImportSummaryScreen(),
     ),

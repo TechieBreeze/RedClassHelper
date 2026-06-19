@@ -1,7 +1,9 @@
 # Requirements: RedClass (红课复习)
 
 **Defined:** 2025-01-14
-**Core Value:** 把"老师发的题库文件"零摩擦地变成"可立刻投入复习的结构化题库",让本地刷题体验比任何在线刷题网站都更顺手——**离线可用、零配置、解析即用**。
+**Core Value:** 把"老师发的题库文件"零摩擦地变成"可立刻投入复习的结构化题库",让本地刷题体验比任何在线刷题网站都更顺手——**离线可用、零配置、解析即用、桌面解析、移动轻量**。
+
+> **平台差异说明**：v1 五端共享一套代码。**LLM 解析能力仅在桌面端（Windows / macOS / Linux）启用**；移动端（Android / iOS）只通过"导入 JSON 文件"获得题库。导入页 UI 按平台分支渲染（桌面端三入口，移动端一入口）。这是显式的工程取舍，已记入 PROJECT.md 的 Key Decisions。
 
 ## v1 Requirements
 
@@ -9,16 +11,18 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Import (题库导入与解析)
 
-- [ ] **IMP-01**: User can select a `.docx` file from local filesystem and import it as a question bank
-- [ ] **IMP-02**: User can select a `.pdf` file from local filesystem and import it as a question bank
-- [ ] **IMP-03**: App invokes a local on-device small LLM to parse raw text into structured questions (stem / options / answer)
+- [ ] **IMP-01**: Desktop user can select a `.docx` file from local filesystem and import it as a question bank
+- [ ] **IMP-02**: Desktop user can select a `.pdf` file from local filesystem and import it as a question bank
+- [ ] **IMP-03**: Desktop app invokes a local on-device small LLM to parse raw text into structured questions (stem / options / answer)
 - [ ] **IMP-04**: Parse process shows progress and failure reasons; user can retry on failure
 - [ ] **IMP-05**: Imported questions are persisted to local database for long-term reuse
+- [ ] **IMP-06**: Desktop user can export a parsed question bank as a standard JSON file (public format, see `doc/question-bank-json.md`)
+- [ ] **IMP-07**: Mobile user can select a `.json` file from local filesystem and import it as a question bank (LLM not invoked)
 
 ### Storage (持久化)
 
 - [ ] **STOR-01**: App uses a local SQLite database for all question/attempt/ledger/bookmark data (no backend)
-- [ ] **STOR-02**: Wrong-question ledger, bookmarks, and statistics are all locally accessible from both Windows and Android
+- [ ] **STOR-02**: Wrong-question ledger, bookmarks, and statistics are all locally accessible from Windows / macOS / Linux / Android / iOS
 
 ### Question Types (题目类型)
 
@@ -45,18 +49,23 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **STAT-01**: App records each answer attempt (question id, correct/incorrect, elapsed time, mode, timestamp)
 - [ ] **STAT-02**: User can view answer statistics: correct rate, wrong-question distribution, per-mode aggregation
 
-### Platform (桌面与移动端)
+### Platform (跨平台)
 
 - [ ] **PLT-01**: Windows build can be packaged as a `.exe` (single-file or portable)
-- [ ] **PLT-02**: Android build can be packaged as a `.apk` (debug or release)
-- [ ] **PLT-03**: A single Flutter codebase serves both platforms, with UI that adapts to window size and touch/mouse input
-- [ ] **PLT-04**: Local SQLite database file is accessible and stable on both Windows and Android
+- [ ] **PLT-02**: macOS build can be packaged as a `.app` / `.dmg`
+- [ ] **PLT-03**: Linux build can be packaged as an executable + `.AppImage` / `.deb`
+- [ ] **PLT-04**: Android build can be packaged as a `.apk` (arm64-v8a mandatory, x86_64 optional)
+- [ ] **PLT-05**: iOS build can be packaged as a `.ipa` (requires Apple Developer account; source-level support at minimum)
+- [ ] **PLT-06**: A single Flutter codebase serves all five platforms, with UI that adapts to window size and touch/mouse input
+- [ ] **PLT-07**: Local SQLite database file is accessible and stable on all five platforms
+- [ ] **PLT-08**: JSON question-bank file is portable across all five platforms (desktop exports → mobile imports)
 
 ### UI (用户界面)
 
 - [ ] **UI-01**: UI is consistent, professional, and restrained — focused on distraction-free studying (per `ui-ux-pro-max` reference)
 - [ ] **UI-02**: Home screen shows bank list + entries for the three review modes + statistics entry
 - [ ] **UI-03**: Quiz screen presents clear stems, tappable options, immediate submission feedback, and explicit correct/incorrect display
+- [ ] **UI-04**: Import page branches by platform: desktop shows `.docx` / `.pdf` / `.json` entries; mobile shows only `.json` entry. LLM parse UI is hidden on mobile.
 
 ## v2 Requirements
 
@@ -64,8 +73,9 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ### Import v2
 
-- **IMP-06**: Scanned PDF OCR support (out of v1 — high complexity, low immediate value)
-- **IMP-07**: Rich-text / image / formula extraction and rendering (out of v1)
+- **IMP-08**: Scanned PDF OCR support (out of v1 — high complexity, low immediate value)
+- **IMP-09**: Rich-text / image / formula extraction and rendering (out of v1)
+- **IMP-10**: Cross-device wrong-question ledger / bookmark sync via JSON exchange (v1 is single-direction bank import only)
 
 ### Question Types v2
 
@@ -79,13 +89,13 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ### Platform v2
 
-- **PLT-05**: iOS / macOS / Linux targets (out of v1 — explicit Windows+Android only)
-- **PLT-06**: Cloud sync / multi-device (out of v1 — explicit local-only, no backend)
+- **PLT-09**: Web target (out of v1 — explicit desktop + mobile only)
+- **PLT-10**: Multi-device sync (out of v1 — explicit local-only, no backend)
 
 ### UI v2
 
-- **UI-04**: Dark/light theme switching (out of v1 — Material 3 default only)
-- **UI-05**: Font-size adjustment (out of v1 — default + platform zoom only)
+- **UI-05**: Dark/light theme switching (out of v1 — Material 3 default only)
+- **UI-06**: Font-size adjustment (out of v1 — default + platform zoom only)
 
 ## Out of Scope
 
@@ -93,7 +103,7 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Cloud sync / multi-device sync | Personal/small-group tool, no backend, single-device simplest |
+| Cloud sync / multi-device sync | Personal/small-group tool, no backend; JSON file is the user's transmission protocol |
 | Multi-user login / registration | No account needed, out-of-box usage, lower complexity |
 | Image / formula rendering in questions | Question banks are primarily text; image handling would require OCR + asset management, out of v1 |
 | Chapter / knowledge-point filtering | Question bank structure may not have clean chapter labels, forcing user annotation creates friction |
@@ -109,6 +119,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | Anki-style spaced repetition (SRS) | Out of scope; wrong-question ledger already covers ~80% of benefit |
 | Timed exam mode | Different product; this is review, not test-taking |
 | Social features / leaderboards | Closed-source single-user tool |
+| Mobile LLM parsing | 1-3B models unreliable on Android/iOS in v1; JSON file transfer is the cross-device path |
 
 ## Traceability
 
@@ -121,6 +132,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | IMP-03 | Phase 3 | Pending |
 | IMP-04 | Phase 2 | Pending |
 | IMP-05 | Phase 1 | Pending |
+| IMP-06 | Phase 5 | Pending |
+| IMP-07 | Phase 5 | Pending |
 | STOR-01 | Phase 1 | Pending |
 | STOR-02 | Phase 1 | Pending |
 | QST-01 | Phase 4 | Pending |
@@ -138,17 +151,23 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STAT-02 | Phase 5 | Pending |
 | PLT-01 | Phase 7 | Pending |
 | PLT-02 | Phase 7 | Pending |
-| PLT-03 | Phase 1 | Pending |
-| PLT-04 | Phase 1 | Pending |
+| PLT-03 | Phase 7 | Pending |
+| PLT-04 | Phase 7 | Pending |
+| PLT-05 | Phase 7 | Pending |
+| PLT-06 | Phase 1 | Pending |
+| PLT-07 | Phase 1 | Pending |
+| PLT-08 | Phase 5 | Pending |
 | UI-01 | Phase 6 | Pending |
 | UI-02 | Phase 1 | Pending |
 | UI-03 | Phase 4 | Pending |
+| UI-04 | Phase 2 | Pending |
 
 **Coverage:**
-- v1 requirements: 27 total
-- Mapped to phases: 27
+- v1 requirements: 33 total
+- Mapped to phases: 33
 - Unmapped: 0 ✓
 
 ---
+
 *Requirements defined: 2025-01-14*
-*Last updated: 2025-01-14 after initial definition*
+*Last updated: 2025-01-14 after platform-scope expansion (5 platforms, mobile-LLM disabled, JSON export)*

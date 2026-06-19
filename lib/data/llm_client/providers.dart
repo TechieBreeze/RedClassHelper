@@ -8,6 +8,7 @@ import 'dart:io' show Platform;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'llm_client.dart';
+import 'http_llm_client.dart';
 import 'stub_llm_client.dart';
 
 part 'providers.g.dart';
@@ -36,8 +37,9 @@ LlmClient llmClient(Ref ref) {
   final mode = ref.watch(llmModeProvider);
   return switch (mode) {
     LlmMode.stub => StubLlmClient(),
-    LlmMode.http => throw UnimplementedError(
-        'LlmMode.http not yet implemented (03-03)',
-      ),
+    LlmMode.http => HttpLlmClient(
+      serverUrl: 'http://localhost:8080',
+      timeout: const Duration(seconds: 30),
+    ),
   };
 }

@@ -64,17 +64,18 @@ Plans:
   4. Parse runs in a background isolate — UI never blocks for more than one frame during a 50k-character import
   5. Single-choice vs multiple-choice question type is correctly detected and labeled in the preview
   6. Android's import page renders the `.json`-only entry; `.docx`/`.pdf` buttons are not visible (gated on `Platform.isWindows || Platform.isLinux`)
-**Plans**: TBD (estimated 6-8 plans for "standard" granularity)
+**Plans**: 1 consolidated (02-00-PLAN.md) — 10 tasks covering all sub-areas below
 
 Plans:
-- [ ] 02-01: `file_picker` integration + PDFium/post-install steps for Windows
-- [ ] 02-02: `archive` + `xml` docx walker with unit tests against real Chinese `.docx` samples
-- [ ] 02-03: `pdfx` text extraction (text-layer PDFs only; explicit error for scanned PDFs)
-- [ ] 02-04: Heuristic regex parser (numbered stems, `A./B./C./D.` options, `答案:` markers)
-- [ ] 02-05: Isolate-based parse job with progress + cancel + `parse_job` row in DB
-- [ ] 02-06: Import preview/edit screen with bulk accept and per-row correction
-- [ ] 02-07: Import summary screen (success count, skipped list, retry individual chunks)
-- [ ] 02-08: Platform-conditional import page UI (desktop: `.docx`/`.pdf`/`.json`; Android: `.json` only) using `Platform.isWindows || Platform.isLinux`
+- [x] 02-00: Consolidated implementation plan — all 10 tasks (dependencies → extraction → parser → providers → 4 screens → FAB → routing → integration tests)
+- [x] → 02-01: `file_picker` integration + PDFium/post-install steps for Windows
+- [x] → 02-02: `archive` + `xml` docx walker with unit tests against real Chinese `.docx` samples
+- [x] → 02-03: `pdfx` text extraction (text-layer PDFs only; explicit error for scanned PDFs)
+- [x] → 02-04: Heuristic regex parser (numbered stems, `A./B./C./D.` options, `答案:` markers)
+- [x] → 02-05: Isolate-based parse job with progress + cancel
+- [x] → 02-06: Import preview/edit screen with bulk accept and per-row correction
+- [x] → 02-07: Import summary screen (success count, skipped list, retry individual chunks)
+- [x] → 02-08: Platform-conditional import page UI (desktop: `.docx`/`.pdf`/`.json`; Android: `.json` only)
 
 **UI hint**: yes (import picker, progress, preview, summary screens; platform-branched entry)
 **Research flag**: **HIGH** — needs validation against real Chinese university `.docx` files during planning; pull 3-5 sample files before locking plan

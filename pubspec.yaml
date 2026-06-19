@@ -20,8 +20,10 @@ dependencies:
   riverpod_annotation: ^4.0.3
 
   # drift ORM on SQLite — STOR-01
-  # Native SQLite is bundled via package:sqlite3 Dart hooks (no sqlite3_flutter_libs needed)
+  # sqlite3_flutter_libs bundles pre-compiled .so for Android — avoids network
+  # download during build (the sqlite3 hook hits GitHub which times out in CI/CN).
   drift: ^2.34.0
+  sqlite3_flutter_libs: ^0.5.38
   path: ^1.9.1
   path_provider: ^2.1.6
 
@@ -36,8 +38,15 @@ dependencies:
   freezed_annotation: ^3.1.0
   json_annotation: ^4.9.0
 
+  # Phase 2: File import pipeline dependencies
+  archive: ^4.0.9          # ZIP decode for .docx
+  xml: ^6.5.0              # WordprocessingML traversal
+  pdfx: ^2.9.2             # PDF text extraction via PDFium
+  file_picker: ^11.0.2     # Native file dialog (desktop only)
+  desktop_drop: ^0.7.1     # Drag-and-drop file import (desktop)
+  uuid: ^4.5.1             # UUID generation for ParseJob IDs
+
   # intl deferred to Phase 5 per CONTEXT.md "Claude's Discretion"
-  # file_picker / pdfx / archive / xml / shared_preferences deferred to later phases
 
 dev_dependencies:
   flutter_test:
@@ -60,6 +69,13 @@ dev_dependencies:
   # exclusive in current pub.dev resolution. riverpod_generator 4.0.4 itself works
   # without riverpod_lint; we can re-add the lint package in a later phase if/when
   # custom_lint catches up to analyzer 10+. Tracked as a deferred item.
+
+# sqlite3 native asset hook: use system SQLite to avoid GitHub download
+# (network timeout in CN). sqlite3_flutter_libs provides runtime libs.
+hooks:
+  user_defines:
+    sqlite3:
+      source: system
 
 flutter:
   uses-material-design: true

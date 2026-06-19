@@ -18,9 +18,14 @@ import '../widgets/file_format_tile.dart';
 ///
 /// 桌面端：3 个格式图块 + 拖放 + 提示文字。
 /// Android 端：仅 .json 图块（禁用）。
-class ImportScreen extends StatelessWidget {
+class ImportScreen extends StatefulWidget {
   const ImportScreen({super.key});
 
+  @override
+  State<ImportScreen> createState() => _ImportScreenState();
+}
+
+class _ImportScreenState extends State<ImportScreen> {
   /// 支持的桌面端文件扩展名（用于拖放验证）
   static const _supportedExtensions = [
     'doc',
@@ -28,6 +33,9 @@ class ImportScreen extends StatelessWidget {
     'pdf',
     'json',
   ];
+
+  /// 拖放悬停状态——控制视觉反馈覆盖层的显隐
+  bool _isDragOver = false;
 
   /// 判断是否为支持的导入文件
   static bool _isSupportedFile(String filePath) {
@@ -57,10 +65,13 @@ class ImportScreen extends StatelessWidget {
 
     return DropTarget(
       onDragEntered: (_) {
-        // 拖放视觉反馈由 DropTarget 内部的 builder 处理
+        setState(() => _isDragOver = true);
       },
-      onDragExited: (_) {},
+      onDragExited: (_) {
+        setState(() => _isDragOver = false);
+      },
       onDragDone: (details) {
+        setState(() => _isDragOver = false);
         final filePath = details.files.firstOrNull?.path;
         if (filePath != null && _isSupportedFile(filePath)) {
           _navigateToProgress(context, filePath);
@@ -68,37 +79,90 @@ class ImportScreen extends StatelessWidget {
           _showUnsupportedError(context);
         }
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: body,
+      child: Stack(
+        children: [
+          // 主内容
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 560),
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: body,
+                      ),
+                    ),
+                  ),
+                ),
+                // 拖放提示
+                const SizedBox(height: 24),
+                Center(
+                  child: Text(
+                    '或将文件拖放到窗口任意位置',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 拖放视觉反馈覆盖层 (D-03)
+          if (_isDragOver)
+            Positioned.fill(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.15),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 2,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.cloud_upload_outlined,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '释放以导入',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '支持 .docx / .doc / .pdf / .json',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.7),
+                            ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-            // 拖放提示
-            const SizedBox(height: 24),
-            Center(
-              child: Text(
-                '或将文件拖放到窗口任意位置',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.6),
-                    ),
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -161,7 +225,7 @@ class ImportScreen extends StatelessWidget {
   // ── 文件选择器 ──
 
   Future<void> _pickWordFile(BuildContext context) async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['docx', 'doc'],
       allowMultiple: false,
@@ -176,7 +240,7 @@ class ImportScreen extends StatelessWidget {
   }
 
   Future<void> _pickPdfFile(BuildContext context) async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
       allowMultiple: false,
@@ -191,7 +255,7 @@ class ImportScreen extends StatelessWidget {
   }
 
   Future<void> _pickJsonFile(BuildContext context) async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
       allowMultiple: false,
@@ -208,7 +272,7 @@ class ImportScreen extends StatelessWidget {
   // ── 导航与错误处理 ──
 
   void _navigateToProgress(BuildContext context, String filePath) {
-    context.go('/import/progress', extra: filePath);
+    context.push('/import/progress', extra: filePath);
   }
 
   void _showUnsupportedError(BuildContext context) {

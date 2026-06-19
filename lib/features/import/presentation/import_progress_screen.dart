@@ -96,7 +96,7 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
       if (confirmed == true) {
         ref.read(importNotifierProvider.notifier).reset();
         if (mounted) {
-          context.go('/');
+          context.pop();
         }
       }
       return false;

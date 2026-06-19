@@ -45,7 +45,7 @@ Plans:
 - [x] 01-02: drift schema (QuestionBank / Question / AnswerAttempt / WrongLedger / Bookmark / ParseJob) + migrations
 - [x] 01-03: PathResolver + database provider wiring + per-platform path tests
 - [x] 01-04: go_router config + placeholder screens for all routes
-- [ ] 01-05: Material 3 theme baseline (per ui-ux-pro-max) + home screen layout
+- [x] 01-05: Material 3 theme baseline (per ui-ux-pro-max) + home screen layout
 - [ ] 01-06: Cross-platform smoke test (`flutter test` + manual run on each v1 platform)
 
 **UI hint**: yes (Material 3 home screen, placeholder routes on all 3 v1 platforms)
@@ -230,7 +230,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Persistence | 0/6 | Not started | - |
+| 1. Foundation & Persistence | 6/7 | In Progress|  |
 | 2. Desktop File Import Pipeline | 0/8 | Not started | - |
 | 3. Desktop LLM Integration | 0/8 | Not started | - |
 | 4. Quiz Core & Wrong-Question Ledger | 0/9 | Not started | - |

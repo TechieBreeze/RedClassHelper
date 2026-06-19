@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-04-PLAN.md — GoRouter 6 routes + 8 tests green
-last_updated: "2026-06-19T10:05:39.416Z"
+stopped_at: Completed 01-05-PLAN.md — M3 theme + full HomeScreen layout + 20 widget tests (39 total)
+last_updated: "2026-06-19T10:17:11.579Z"
 last_activity: 2026-06-19
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 7
-  completed_plans: 5
-  percent: 71
+  completed_plans: 6
+  percent: 86
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2025-01-14 after platform-scope contraction)
 ## Current Position
 
 Phase: 1 of 7 (Foundation & Persistence)
-Plan: 5 of 7 in current phase (01-00 ✓ 01-01 ✓ 01-02 ✓; 01-03 next)
+Plan: 6 of 7 in current phase (01-00 ✓ 01-01 ✓ 01-02 ✓; 01-03 next)
 Status: Ready to execute
 Last activity: 2026-06-19
 Progress: [▓▓▓░░░░░░░] 29% (2/7 plans)
@@ -60,6 +60,7 @@ Progress: [▓▓▓░░░░░░░] 29% (2/7 plans)
 | Phase 01-foundation-persistence P02 | 13min | 4 tasks | 11 files |
 | Phase 01-foundation-persistence P03 | 8min | 3 tasks | 6 files |
 | Phase 01-foundation-persistence P04 | 4min 12s | 4 tasks | 9 files |
+| Phase 01-foundation-persistence P05 | 45min | 4 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation-persistence]: Fake-directory test pattern for PathResolver — construct with temp Directory objects, no path_provider mock needed
 - [Phase 01-foundation-persistence]: GoRouter 配置使用 6 条 GoRoute,无 ShellRoute (StatefulShellRoute 推迟到 Phase 5)
 - [Phase 01-foundation-persistence]: go_router 是唯一导航 API — 静态 grep 确认 lib/ 中无 Navigator.push 调用
+- [Phase 01-foundation-persistence]: kSeedColor = Color(0xFF6750A4) as M3 baseline fallback seed (D-20)
+- [Phase 01-foundation-persistence]: DynamicColorBuilder wraps MaterialApp.router; buildAppTheme(Brightness, ColorScheme?) uses harmonized() with fromSeed fallback (D-23/Pitfall 7)
+- [Phase 01-foundation-persistence]: GoRouter state leak between tests: setUp { appRouter.go('/') } pattern documented
 
 ### Pending Todos
 
@@ -105,8 +109,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-19T10:05:39.413Z
-Stopped at: Completed 01-04-PLAN.md — GoRouter 6 routes + 8 tests green
+Last session: 2026-06-19T10:17:11.576Z
+Stopped at: Completed 01-05-PLAN.md — M3 theme + full HomeScreen layout + 20 widget tests (39 total)
 Resume file: None
 
 ### Recent plan-completion decisions

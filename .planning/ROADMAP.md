@@ -64,18 +64,13 @@ Plans:
   4. Parse runs in a background isolate — UI never blocks for more than one frame during a 50k-character import
   5. Single-choice vs multiple-choice question type is correctly detected and labeled in the preview
   6. Android's import page renders the `.json`-only entry; `.docx`/`.pdf` buttons are not visible (gated on `Platform.isWindows || Platform.isLinux`)
-**Plans**: 1 consolidated (02-00-PLAN.md) — 10 tasks covering all sub-areas below
+**Plans**: 4 plans (1 implementation + 3 gap closure)
 
 Plans:
 - [x] 02-00: Consolidated implementation plan — all 10 tasks (dependencies → extraction → parser → providers → 4 screens → FAB → routing → integration tests)
-- [x] → 02-01: `file_picker` integration + PDFium/post-install steps for Windows
-- [x] → 02-02: `archive` + `xml` docx walker with unit tests against real Chinese `.docx` samples
-- [x] → 02-03: `pdfx` text extraction (text-layer PDFs only; explicit error for scanned PDFs)
-- [x] → 02-04: Heuristic regex parser (numbered stems, `A./B./C./D.` options, `答案:` markers)
-- [x] → 02-05: Isolate-based parse job with progress + cancel
-- [x] → 02-06: Import preview/edit screen with bulk accept and per-row correction
-- [x] → 02-07: Import summary screen (success count, skipped list, retry individual chunks)
-- [x] → 02-08: Platform-conditional import page UI (desktop: `.docx`/`.pdf`/`.json`; Android: `.json` only)
+- [ ] 02-01: `gap_closure` — Run build_runner to generate missing import_notifier.g.dart (blocking codegen fix)
+- [ ] 02-02: `gap_closure` — Fix navigation stack (go→push) + add drag visual feedback overlay (D-03)
+- [ ] 02-03: `gap_closure` — Bank name TextField with CJK 20-char limit (D-18) + route redirect guard + summary skipped items with retry (D-09)
 
 **UI hint**: yes (import picker, progress, preview, summary screens; platform-branched entry)
 **Research flag**: **HIGH** — needs validation against real Chinese university `.docx` files during planning; pull 3-5 sample files before locking plan
@@ -232,7 +227,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Persistence | 7/7 | Complete | ✅ |
-| 2. Desktop File Import Pipeline | 0/8 | Not started | - |
+| 2. Desktop File Import Pipeline | 0/4 | Gaps found — 3 closure plans | - |
 | 3. Desktop LLM Integration | 0/8 | Not started | - |
 | 4. Quiz Core & Wrong-Question Ledger | 0/9 | Not started | - |
 | 5. JSON Cross-Device Transfer + Multiple-Choice + Bookmarks + Statistics | 0/9 | Not started | - |

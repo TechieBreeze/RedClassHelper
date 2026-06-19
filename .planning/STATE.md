@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2025-01-14 after platform-scope contraction)
 ## Current Position
 
 Phase: 1 of 7 (Foundation & Persistence)
-Plan: 6 of 7 in current phase (01-00 ✓ 01-01 ✓ 01-02 ✓; 01-03 next)
-Status: Ready to execute
+Plan: 6 of 7 in current phase (01-00~05 all ✓; 01-06 last)
+Status: Executing Wave 4 (cross-platform smoke test)
 Last activity: 2026-06-19
 Progress: [▓▓▓░░░░░░░] 29% (2/7 plans)
 

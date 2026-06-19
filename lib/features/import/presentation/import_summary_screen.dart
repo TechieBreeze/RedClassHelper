@@ -1,14 +1,17 @@
 // lib/features/import/presentation/import_summary_screen.dart
 // ── 导入完成摘要页 ──
-// 显示导入结果统计和下一步操作入口。
+// 显示导入结果统计、解析来源分析和下一步操作入口。
+// Phase 3 扩展：解析来源章节（D-09）+ 跳过项解析来源标注。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
+import '../parsing/llm/canonicalizer.dart';
 import '../parsing/parse_candidate.dart';
 import '../providers/import_notifier.dart';
+import '../providers/import_state.dart';
 
 /// 导入完成摘要页——展示导入结果后引导用户开始复习。
 ///
@@ -115,6 +118,10 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                       ),
                     ),
                   ),
+                  // ── Phase 3: 解析来源章节（D-09）──
+                  if (state.parseSources.values
+                      .any((s) => s == ParseSource.llm || s == ParseSource.fallback))
+                    _buildParseSourceSection(context, state),
                   // ── 跳过题目列表（D-09）──
                   if (state.skippedCandidates.isNotEmpty) ...[
                     const SizedBox(height: 24),
@@ -262,6 +269,8 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
             const SizedBox(height: 12),
             ...skipped.map((item) {
               final displayIndex = item.index + 1; // 人类可读编号从1开始
+              final source = state.parseSources[item.index];
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
@@ -271,11 +280,24 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '#$displayIndex: ${item.reason}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: Colors.orange.shade900,
-                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '#$displayIndex: ${item.reason}',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: Colors.orange.shade900,
+                                  ),
+                                ),
+                              ),
+                              if (source != null)
+                                Text(
+                                  _sourceLabel(source),
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: _sourceColor(source),
+                                  ),
+                                ),
+                            ],
                           ),
                           if (item.candidate.title.isNotEmpty)
                             Text(
@@ -334,5 +356,138 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
       }
     }
     return counts;
+  }
+
+  // ── Phase 3: 解析来源章节（D-09）──
+
+  /// "解析来源"章节——仅 LLM 导入时显示。
+  Widget _buildParseSourceSection(BuildContext context, ImportState state) {
+    final theme = Theme.of(context);
+    final llmCount = state.parseSources.values
+        .where((s) => s == ParseSource.llm)
+        .length;
+    final heuristicCount = state.parseSources.values
+        .where((s) => s == ParseSource.heuristic)
+        .length;
+    final fallbackCount = state.parseSources.values
+        .where((s) => s == ParseSource.fallback)
+        .length;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '解析来源',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _sourceRow(
+                context,
+                icon: Icons.psychology,
+                label: 'LLM 解析',
+                count: llmCount,
+                color: Colors.teal,
+                showCheck: llmCount > 0,
+              ),
+              _sourceRow(
+                context,
+                icon: Icons.bolt,
+                label: '启发式解析',
+                count: heuristicCount,
+                color: theme.colorScheme.secondary,
+              ),
+              _sourceRow(
+                context,
+                icon: Icons.swap_horiz,
+                label: '兜底解析',
+                count: fallbackCount,
+                color: Colors.amber.shade700,
+                subtitle: '(LLM 失败后启发式重试)',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sourceRow(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required int count,
+    required Color color,
+    bool showCheck = false,
+    String? subtitle,
+  }) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      label,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$count 题',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: color,
+                      ),
+                    ),
+                    if (showCheck) ...[
+                      const SizedBox(width: 4),
+                      Icon(Icons.check_circle,
+                          size: 16, color: Colors.green.shade600),
+                    ],
+                  ],
+                ),
+                if (subtitle != null)
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _sourceLabel(ParseSource source) {
+    return switch (source) {
+      ParseSource.llm => 'LLM',
+      ParseSource.heuristic => '启发式',
+      ParseSource.fallback => '兜底',
+    };
+  }
+
+  Color _sourceColor(ParseSource source) {
+    return switch (source) {
+      ParseSource.llm => Colors.teal,
+      ParseSource.heuristic =>
+        Theme.of(context).colorScheme.secondary,
+      ParseSource.fallback => Colors.amber.shade700,
+    };
   }
 }

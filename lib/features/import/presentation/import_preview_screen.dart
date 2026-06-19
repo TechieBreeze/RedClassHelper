@@ -1,13 +1,16 @@
 // lib/features/import/presentation/import_preview_screen.dart
 // ── 导入预览编辑页 ──
 // 展示解析出的候选题目，支持审核、编辑、删除和保存。
+// Phase 3 扩展：LLM 解析结果自动确认 + 解析来源徽章（D-08）。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../parsing/llm/canonicalizer.dart';
 import '../parsing/parse_candidate.dart';
 import '../providers/import_notifier.dart';
+import '../providers/import_state.dart';
 import '../widgets/candidate_card.dart';
 
 /// 导入预览编辑页——审核解析出的候选题目。
@@ -28,6 +31,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
 
   late final TextEditingController _bankNameController;
   String? _bankNameError;
+  bool _isLlmImport = false;
 
   @override
   void initState() {
@@ -35,6 +39,13 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     // 从 state 初始化 controller
     final bankName = ref.read(importNotifierProvider).bankName;
     _bankNameController = TextEditingController(text: bankName);
+
+    // 判断是否为 LLM 导入
+    _isLlmImport = ref
+        .read(importNotifierProvider)
+        .parseSources
+        .values
+        .any((s) => s == ParseSource.llm || s == ParseSource.fallback);
 
     // jobId 有效性守卫——过期路由重定向到首页
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -100,6 +111,10 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
             ? _buildEmptyState(context)
             : Column(
                 children: [
+                  // ── Phase 3: LLM 自动确认横幅（D-08）──
+                  if (_isLlmImport)
+                    _buildAutoConfirmBanner(context, confirmedIndices.length),
+
                   // ── 题库名称编辑区（D-18 CJK 感知）──
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -126,6 +141,9 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                   ),
                   // ── 底部 Sheet：批量操作 + 题型筛选 ──
                   _buildToolbar(context, confirmedIndices, candidates),
+                  // ── Phase 3: 解析来源摘要行 ──
+                  if (state.parseSources.isNotEmpty)
+                    _buildSourceSummary(context, state),
                   // ── 候选列表 ──
                   Expanded(
                     child: ListView.builder(
@@ -140,31 +158,45 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
 
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8),
-                          child: CandidateCard(
-                            candidate: candidate,
-                            index: i,
-                            total: candidates.length,
-                            isConfirmed: isConfirmed,
-                            onToggleConfirm: () {
-                              ref
-                                  .read(importNotifierProvider.notifier)
-                                  .toggleCandidate(i);
-                            },
-                            onTypeChanged: (type) {
-                              ref
-                                  .read(importNotifierProvider.notifier)
-                                  .setCandidateType(i, type);
-                            },
-                            onOptionsChanged: (options) {
-                              ref
-                                  .read(importNotifierProvider.notifier)
-                                  .setCandidateOptions(i, options);
-                            },
-                            onAnswerChanged: (answer) {
-                              ref
-                                  .read(importNotifierProvider.notifier)
-                                  .setCandidateAnswer(i, answer);
-                            },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Parse source badge
+                              if (state.parseSources.containsKey(i))
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.only(bottom: 4, left: 4),
+                                  child: _ParseSourceBadge(
+                                    source: state.parseSources[i]!,
+                                  ),
+                                ),
+                              CandidateCard(
+                                candidate: candidate,
+                                index: i,
+                                total: candidates.length,
+                                isConfirmed: isConfirmed,
+                                onToggleConfirm: () {
+                                  ref
+                                      .read(importNotifierProvider.notifier)
+                                      .toggleCandidate(i);
+                                },
+                                onTypeChanged: (type) {
+                                  ref
+                                      .read(importNotifierProvider.notifier)
+                                      .setCandidateType(i, type);
+                                },
+                                onOptionsChanged: (options) {
+                                  ref
+                                      .read(importNotifierProvider.notifier)
+                                      .setCandidateOptions(i, options);
+                                },
+                                onAnswerChanged: (answer) {
+                                  ref
+                                      .read(importNotifierProvider.notifier)
+                                      .setCandidateAnswer(i, answer);
+                                },
+                              ),
+                            ],
                           ),
                         );
                       },
@@ -365,6 +397,93 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     if (trimmed.isEmpty) return '请输入题库名称';
     if (_cjkAwareLength(trimmed) > 20) return '题库名称过长（上限20字符，中文=2）';
     return null;
+  }
+
+  // ── Phase 3: LLM 预览扩展（D-08）──
+
+  /// 绿色信息横幅："LLM 解析结果已自动确认，N 题待入库"
+  Widget _buildAutoConfirmBanner(
+      BuildContext context, int confirmedCount) {
+    return Card(
+      color: Colors.green.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green.shade600),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'LLM 解析结果已自动确认，$confirmedCount 题待入库',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 解析来源摘要行："解析来源：LLM N 题 / 启发式 M 题 / 兜底 K 题"
+  Widget _buildSourceSummary(BuildContext context, ImportState state) {
+    final llmCount = state.parseSources.values
+        .where((s) => s == ParseSource.llm)
+        .length;
+    final heuristicCount = state.parseSources.values
+        .where((s) => s == ParseSource.heuristic)
+        .length;
+    final fallbackCount = state.parseSources.values
+        .where((s) => s == ParseSource.fallback)
+        .length;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        '解析来源：LLM $llmCount 题 / 启发式 $heuristicCount 题 / 兜底 $fallbackCount 题',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withOpacity(0.7),
+            ),
+      ),
+    );
+  }
+
+  /// 单个候选的解析来源徽章。
+  ///
+  /// LLM → teal "LLM" chip
+  /// 启发式 → secondary "启发式" chip
+  /// 兜底 → amber "兜底" chip
+  Widget _ParseSourceBadge({required ParseSource source}) {
+    final (color, icon, label) = switch (source) {
+      ParseSource.llm => (Colors.teal, Icons.psychology, 'LLM'),
+      ParseSource.heuristic => (
+          Theme.of(context).colorScheme.secondary,
+          Icons.rule,
+          '启发式'
+        ),
+      ParseSource.fallback => (
+          Colors.amber.shade700,
+          Icons.swap_horiz,
+          '兜底'
+        ),
+    };
+
+    return SizedBox(
+      height: 24,
+      child: ActionChip(
+        avatar: Icon(icon, size: 14),
+        label: Text(
+          label,
+          style: const TextStyle(fontSize: 12),
+        ),
+        backgroundColor: color.withOpacity(0.15),
+        side: BorderSide.none,
+        visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+      ),
+    );
   }
 
   String _typeLabel(CandidateType type) {

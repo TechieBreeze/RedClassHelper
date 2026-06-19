@@ -1,0 +1,8 @@
+root ::= object
+object ::= "{" ws "\"title\"" ws ":" ws string ws "," ws "\"type\"" ws ":" ws type-value ws "," ws "\"options\"" ws ":" ws array ws "," ws "\"answer\"" ws ":" ws answer-string ws ("," ws "\"explanation\"" ws ":" ws explanation-string ws)? "}"
+ws ::= [ \t\n]*
+string ::= "\"" ([^"\\] | "\\" .)* "\""
+answer-string ::= "\"" [A-H]+ "\""
+explanation-string ::= "\"" ([^"\\] | "\\" .)* "\""
+type-value ::= "\"single\"" | "\"multiple\"" | "\"truefalse\"" | "\"unknown\""
+array ::= "[" ws (string ws ("," ws string ws)*)? "]"

@@ -1,0 +1,32 @@
+{
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Question stem text"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["single", "multiple", "truefalse", "unknown"]
+    },
+    "options": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 2,
+      "maxItems": 8
+    },
+    "answer": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-H]+$",
+      "description": "Correct answer letter(s), uppercase, e.g. A or ABC"
+    },
+    "explanation": {
+      "type": "string",
+      "description": "Optional explanation text"
+    }
+  },
+  "required": ["title", "type", "options", "answer"],
+  "additionalProperties": false
+}

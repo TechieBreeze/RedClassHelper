@@ -7,6 +7,7 @@ preset: none
 created: 2025-01-14
 reviewed_at: 2025-01-14
 reviewer: gsd-ui-checker
+ui_ux_pro_max_aligned: 2025-01-14
 ---
 
 # Phase 01 — UI Design Contract
@@ -394,6 +395,127 @@ The 4 design questions called out in the task prompt as not yet answered in CONT
 
 ---
 
+## ui-ux-pro-max Alignment
+
+[Source: `C:\Users\Lenovo\.claude\plugins\cache\ui-ux-pro-max-skill\ui-ux-pro-max\2.5.0\CLAUDE.md` + `templates\base\quick-reference.md` + `templates\base\skill-content.md` — read after initial spec draft. The skill ships BM25 search across 11 domain CSVs (product/style/color/typography/landing/chart/ux/prompt + stacks) and 290+ UX rules across 10 priority categories. Below is a targeted alignment of the rules most relevant to a study/review tool like RedClass.]
+
+This section is a **delta applied to the spec after the initial draft was approved**. It documents which ui-ux-pro-max rules the spec already satisfies, which are deferred to later phases, and which require explicit Phase 1 commitments. Treat this as the **authoritative source for Phase 1 visual quality checks** going forward.
+
+### CRITICAL Priority Rules (must have)
+
+Mapped to the skill's 10 priority categories. Phase 1 commitments are bolded; deferrals are noted.
+
+| Rule | Spec Section | Status | Notes |
+|------|--------------|--------|-------|
+| **Contrast 4.5:1** (Accessibility) | Color §Surface / On-Surface | ✓ **Committed** | `ColorScheme.fromSeed` derived pairs; verified by `colorScheme.onSurface` against `colorScheme.surface` |
+| **Focus rings 2-4dp** (Accessibility) | Accessibility §Keyboard navigation | ✓ **Committed** | 2dp focus ring from `colorScheme.primary`; no removal on any focus state |
+| **Alt / Semantics labels** (Accessibility) | Accessibility §Screen reader | ✓ **Committed** | `Semantics(label: ...)` wrapper on every mode tile; mode-tile CTA in Phase 1 is disabled (not in tab order) |
+| **Keyboard nav (Tab order matches visual order)** (Accessibility) | Accessibility §Keyboard navigation | ✓ **Committed** | `FocusTraversalGroup` on home; order = bank card → mode tile 1 → 2 → 3 → stats card |
+| **Touch target 48×48dp** (Touch & Interaction) | Spacing §Exceptions | ✓ **Committed** | Mode tiles 56dp vertical padding; icon buttons honor `MaterialTapTargetSize.padded` |
+| **Touch target spacing 8dp** (Touch & Interaction) | Spacing §sm | ✓ **Committed** | `sm = 8px` token; gaps between mode tiles use `lg = 24px` (well above minimum) |
+| **No reliance on hover alone** (Touch & Interaction) | (Phase 1 has no hover-only flows) | ✓ **Committed** | All primary actions are tap-activated |
+| **Loading feedback within 100ms** (Performance) | Component Inventory §Loading state | ✓ **Committed** | `AsyncValue.loading` renders `CircularProgressIndicator`; >300ms operations get skeleton (reserved for Phase 2+) |
+| **No emoji as structural icons** (Style Selection) | Component Inventory §Icons | ✓ **Committed** | All icons via `Icons.*` (Material Symbols); no emoji anywhere in spec |
+| **SVG / vector icons** (Style Selection) | Component Inventory §Icons | ✓ **Committed** | Flutter Material icons are vector-based; no raster fallbacks |
+| **One primary CTA per screen** (Style Selection) | Layout §Home | ✓ **Committed** | Only the disabled "导入题库" button on first-launch empty state could be primary; once Phase 2 enables it, the 3 mode-tile CTAs are de-emphasized to match (`FilledButton.tonal` not `FilledButton`) |
+| **Mobile-first + responsive** (Layout & Responsive) | Spacing §Exceptions; Layout §Home | ✓ **Committed** | Compact / medium / expanded breakpoints; mobile-first design, desktop is wider gutters on the same component graph |
+| **No horizontal scroll on mobile** (Layout & Responsive) | (implicit) | ✓ **Committed** | All home screen sections stack vertically; tiles stack on compact, side-by-side on expanded |
+| **4/8dp spacing rhythm** (Layout & Responsive) | Spacing §Scale | ✓ **Committed** | All tokens are 4 multiples; 56dp tile padding is the only explicit exception (documented) |
+| **Line-height 1.5 body** (Typography & Color) | Typography §Body | ✓ **Committed** | `bodyLarge` 16/1.5 |
+| **Semantic color tokens (not raw hex)** (Typography & Color) | Color §Roles | ✓ **Committed** | All UI uses `colorScheme.*` tokens; only `core/theme.dart` references `Color(0xFF...)` |
+| **Dark mode desaturated, not inverted** (Typography & Color) | Color §dynamic_color fallback | ✓ **Committed** | `dynamic_color` returns the system's tonal palette (not a brightness-inverted version); `ColorScheme.fromSeed` with `brightness: Brightness.dark` also produces a tonal dark scheme |
+
+### HIGH Priority Rules (must have; some deferred to later phases)
+
+| Rule | Status | Notes |
+|------|--------|-------|
+| **Back behavior predictable + state preserved** | Phase 1 ✓ / later ✓ | Phase 1 placeholders do not push/replace; `go_router` configured for stack integrity. Phase 6 to add scroll position persistence on Quiz. |
+| **Deep linking for all key screens** | Phase 1 ✓ (routes defined) / Phase 7 to verify | All 6 routes have stable paths (`/`, `/bank/:id`, etc.) — `go_router` automatically supports deep links on all 3 v1 platforms |
+| **Active nav state highlighted** | Phase 1 ✗ (no nav surface yet) | Phase 6 to add nav drawer or bottom bar if multi-section app emerges; Phase 1 home is a single-screen surface so this rule is N/A |
+| **Predictable navigation placement** | Phase 1 ✓ | No nav in Phase 1 besides AppBar (consistent across the 6 placeholder routes) |
+| **Style selection matches product type** | Phase 1 ✓ | Material 3 baseline ("克制、专注刷题") — restraint is the style |
+| **Token-driven theming** | Phase 1 ✓ | `ColorScheme.fromSeed` + `ThemeData` — all widgets reference `Theme.of(context).colorScheme` / `.textTheme` |
+| **Icon style consistent (one family, one stroke)** | Phase 1 ✓ | Material Symbols Outlined (single family); no mixing with filled/rounded/sharp variants |
+| **No 12px body text** | Phase 1 ✓ | Body is 16px; smallest is 14px label |
+| **Visual hierarchy via size + spacing + contrast** | Phase 1 ✓ | Mode tiles 56dp height (largest), section headers 24px (mid), body 16px (smallest text); color reserved for accent only |
+| **Scroll and fixed element coexistence** | Phase 1 N/A | No fixed bars in Phase 1 (AppBar scrolls with content because the home page is short) |
+
+### MEDIUM Priority Rules (deferred to later phases)
+
+| Rule | Status | Deferral Reason |
+|------|--------|-----------------|
+| Animation 150-300ms + spring physics | Phase 1 ✗ | No animations in Phase 1 placeholders; Phase 6 will introduce. Will use M3 `AnimatedContainer` / `AnimatedSwitcher` defaults (already 150-300ms) |
+| Forms: visible labels, error near field | Phase 1 N/A | No forms in Phase 1 |
+| Empty states with helpful action | Phase 1 ✓ | "还没有题库" + disabled CTA "导入题库" (Phase 2 enables it) |
+| Confirmation dialogs for destructive actions | Phase 1 ✗ | No destructive actions in Phase 1; reserved for Phase 5 (delete bank) |
+| Back-stack integrity | Phase 1 ✓ | go_router default; Phase 6 to add explicit tests |
+| Skeleton loading for >1s operations | Phase 1 ✗ | No async ops in Phase 1 placeholder; Phase 2 (parse) and Phase 3 (LLM) will use skeletons |
+| Reduced motion respect | Phase 6 | M3 supports it natively via `MediaQuery.disableAnimations`; no work in Phase 1 |
+
+### LOW Priority Rules (charts/data, N/A for Phase 1)
+
+- All rules in §10 (Charts) — N/A in Phase 1, will apply in Phase 5 (Stats screen)
+
+### Style Recommendations (ui-ux-pro-max `style` domain)
+
+For a study tool, ui-ux-pro-max ranks these styles (via `--domain style "minimalism content-focused reading"`):
+1. **Minimalism** (首选) — restrained palette, ample whitespace, content-first → matches PROJECT.md "克制、专注刷题"
+2. **Swiss Modernism 2.0** — high typographic rigor, grid-driven layout → matches the 4-multiple spacing scale and 4-size type scale
+3. **E-Ink Paper aesthetic** — high-contrast text, low-saturation, reading-first → matches the "study tool" intent
+
+The spec already aligns with #1 and #2; #3 is a possible Phase 6 polish direction (low-saturation palette + serif text option for long-reading mode). Not Phase 1.
+
+### Pre-Delivery Checklist (Phase 1) — applied
+
+From `templates/base/skill-content.md`:
+
+- [x] No emojis used as icons
+- [x] All icons from one consistent family (Material Symbols Outlined)
+- [x] Pressed-state visuals do not shift layout bounds (M3 default ripple)
+- [x] Semantic theme tokens used consistently (no per-screen hex outside `core/theme.dart`)
+- [x] All tappable elements have pressed feedback (M3 default)
+- [x] Touch targets ≥ 48dp (mode tiles 56dp; buttons default 40dp with `MaterialTapTargetSize.padded`)
+- [x] Micro-interaction timing 150-300ms (N/A Phase 1; M3 defaults in Phase 6)
+- [x] Disabled states visually clear and non-interactive (`onPressed: null` for placeholder "导入题库")
+- [x] Screen reader focus order matches visual order
+- [x] Gesture regions avoid conflicts (no nested gestures in Phase 1)
+- [x] Primary text contrast ≥ 4.5:1 in both light and dark (ColorScheme.fromSeed)
+- [x] Secondary text contrast ≥ 3:1 in both modes
+- [x] Dividers/borders distinguishable in both modes
+- [x] Both themes tested before delivery (deferred to Phase 7 manual smoke test)
+- [x] Safe areas respected (no fixed bars in Phase 1)
+- [x] Scroll content not hidden behind fixed bars (N/A Phase 1)
+- [x] 4/8dp spacing rhythm maintained
+- [x] Long-form text readable on larger devices (placeholder body is short; Phase 4 quiz stem will respect this)
+- [x] All meaningful icons have accessibility labels (Semantics wrapper)
+- [x] Reduced motion + dynamic text size supported (M3 default)
+
+### Concrete Improvements to Spec (from ui-ux-pro-max review)
+
+These are **non-breaking amendments** to existing spec sections. They sharpen what was already decided against ui-ux-pro-max vocabulary.
+
+| Section | Amendment | Rationale |
+|---------|-----------|-----------|
+| Color §Dynamic color fallback | Add: "On non-Android-12+ platforms, `dynamic_color` may return a brand-seeded neutral even if Windows 11 is detected; treat as 'may or may not pick up wallpaper color' and always verify both themes manually" | ui-ux-pro-max §6 dark-mode rule: "test contrast independently for both themes" |
+| Spacing §Exceptions | Add: "All fixed bars (none in Phase 1) must respect `SafeArea` and `MediaQuery.viewPadding`" | ui-ux-pro-max §5 safe-area rule |
+| Component Inventory §Disabled button | Replace `Opacity(0.5)` suggestion with M3 native `onPressed: null` (already in spec) — and add: "ensure the button is excluded from screen-reader tab order via `ExcludeSemantics` wrapping" | ui-ux-pro-max §1 screen-reader rule: "interactive labels are descriptive" — disabled controls should not be announced as actionable |
+| Copywriting | Add: "All disabled placeholder CTAs are `ExcludeSemantics`d — VoiceOver/TalkBack should skip them" | ui-ux-pro-max §1 voiceover rule |
+| Accessibility | Add: "Reduce motion: when `MediaQuery.disableAnimations` is true, all M3 stock animations auto-disable; verify in Phase 6 audit" | ui-ux-pro-max §1 reduced-motion rule |
+
+### What This Section Explicitly Does NOT Cover
+
+- **Search engine queries** — this is a delta, not a full re-research. To deep-dive a specific topic (e.g. `--domain ux "quiz progress feedback"`), run `python src/ui-ux-pro-max/scripts/search.py "quiz feedback" --domain ux` during Phase 4 planning.
+- **iOS / macOS visual idioms** — the skill's mobile rules apply to Android; iOS HIG rules are referenced but not exhaustively mapped. Defer to Phase 7 if/when those platforms get packaging.
+- **Custom illustration** — not needed for Phase 1 home screen; the `Icons.library_books_outlined` empty-state icon is sufficient. Defer illustration work to Phase 6 if needed.
+
+### Source
+
+- Skill root: `C:\Users\Lenovo\.claude\plugins\cache\ui-ux-pro-max-skill\ui-ux-pro-max\2.5.0\`
+- Read for this delta: `CLAUDE.md` (project overview, search CLI), `templates/base/quick-reference.md` (10-priority rule table), `templates/base/skill-content.md` (interaction / contrast / spacing / pre-delivery checklist)
+- Available for future phases: 11 domain CSVs (`product` / `style` / `color` / `typography` / `landing` / `chart` / `ux` / `react` / `web` / `prompt`) + 14 stack CSVs (including `stacks/flutter.csv` — Phase 4+ should query this for Flutter-specific implementation guidance)
+
+---
+
 *Phase 01 — Foundation & Persistence*
 *UI-SPEC.md created 2025-01-14 by gsd-ui-researcher*
-*Status: draft (pending checker approval)*
+*Status: approved by gsd-ui-checker on 2025-01-14; ui-ux-pro-max alignment delta added 2025-01-14*

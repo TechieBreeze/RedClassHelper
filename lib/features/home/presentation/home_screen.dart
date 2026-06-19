@@ -1,15 +1,19 @@
 // lib/features/home/presentation/home_screen.dart
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
 
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 /// 主页 (UI-SPEC §Layout — Home Screen)
-/// Phase 1 状态: 题库空态 + 3 模式入口 + 数据统计入口
-/// 所有 mode tile 的 CTA "开始" 按钮在 Phase 1 是 disabled (onPressed: null)
-/// 整张卡片 tap 区域用 InkWell 包裹, 触发 context.go 跳转
+/// Phase 2 状态: 桌面端 FAB + 启用按钮；Android 端禁用
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  /// 是否为桌面端（Windows 或 Linux）
+  bool get _isDesktop => !kIsWeb && (Platform.isWindows || Platform.isLinux);
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +29,14 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
+      // Phase 2: 桌面端 FAB
+      floatingActionButton: _isDesktop
+          ? FloatingActionButton(
+              onPressed: () => context.go('/import'),
+              tooltip: '导入题库',
+              child: const Icon(Icons.add),
+            )
+          : null,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
@@ -55,7 +67,7 @@ class HomeScreen extends StatelessWidget {
                   children: <Widget>[
                     const _SectionHeader(title: '题库'),
                     const SizedBox(height: 16), // md
-                    const _BankEmptyStateCard(),
+                    _BankEmptyStateCard(isDesktop: _isDesktop),
                     const SizedBox(height: 24), // lg (section gap)
                     const _SectionHeader(title: '复习模式'),
                     const SizedBox(height: 16), // md
@@ -64,6 +76,7 @@ class HomeScreen extends StatelessWidget {
                       subtitle: '随机抽题，立刻判分',
                       icon: Icons.shuffle,
                       mode: 'random',
+                      enabled: true,
                     ),
                     const SizedBox(height: 12), // sm (between tiles)
                     const _ModeTile(
@@ -71,6 +84,7 @@ class HomeScreen extends StatelessWidget {
                       subtitle: '从错题本复习，答对即掌握',
                       icon: Icons.replay_outlined,
                       mode: 'review',
+                      enabled: true,
                     ),
                     const SizedBox(height: 12),
                     const _ModeTile(
@@ -78,6 +92,7 @@ class HomeScreen extends StatelessWidget {
                       subtitle: '从错题本随机抽 10 题自测',
                       icon: Icons.bolt_outlined,
                       mode: 'spotcheck',
+                      enabled: true,
                     ),
                     const SizedBox(height: 24), // lg
                     const _SectionHeader(title: '数据统计'),
@@ -109,7 +124,8 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _BankEmptyStateCard extends StatelessWidget {
-  const _BankEmptyStateCard();
+  const _BankEmptyStateCard({required this.isDesktop});
+  final bool isDesktop;
 
   @override
   Widget build(BuildContext context) {
@@ -140,9 +156,9 @@ class _BankEmptyStateCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-              // CTA disabled in Phase 1 (UI-SPEC §Disabled button — M3 native)
+              // CTA: 桌面端启用，Android 禁用
               FilledButton.tonal(
-                onPressed: null,
+                onPressed: isDesktop ? () => context.go('/import') : null,
                 child: const Text('导入题库'),
               ),
             ],
@@ -159,12 +175,14 @@ class _ModeTile extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.mode,
+    this.enabled = false,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
   final String mode;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +215,7 @@ class _ModeTile extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               FilledButton.tonal(
-                onPressed: null, // disabled in Phase 1
+                onPressed: enabled ? () => context.go('/quiz/new/$mode') : null,
                 child: const Text('开始'),
               ),
             ],

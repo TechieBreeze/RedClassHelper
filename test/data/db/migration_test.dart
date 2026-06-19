@@ -2,7 +2,6 @@
 // ── AppDatabase schema 验证 ──
 // 5 个测试覆盖：schemaVersion、7 表创建、FK PRAGMA、CRUD 往返、UNIQUE 约束
 
-import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -46,7 +46,7 @@ Plans:
 - [x] 01-03: PathResolver + database provider wiring + per-platform path tests
 - [x] 01-04: go_router config + placeholder screens for all routes
 - [x] 01-05: Material 3 theme baseline (per ui-ux-pro-max) + home screen layout
-- [ ] 01-06: Cross-platform smoke test (`flutter test` + manual run on each v1 platform)
+- [x] 01-06: Cross-platform smoke test (`flutter test` + manual run on each v1 platform)
 
 **UI hint**: yes (Material 3 home screen, placeholder routes on all 3 v1 platforms)
 **Research flag**: no (standard Flutter + drift setup)

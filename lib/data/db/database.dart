@@ -1,15 +1,15 @@
 // lib/data/db/database.dart
 // ── drift @DriftDatabase 入口 ──
-// 连接所有 6+1 张表，定义 schemaVersion=1 的 MigrationStrategy。
-//
-// Plan 01-03 (PathResolver) 将添加 databaseProvider（需要 pathResolverProvider）
-// 当前版本只提供 openAppDatabase / openInMemoryDatabase 静态工厂方法。
+// 连接所有 7 张表，定义 schemaVersion=1 的 MigrationStrategy。
+// Plan 01-03: 添加 appDatabaseProvider（通过 pathResolverProvider 获取 DB 路径）
 
 import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../core/paths.dart';
 import 'tables/answer_attempts.dart';
 import 'tables/bookmarks.dart';
 import 'tables/parse_jobs.dart';
@@ -74,4 +74,20 @@ class AppDatabase extends _$AppDatabase {
   static AppDatabase openInMemoryDatabase() {
     return AppDatabase(NativeDatabase.memory());
   }
+}
+
+// ── Riverpod provider: 通过 pathResolverProvider 获取 DB 路径 ──
+
+@Riverpod(keepAlive: true)
+Future<AppDatabase> appDatabase(Ref ref) async {
+  final resolver = await ref.watch(pathResolverProvider.future);
+  return AppDatabase(
+    NativeDatabase.createInBackground(
+      File(resolver.databasePath),
+      setup: (db) {
+        // PITFALL 3: WAL 模式支持并发读 + 单线程写
+        db.execute('pragma journal_mode = WAL;');
+      },
+    ),
+  );
 }

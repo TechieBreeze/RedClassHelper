@@ -10,10 +10,9 @@ class WrongLedgerEntries extends Table {
   /// 自增主键
   IntColumn get id => integer().autoIncrement()();
 
-  /// 关联题目 FK（UNIQUE：一题至多一条错题记录）
+  /// 关联题目 FK（表级 UNIQUE 约束：一题至多一条错题记录）
   TextColumn get questionId => text()
       .named('question_id')
-      .customConstraint('UNIQUE')
       .references(Questions, #id, onDelete: KeyAction.cascade)();
 
   /// 累计答错次数
@@ -28,6 +27,8 @@ class WrongLedgerEntries extends Table {
   /// 掌握时间（null = 尚未掌握；非 null = 已从错题本毕业）
   DateTimeColumn get masteredAt => dateTime().named('mastered_at').nullable()();
 
+  // autoIncrement() 自动设置主键，无需再 override primaryKey
+  // 表级 UNIQUE 约束与 REFERENCES 并行，不会互相覆盖
   @override
-  Set<Column> get primaryKey => {id};
+  List<String> get customConstraints => ['UNIQUE(question_id)'];
 }

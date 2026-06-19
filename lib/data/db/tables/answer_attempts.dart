@@ -30,6 +30,5 @@ class AnswerAttempts extends Table {
   /// 作答时间
   DateTimeColumn get createdAt => dateTime()();
 
-  @override
-  Set<Column> get primaryKey => {id};
+  // autoIncrement() 自动设置主键，无需再 override primaryKey
 }

@@ -27,6 +27,5 @@ class ParseLogs extends Table {
   /// 日志时间
   DateTimeColumn get createdAt => dateTime()();
 
-  @override
-  Set<Column> get primaryKey => {id};
+  // autoIncrement() 自动设置主键，无需再 override primaryKey
 }

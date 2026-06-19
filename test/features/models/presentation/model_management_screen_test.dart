@@ -12,6 +12,9 @@ import 'package:redclass/features/models/providers/model_download_provider.dart'
 import 'package:redclass/features/models/providers/installed_models_provider.dart';
 import 'package:redclass/features/models/presentation/settings_screen.dart';
 import 'package:redclass/features/models/presentation/model_management_screen.dart';
+import 'package:redclass/features/models/widgets/model_card.dart';
+import 'package:redclass/features/models/widgets/download_progress.dart';
+import 'package:redclass/features/models/widgets/add_model_dialog.dart';
 
 /// Fake PathResolver for tests that returns an empty temp models dir.
 class _FakePathResolver extends Fake implements PathResolver {
@@ -242,7 +245,7 @@ void main() {
       );
     });
 
-    testWidgets('tapping 添加模型 shows snackbar placeholder', (tester) async {
+    testWidgets('tapping 添加模型 opens AddModelDialog', (tester) async {
       final modelsPath = '${tempDir.path}/models';
       await Directory(modelsPath).create(recursive: true);
 
@@ -264,8 +267,10 @@ void main() {
       await tester.tap(find.text('添加模型'));
       await tester.pumpAndSettle();
 
-      // Placeholder snackbar should appear
-      expect(find.text('添加自定义模型 — Task 2 实现'), findsOneWidget);
+      // Dialog should appear with 2 tabs
+      expect(find.text('添加自定义模型'), findsOneWidget);
+      expect(find.text('从 URL 下载'), findsOneWidget);
+      expect(find.text('选择本地文件'), findsOneWidget);
     });
 
     testWidgets('renders download buttons for non-installed catalog models',
@@ -316,6 +321,230 @@ void main() {
       expect(find.textContaining('需 1-2 GB'), findsOneWidget);
       expect(find.textContaining('约 2.2 GB'), findsOneWidget);
       expect(find.textContaining('需 4 GB+'), findsOneWidget);
+    });
+  });
+
+  group('ModelCard', () {
+    final testModel = const ModelInfo(
+      id: 'test-model',
+      name: 'Test Model Q4_K_M',
+      tier: ModelTier.recommended,
+      sizeBytes: 500000000,
+      sizeDisplay: '约 0.5 GB',
+      ramRequirement: '需 1-2 GB 可用内存',
+      description: '高性能测试模型。',
+      downloadUrl: 'https://example.com/model.gguf',
+      sha256Hash: 'TBD',
+    );
+
+    Widget _wrap(Widget child) {
+      return ProviderScope(
+        overrides: [
+          pathResolverProvider.overrideWith(
+            (ref) async => _SimpleFakePathResolver(
+              '${Directory.systemTemp.path}/models',
+            ),
+          ),
+        ],
+        child: MaterialApp(home: Scaffold(body: child)),
+      );
+    }
+
+    testWidgets('idle model card renders 下载 button', (tester) async {
+      await tester.pumpWidget(_wrap(
+        ModelCard(model: testModel),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('下载'), findsOneWidget);
+      expect(find.text('推荐'), findsOneWidget);
+    });
+
+    testWidgets('downloading model card renders progress indicator',
+        (tester) async {
+      final progress = DownloadProgress(
+        bytesDownloaded: 50000000,
+        totalBytes: 500000000,
+        speedBytesPerSec: 3145728,
+        fraction: 0.1,
+      );
+      final activeDownload = ActiveDownload(
+        modelId: 'test-model',
+        status: DownloadProviderStatus.downloading,
+        progress: progress,
+      );
+
+      await tester.pumpWidget(_wrap(
+        ModelCard(
+          model: testModel,
+          activeDownload: activeDownload,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(find.textContaining('下载中'), findsOneWidget);
+    });
+
+    testWidgets('installed model card renders 已安装 chip', (tester) async {
+      await tester.pumpWidget(_wrap(
+        ModelCard(
+          model: testModel,
+          isInstalled: true,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('已安装'), findsOneWidget);
+      expect(find.text('删除'), findsOneWidget);
+    });
+
+    testWidgets('model card with another active download shows 等待中',
+        (tester) async {
+      final otherDownload = ActiveDownload(
+        modelId: 'other-model',
+        status: DownloadProviderStatus.downloading,
+      );
+
+      await tester.pumpWidget(_wrap(
+        ModelCard(
+          model: testModel,
+          activeDownload: otherDownload,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('等待中'), findsOneWidget);
+    });
+
+    testWidgets('error model card shows 重新下载 button', (tester) async {
+      final errorDownload = ActiveDownload(
+        modelId: 'test-model',
+        status: DownloadProviderStatus.error,
+        errorMessage: '下载失败：网络连接异常',
+      );
+
+      await tester.pumpWidget(_wrap(
+        ModelCard(
+          model: testModel,
+          activeDownload: errorDownload,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('重新下载'), findsOneWidget);
+      expect(find.textContaining('网络连接异常'), findsOneWidget);
+    });
+  });
+
+  group('DownloadProgressWidget', () {
+    testWidgets('renders percentage and speed', (tester) async {
+      final progress = DownloadProgress(
+        bytesDownloaded: 150000000,
+        totalBytes: 500000000,
+        speedBytesPerSec: 5242880,
+        fraction: 0.3,
+      );
+
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+          body: DownloadProgressWidget(
+            progress: progress,
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      // 0.3 * 100 = 30
+      expect(find.textContaining('30%'), findsOneWidget);
+      // 5242880 / 1048576 = 5.0
+      expect(find.textContaining('5.0 MB/s'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    });
+  });
+
+  group('AddModelDialog', () {
+    testWidgets('renders 2 tabs and title', (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+
+      // Show the dialog
+      showAddModelDialog(tester.element(find.byType(SizedBox)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('添加自定义模型'), findsOneWidget);
+      expect(find.text('从 URL 下载'), findsOneWidget);
+      expect(find.text('选择本地文件'), findsOneWidget);
+      expect(find.text('取消'), findsOneWidget);
+    });
+
+    testWidgets('URL validation: non-HTTPS shows error', (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+
+      showAddModelDialog(tester.element(find.byType(SizedBox)));
+      await tester.pumpAndSettle();
+
+      // Enter non-HTTPS URL
+      await tester.enterText(
+        find.byType(TextField),
+        'http://example.com/model.gguf',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('请输入有效的 HTTPS URL'), findsOneWidget);
+    });
+
+    testWidgets('URL validation: non-.gguf path shows error', (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+
+      showAddModelDialog(tester.element(find.byType(SizedBox)));
+      await tester.pumpAndSettle();
+
+      // Enter HTTPS URL without .gguf
+      await tester.enterText(
+        find.byType(TextField),
+        'https://example.com/model.bin',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('该地址不指向 .gguf 文件'), findsOneWidget);
+    });
+
+    testWidgets('URL validation: valid HTTPS .gguf URL clears errors',
+        (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+
+      showAddModelDialog(tester.element(find.byType(SizedBox)));
+      await tester.pumpAndSettle();
+
+      // Enter valid URL
+      await tester.enterText(
+        find.byType(TextField),
+        'https://huggingface.co/Qwen/model.gguf',
+      );
+      await tester.pumpAndSettle();
+
+      // No error should be visible, submit button enabled
+      expect(find.text('请输入有效的 HTTPS URL'), findsNothing);
+      expect(find.text('该地址不指向 .gguf 文件'), findsNothing);
+      // "添加并下载" button should be enabled
+      final button = tester.widget<FilledButton>(find.widgetWithText(
+        FilledButton,
+        '添加并下载',
+      ));
+      expect(button.onPressed, isNotNull);
+    });
+
+    testWidgets('cancel button dismisses dialog', (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+
+      showAddModelDialog(tester.element(find.byType(SizedBox)));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+
+      // Dialog should be closed
+      expect(find.text('添加自定义模型'), findsNothing);
     });
   });
 }

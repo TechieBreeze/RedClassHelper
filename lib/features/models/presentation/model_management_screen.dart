@@ -1,8 +1,7 @@
 // lib/features/models/presentation/model_management_screen.dart
 // ── Full model management page (Phase 3, Desktop Only) ──
 // 3 sections: installed models, recommended catalog, custom models.
-// ModelCard / DownloadProgress / AddModelDialog widgets created in Plan 03-06 Task 2.
-// Inline rendering in Task 1; upgraded to dedicated widgets in Task 2.
+// Uses ModelCard, DownloadProgressWidget, and showAddModelDialog from widgets/.
 
 import 'dart:io';
 
@@ -12,6 +11,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/model_catalog_provider.dart';
 import '../providers/model_download_provider.dart';
 import '../providers/installed_models_provider.dart';
+import '../widgets/model_card.dart';
+import '../widgets/add_model_dialog.dart';
 
 /// Full model management center (desktop-only).
 ///
@@ -80,17 +81,11 @@ class ModelManagementScreen extends ConsumerWidget {
                     ...catalog.map(
                       (model) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: _CatalogModelCard(
+                        child: ModelCard(
                           model: model,
                           isInstalled:
                               installedIds.contains('${model.id}.gguf'),
                           activeDownload: activeDownload,
-                          onDownload: () => _onDownload(ref, model),
-                          onCancel: () =>
-                              ref.read(modelDownloadProvider.notifier)
-                                  .cancelDownload(),
-                          onDelete: () =>
-                              _showDeleteDialog(context, ref, model),
                         ),
                       ),
                     ),
@@ -100,7 +95,16 @@ class ModelManagementScreen extends ConsumerWidget {
                     const _SectionHeader('自定义模型'),
                     const SizedBox(height: 16),
                     _AddModelCard(
-                      onTap: () => _showAddModelDialog(context, ref),
+                      onTap: () async {
+                        final result = await showAddModelDialog(context);
+                        if (result != null && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('已添加模型：${result.name}'),
+                            ),
+                          );
+                        }
+                      },
                     ),
                     const SizedBox(height: 12),
                     // Show custom models (installed but not in catalog)
@@ -134,44 +138,6 @@ class ModelManagementScreen extends ConsumerWidget {
     return installed.where((m) => !catalogIds.contains(m.fileName)).toList();
   }
 
-  void _onDownload(WidgetRef ref, ModelInfo model) {
-    try {
-      ref.read(modelDownloadProvider.notifier).startDownload(model);
-    } on StateError catch (e) {
-      // Another download is active — UI handles via disabled button
-    }
-  }
-
-  static void _showDeleteDialog(
-    BuildContext context,
-    WidgetRef ref,
-    ModelInfo model,
-  ) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('删除模型'),
-        content: const Text('模型文件将被删除，需要时可重新下载'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            onPressed: () {
-              // TODO: implement actual file deletion
-              Navigator.of(ctx).pop();
-            },
-            child: const Text('删除'),
-          ),
-        ],
-      ),
-    );
-  }
-
   static void _showCustomDeleteDialog(
     BuildContext context,
     WidgetRef ref,
@@ -199,16 +165,6 @@ class ModelManagementScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-
-  // Adds a custom model via dialog. ModelInfo returned from dialog
-  // is added to the installed list (via file copy or URL download).
-  void _showAddModelDialog(BuildContext context, WidgetRef ref) {
-    // Task 2 will replace this with the actual AddModelDialog widget.
-    // For now, show a placeholder acknowledging the feature.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('添加自定义模型 — Task 2 实现')),
     );
   }
 
@@ -360,243 +316,6 @@ class _InstalledModelCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Inline model card for catalog sections (section 2).
-/// Replaced by ModelCard widget in Task 2.
-class _CatalogModelCard extends ConsumerWidget {
-  const _CatalogModelCard({
-    required this.model,
-    required this.isInstalled,
-    required this.activeDownload,
-    required this.onDownload,
-    required this.onCancel,
-    required this.onDelete,
-  });
-
-  final ModelInfo model;
-  final bool isInstalled;
-  final ActiveDownload? activeDownload;
-  final VoidCallback onDownload;
-  final VoidCallback onCancel;
-  final VoidCallback onDelete;
-
-  bool get isDownloadingThis =>
-      activeDownload != null &&
-      activeDownload!.modelId == model.id &&
-      activeDownload!.status == DownloadProviderStatus.downloading;
-
-  bool get isVerifyingThis =>
-      activeDownload != null &&
-      activeDownload!.modelId == model.id &&
-      activeDownload!.status == DownloadProviderStatus.verifying;
-
-  bool get isErrorThis =>
-      activeDownload != null &&
-      activeDownload!.modelId == model.id &&
-      activeDownload!.status == DownloadProviderStatus.error;
-
-  bool get isAnotherDownloading =>
-      activeDownload != null &&
-      activeDownload!.status == DownloadProviderStatus.downloading &&
-      activeDownload!.modelId != model.id;
-
-  IconData get tierIcon {
-    switch (model.tier) {
-      case ModelTier.recommended:
-        return Icons.psychology;
-      case ModelTier.fast:
-        return Icons.bolt;
-      case ModelTier.experimental:
-        return Icons.science_outlined;
-      case ModelTier.custom:
-        return Icons.upload_file;
-    }
-  }
-
-  Widget get tierBadge {
-    final (String label, Color background, Color foreground) = switch (
-        model.tier) {
-      ModelTier.recommended => (
-          '推荐',
-          Theme.of(context).colorScheme.primaryContainer,
-          Theme.of(context).colorScheme.onPrimaryContainer,
-        ),
-      ModelTier.fast => (
-          '快速',
-          Colors.green.shade100,
-          Colors.green.shade700,
-        ),
-      ModelTier.experimental => (
-          '实验',
-          Colors.deepOrange.shade100,
-          Colors.deepOrange.shade700,
-        ),
-      ModelTier.custom => (
-          '自定义',
-          Theme.of(context).colorScheme.surfaceContainerHighest,
-          Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(2),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: foreground,
-            ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(tierIcon, size: 28),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        model.name,
-                        style: theme.textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      tierBadge,
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              model.description,
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${model.sizeDisplay} · ${model.ramRequirement}',
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            _buildActionArea(theme, ref),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionArea(ThemeData theme, WidgetRef ref) {
-    if (isInstalled) {
-      return Row(
-        children: [
-          Chip(
-            avatar: const Icon(Icons.check_circle, size: 16),
-            label: const Text('已安装'),
-            backgroundColor: Colors.green.shade100,
-          ),
-          const Spacer(),
-          TextButton(
-            onPressed: onDelete,
-            style: TextButton.styleFrom(
-              foregroundColor: theme.colorScheme.error,
-            ),
-            child: const Text('删除'),
-          ),
-        ],
-      );
-    }
-
-    if (isDownloadingThis && activeDownload!.progress != null) {
-      final progress = activeDownload!.progress!;
-      final fraction = progress.fraction;
-      final speedMBps =
-          (progress.speedBytesPerSec / 1048576).toStringAsFixed(1);
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('下载中 ${(fraction * 100).toStringAsFixed(0)}%'),
-          const SizedBox(height: 4),
-          LinearProgressIndicator(value: fraction),
-          const SizedBox(height: 4),
-          Text(
-            '$speedMBps MB/s',
-            style: theme.textTheme.bodySmall,
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: onCancel,
-              child: const Text('取消'),
-            ),
-          ),
-        ],
-      );
-    }
-
-    if (isVerifyingThis) {
-      return const Row(
-        children: [
-          SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          SizedBox(width: 8),
-          Text('校验中…'),
-        ],
-      );
-    }
-
-    if (isErrorThis) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            activeDownload!.errorMessage ?? '下载失败',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.error,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: OutlinedButton(
-              onPressed: onDownload,
-              child: const Text('重新下载'),
-            ),
-          ),
-        ],
-      );
-    }
-
-    // Idle state (not installed, no active download, or another downloading)
-    return Align(
-      alignment: Alignment.centerRight,
-      child: FilledButton.icon(
-        onPressed: isAnotherDownloading ? null : onDownload,
-        icon: const Icon(Icons.download, size: 18),
-        label: Text(isAnotherDownloading ? '等待中' : '下载'),
       ),
     );
   }

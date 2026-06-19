@@ -24,13 +24,11 @@ See: .planning/PROJECT.md (updated 2025-01-14 after platform-scope contraction)
 **Current focus:** Phase 1 — Foundation & Persistence (3-platform Flutter skeleton + drift + go_router + PathResolver; iOS/macOS source-level support)
 
 ## Current Position
-
 Phase: 1 of 7 (Foundation & Persistence)
-Plan: 0 of 6 in current phase
-Status: Ready to plan
-Last activity: 2025-01-14 — Platform scope contracted to 3 distributable targets (Windows / Linux / Android); iOS / macOS source compiles but no distributable (developer lacks macOS toolchain + Apple Developer account)
-
-Progress: [░░░░░░░░░░] 0%
+Plan: 1 of 7 in current phase (01-00 done; 01-01 in progress)
+Status: Executing
+Last activity: 2026-06-19 — Plan 01-00 (toolchain bootstrap) completed: Flutter 3.44.2 stable + Android SDK Platform 35 + Build-Tools 35.0.0 + platform-tools installed; Visual Studio Build Tools 2026 18.1.1 pre-existing. 3 commits (8afe513, 9d220d3, 61af588) + SUMMARY.md + 3 evidence files committed.
+Progress: [▓░░░░░░░░░] 14% (1/7 plans)
 
 ## Performance Metrics
 

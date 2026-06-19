@@ -10,6 +10,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'llm_client.dart';
 import 'http_llm_client.dart';
 import 'stub_llm_client.dart';
+import 'ffi_llm_client.dart';
 
 part 'providers.g.dart';
 
@@ -25,7 +26,8 @@ LlmMode llmMode(Ref ref) => LlmMode.stub;
 /// 在非桌面平台（Android/iOS）上访问此 provider 抛出 [UnsupportedError]。
 /// 在桌面平台上根据 [llmModeProvider] 的值切换具体实现：
 ///   - [LlmMode.stub] → [StubLlmClient] (deterministic, for dev/CI)
-///   - [LlmMode.http] → TODO: HttpLlmClient (03-03)
+///   - [LlmMode.http] → [HttpLlmClient] (local llama-server)
+///   - [LlmMode.ffi]  → [FfiLlmClient] (dart:ffi direct binding)
 @Riverpod(keepAlive: true)
 LlmClient llmClient(Ref ref) {
   if (!(Platform.isWindows || Platform.isLinux)) {
@@ -40,6 +42,10 @@ LlmClient llmClient(Ref ref) {
     LlmMode.http => HttpLlmClient(
       serverUrl: 'http://localhost:8080',
       timeout: const Duration(seconds: 30),
+    ),
+    LlmMode.ffi => FfiLlmClient(
+      modelPath: '', // populated from settings/ModelManager in Phase 6
+      timeout: const Duration(seconds: 60),
     ),
   };
 }

@@ -72,12 +72,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Stats entry tile is at the bottom of the scroll view — ensure visible first
-    final statsIcon = find.byIcon(Icons.chevron_right);
-    await tester.ensureVisible(statsIcon);
+    // Tap the stats entry tile using the descriptive text below the title
+    final statsTile = find.text('查看正确率与错题分布');
+    await tester.ensureVisible(statsTile);
     await tester.pumpAndSettle();
 
-    await tester.tap(statsIcon);
+    await tester.tap(statsTile);
     await tester.pumpAndSettle();
 
     // StatsScreen AppBar title (only one "数据统计" on this screen)

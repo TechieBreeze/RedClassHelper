@@ -51,6 +51,9 @@ dependencies:
   crypto: ^3.0.7
   range_request: ^0.2.0
 
+  # Phase 3 FFI: dart:ffi helper utilities (Utf8, calloc, etc.)
+  ffi: ^2.1.3
+
   # intl deferred to Phase 5 per CONTEXT.md "Claude's Discretion"
 
 dev_dependencies:

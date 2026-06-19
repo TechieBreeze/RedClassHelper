@@ -9,9 +9,11 @@ import 'package:redclass/features/import/parsing/parse_candidate.dart';
 ///
 /// [stub]: 使用预置 fixture 数据，用于开发/CI。
 /// [http]:  通过 HTTP POST 到本地 llama.cpp 服务器。
+/// [ffi]:   通过 dart:ffi 直接绑定 llama.cpp 共享库，无需独立服务器进程。
 enum LlmMode {
   stub,
   http,
+  ffi,
 }
 
 /// LLM 客户端抽象接口。

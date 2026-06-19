@@ -17,7 +17,7 @@ Phases execute bottom-up: stable Flutter + SQLite foundation → read-only file 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & Persistence** - Flutter project skeleton (3 v1 platforms + iOS/macOS source support), drift schema, go_router, Material 3 theme, PathResolver
-- [ ] **Phase 2: Desktop File Import Pipeline** - `.docx`/`.pdf` text extraction + heuristic parser + import preview screen (desktop-only entry points)
+- [x] **Phase 2: Desktop File Import Pipeline** - `.docx`/`.pdf` text extraction + heuristic parser + import preview screen (desktop-only entry points)
 - [ ] **Phase 3: Desktop LLM Integration** - `LlmClient` abstraction (Stub + HTTP), model picker, GBNF-constrained JSON parsing — **desktop-only**, gated on `Platform.isWindows || Platform.isLinux`
 - [ ] **Phase 4: Quiz Core & Wrong-Question Ledger** - Quiz screen, single-choice grading, three review modes, shared ledger state machine
 - [ ] **Phase 5: JSON Cross-Device Transfer + Multiple-Choice + Bookmarks + Statistics** - JSON export (desktop), JSON import (all 3 platforms), multi-choice, bookmarks, stats, **platform-conditional import UI**
@@ -68,9 +68,9 @@ Plans:
 
 Plans:
 - [x] 02-00: Consolidated implementation plan — all 10 tasks (dependencies → extraction → parser → providers → 4 screens → FAB → routing → integration tests)
-- [ ] 02-01: `gap_closure` — Run build_runner to generate missing import_notifier.g.dart (blocking codegen fix)
-- [ ] 02-02: `gap_closure` — Fix navigation stack (go→push) + add drag visual feedback overlay (D-03)
-- [ ] 02-03: `gap_closure` — Bank name TextField with CJK 20-char limit (D-18) + route redirect guard + summary skipped items with retry (D-09)
+- [x] 02-01: `gap_closure` — Run build_runner to generate missing import_notifier.g.dart (blocking codegen fix)
+- [x] 02-02: `gap_closure` — Fix navigation stack (go→push) + add drag visual feedback overlay (D-03)
+- [x] 02-03: `gap_closure` — Bank name TextField with CJK 20-char limit (D-18) + route redirect guard + summary skipped items with retry (D-09)
 
 **UI hint**: yes (import picker, progress, preview, summary screens; platform-branched entry)
 **Research flag**: **HIGH** — needs validation against real Chinese university `.docx` files during planning; pull 3-5 sample files before locking plan
@@ -80,31 +80,31 @@ Plans:
 ### Phase 3: Desktop LLM Integration & Parse Quality
 **Goal**: Replace the heuristic parser with an on-device LLM-driven parser via a swappable `LlmClient` abstraction. Desktop-only; Android's `LlmClient` provider is stubbed to throw `UnsupportedError`. Ship Stub + HTTP implementations first; FFI binding evaluated as a spike.
 **Depends on**: Phase 2
-**Requirements**: IMP-03
+**Requirements**: IMP-03, IMP-04
 **Success Criteria** (what must be TRUE):
   1. `LlmClient` abstract interface exists with at least two implementations: `StubLlmClient` (canned fixture for dev/CI) and `HttpLlmClient` (POST to local llama.cpp server)
-  2. `LlmClient` Riverpod provider is **gated on `Platform.isWindows || Platform.isLinux`** — on Android the provider throws `UnsupportedError("LLM is desktop-only; use JSON import on Android")`
+  2. `LlmClient` Riverpod provider is **gated on `Platform.isWindows || Platform.isLinux`** -- on Android the provider throws `UnsupportedError("LLM is desktop-only; use JSON import on Android")`
   3. Switching `llmModeProvider` in Riverpod overrides swaps the implementation on desktop without touching parse pipeline code
   4. Model picker UI shows "Recommended / Fast / Experimental" tiers with Qwen2.5-1.5B Q4_K_M as default
   5. GBNF grammar constrains LLM output to the question JSON schema; malformed JSON is rejected at parse layer
   6. Same raw text parsed 10 times produces byte-identical output (temperature=0 + fixed seed)
-  7. Single-chunk LLM failures don't abort the whole import — they're logged to `parse_log` and reported on the summary screen
-**Plans**: TBD (estimated 6-8 plans for "standard" granularity)
+  7. Single-chunk LLM failures don't abort the whole import -- they're logged to `parse_log` and reported on the summary screen
+**Plans**: 8 plans in 4 waves (plus 1 independent FFI spike)
 
 Plans:
-- [ ] 03-01: `LlmClient` abstract interface + platform-conditional Riverpod provider (desktop-only)
-- [ ] 03-02: `StubLlmClient` reading from `assets/fixtures/sample.json` + fixture authoring
-- [ ] 03-03: `HttpLlmClient` with retry + timeout + structured error mapping
-- [ ] 03-04: GBNF grammar file for question JSON schema + parser-layer integration
-- [ ] 03-05: Canonicalization layer (`"AB"` / `"A,B"` / `"A和B"` → `["A","B"]`)
-- [ ] 03-06: Model picker UI + GGUF download flow with resume (desktop only)
-- [ ] 03-07: **Research spike** (1 week): prototype llama.cpp FFI shim on Windows + Linux; go/no-go decision
-- [ ] 03-08: `FfiLlmClient` (if spike succeeds) or document HTTP-only fallback (if it doesn't)
+- [ ] 03-01: `LlmClient` abstract interface + platform-conditional providers + `LlmError` types (Wave 1)
+- [ ] 03-02: `StubLlmClient` with fixture JSON + provider wiring (Wave 2, deps: 03-01)
+- [ ] 03-03: `HttpLlmClient` with retry+timeout+error mapping + provider wiring (Wave 2, deps: 03-01)
+- [ ] 03-04: Chunker + grammar (JSON Schema+GBNF) + canonicalizer + ImportNotifier LLM branch with retry/fallback/parse_log (Wave 3, deps: 03-01, 03-02)
+- [ ] 03-05: Model catalog + GGUF validator + ModelDownloader (Range+resume+SHA-256) + download/installed providers (Wave 1)
+- [ ] 03-06: SettingsScreen + ModelManagementScreen + ModelCard/DownloadProgress/AddModelDialog widgets + /settings routes (Wave 2, deps: 03-05)
+- [ ] 03-07: ParserChoiceDialog + ImportScreen integration + progress/preview/summary extensions with parse source badges (Wave 4, deps: 03-04, 03-06)
+- [ ] 03-08: FFI spike (prototype+report) + conditional FfiLlmClient or HTTP-only documentation (Wave *, deps: 03-01)
 
-**UI hint**: yes (model picker screen, settings entry for LLM mode — desktop only)
-**Research flag**: **HIGH** — Phase 3 genuinely needs a 1-week FFI spike before detailed planning; plan with a fallback (HTTP-only) if the spike fails
-**Pitfalls addressed**: PITFALL 1 (LLM JSON drift — GBNF + canonicalization + multi-layer parser), PITFALL 4 (desktop OOM — capability probe, lazy model load, n_ctx=1024)
-**Dependencies**: Phase 2 (preview screen, parse pipeline already exists — LLM slots in via `LlmClient`)
+**UI hint**: yes (model picker screen, settings entry for LLM mode -- desktop only)
+**Research flag**: **HIGH** -- Phase 3 genuinely needs a 1-week FFI spike before detailed planning; plan with a fallback (HTTP-only) if the spike fails
+**Pitfalls addressed**: PITFALL 1 (LLM JSON drift -- GBNF + canonicalization + multi-layer parser), PITFALL 4 (desktop OOM -- capability probe, lazy model load, n_ctx=1024)
+**Dependencies**: Phase 2 (preview screen, parse pipeline already exists -- LLM slots in via `LlmClient`)
 
 ### Phase 4: Quiz Core & Wrong-Question Ledger
 **Goal**: Ship a runnable quiz loop with single-choice questions, all three review modes wired to a shared wrong-question ledger via an atomic state machine. Platform-agnostic — works identically on all 3 v1 platforms once questions are loaded.
@@ -227,7 +227,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Persistence | 7/7 | Complete | ✅ |
-| 2. Desktop File Import Pipeline | 0/4 | Gaps found — 3 closure plans | - |
+| 2. Desktop File Import Pipeline | 4/4 | Complete ✅ | R2 verified: 66/66 tests, 0e0w |
 | 3. Desktop LLM Integration | 0/8 | Not started | - |
 | 4. Quiz Core & Wrong-Question Ledger | 0/9 | Not started | - |
 | 5. JSON Cross-Device Transfer + Multiple-Choice + Bookmarks + Statistics | 0/9 | Not started | - |

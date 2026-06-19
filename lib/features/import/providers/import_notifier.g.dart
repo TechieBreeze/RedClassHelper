@@ -50,7 +50,7 @@ final class ImportNotifierProvider
   }
 }
 
-String _$importNotifierHash() => r'2f01246394bbe1e2af1efaa656d9d8bc97d39b54';
+String _$importNotifierHash() => r'a1fbdffac4ad81789a7cac48bfa6c75f044f3ecd';
 
 /// 导入管道 Notifier。
 ///

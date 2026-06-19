@@ -53,16 +53,6 @@ void main() {
 
   setUp(() async {
     testDb = AppDatabase.openInMemoryDatabase();
-    // Ensure tables are created
-    await testDb.into(testDb.parseLogs).insert(
-      ParseLogsCompanion.insert(
-        parseJobId: '_init',
-        level: 'info',
-        message: 'init',
-        contextJson: '{}',
-        createdAt: DateTime.now(),
-      ),
-    );
   });
 
   tearDown(() async {
@@ -291,6 +281,20 @@ void main() {
 
   group('llmParse parse_log', () {
     test('parse_log entries written on fallback', () async {
+      // Create a parse_job entry to satisfy FK constraint
+      final jobId = 'test-job-id';
+      await testDb.into(testDb.parseJobs).insert(
+        ParseJobsCompanion.insert(
+          id: jobId,
+          sourcePath: 'test.docx',
+          status: 'running',
+          progress: 0.5,
+          resultCount: 0,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+
       final stubClient = TestStubLlmClient();
       stubClient.setParser((rawText, bankName) {
         throw LlmRetryExhaustedException(
@@ -302,20 +306,25 @@ void main() {
       final container = createContainer(llmClient: stubClient);
 
       final notifier = container.read(importNotifierProvider.notifier);
-      notifier.pickFiles([
-        const ImportFile(path: 'test.docx', name: 'test.docx', sizeBytes: 100),
-      ]);
-
-      notifier.state = container
-          .read(importNotifierProvider)
-          .copyWith(extractedText: '1. Question One\nA. Option\n'
-              'B. Option\n答案：A');
+      // Set jobId to match the parse_job we created
+      notifier.state = const ImportState()
+          .copyWith(
+            jobId: jobId,
+            extractedText: '1. Question One\nA. Option\n'
+                'B. Option\n答案：A',
+            files: [
+              const ImportFile(
+                path: 'test.docx',
+                name: 'test.docx',
+                sizeBytes: 100,
+              ),
+            ],
+          );
 
       await notifier.llmParse();
 
       // Check parse_log entries were written
       final logs = await testDb.select(testDb.parseLogs).get();
-      // Should have at least the init log + the fallback warn log
       final warnLogs = logs.where((l) => l.level == 'warn').toList();
       expect(warnLogs.isNotEmpty, isTrue);
       expect(warnLogs.any((l) => l.message.contains('兜底')), isTrue);

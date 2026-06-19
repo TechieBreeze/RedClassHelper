@@ -11,8 +11,13 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/paths.dart';
 import '../../../data/db/database.dart';
+import '../../../data/llm_client/llm_client.dart';
+import '../../../data/llm_client/llm_error.dart';
+import '../../../data/llm_client/providers.dart';
 import '../../import/extraction/text_extractor.dart';
 import '../../import/parsing/heuristic_parser.dart';
+import '../../import/parsing/llm/canonicalizer.dart';
+import '../../import/parsing/llm/chunker.dart';
 import '../../import/parsing/parse_candidate.dart';
 import 'import_state.dart';
 
@@ -269,12 +274,180 @@ class ImportNotifier extends _$ImportNotifier {
     state = state.copyWith(candidates: candidates, confirmedIndices: confirmed);
   }
 
+  /// LLM 解析分支：分块 → 逐题 LLM 调用 → 自动确认（D-07, D-08, D-09）。
+  ///
+  /// 流程：
+  /// 1. 调用 [splitIntoQuestionBlocks] 将提取出的文本按题号分块。
+  /// 2. 逐块调用 [LlmClient.parse]，每次带 3 次重试。
+  /// 3. LLM 成功：规范化答案，记录 [ParseSource.llm]，自动确认。
+  /// 4. LLM 失败：回退到启发式解析，记录 [ParseSource.fallback]。
+  /// 5. 失败事件写入 [ParseLogs] 表。
+  /// 6. 全部成功后进入编辑阶段，所有候选自动确认。
+  Future<void> llmParse() async {
+    if (state.extractedText.isEmpty) {
+      state = state.copyWith(
+        phase: ImportPhase.idle,
+        error: '没有可解析的文本内容',
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      phase: ImportPhase.llmParsing,
+      progress: 0.0,
+      clearError: true,
+    );
+
+    final blocks = splitIntoQuestionBlocks(state.extractedText);
+    if (blocks.isEmpty) {
+      state = state.copyWith(
+        phase: ImportPhase.idle,
+        error: '未能将文本拆分为题目块',
+      );
+      return;
+    }
+
+    final candidates = <ParseCandidate>[];
+    final sources = <int, ParseSource>{};
+    final db = await ref.read(appDatabaseProvider.future);
+
+    for (var i = 0; i < blocks.length; i++) {
+      state = state.copyWith(
+        progress: (i / blocks.length) * 0.95,
+      );
+
+      ParseCandidate? candidate;
+      ParseSource source;
+
+      try {
+        // 带内置重试的 LLM 解析（HttpLlmClient 内部最多 3 次重试）
+        final llmResult = await ref.read(llmClientProvider).parse(
+          blocks[i],
+          bankName: state.bankName,
+        );
+        // 答案规范化（PITFALL 1: LLM 可能输出多种格式）
+        final canonicalAnswer =
+            formatAnswerForDisplay(canonicalizeAnswer(llmResult.answer));
+        candidate = llmResult.copyWith(
+          answer: canonicalAnswer,
+          metadata: {
+            ...llmResult.metadata,
+            'source': 'llm',
+            'chunkIndex': i.toString(),
+          },
+          confidence: 0.9,
+        );
+        source = ParseSource.llm;
+      } on LlmRetryExhaustedException catch (e) {
+        // D-09: 3 次重试耗尽 → 该题回退启发式兜底
+        source = ParseSource.fallback;
+        candidate = _fallbackParseSingle(blocks[i], i);
+
+        // 写入 parse_log（D-09: 失败记录可在汇总页展示）
+        await _logParseEvent(
+          db: db,
+          jobId: state.jobId,
+          level: 'warn',
+          message: '第 ${i + 1} 题 LLM 失败，切换启发式兜底',
+          context: {
+            'attempts': e.attempts,
+            'lastError': e.lastError,
+            'chunkIndex': i,
+          },
+        );
+      } on Exception catch (e) {
+        // 意外错误 → 回退启发式兜底
+        source = ParseSource.fallback;
+        candidate = _fallbackParseSingle(blocks[i], i);
+
+        await _logParseEvent(
+          db: db,
+          jobId: state.jobId,
+          level: 'error',
+          message: '第 ${i + 1} 题 LLM 异常: ${e.toString()}',
+          context: {'error': e.toString(), 'chunkIndex': i},
+        );
+      }
+
+      if (candidate != null) {
+        candidates.add(candidate);
+        sources[candidates.length - 1] = source;
+      }
+    }
+
+    if (candidates.isEmpty) {
+      // 全部分块失败 → 回退到空闲状态并给出明确错误
+      state = state.copyWith(
+        phase: ImportPhase.idle,
+        error: 'LLM 解析全部失败，请使用快速解析（启发式）重试',
+        progress: 1.0,
+      );
+      return;
+    }
+
+    // D-08: LLM 结果自动确认（所有候选加入 confirmedIndices）
+    state = state.copyWith(
+      phase: ImportPhase.editing,
+      candidates: candidates,
+      confirmedIndices: List.generate(candidates.length, (i) => i).toSet(),
+      parseSources: sources,
+      progress: 1.0,
+    );
+  }
+
   /// 重置管道
   void reset() {
     state = const ImportState();
   }
 
-  // ── 辅助方法 ──
+  // ── LLM 解析辅助方法 ──
+
+  /// 单题启发式兜底解析（LLM 失败时调用）。
+  ///
+  /// 使用 [HeuristicParser] 对单个题目块进行解析，
+  /// 置信度在原始基础上降低 20%（乘以 0.8），并标记来源为 'heuristic_fallback'。
+  ParseCandidate? _fallbackParseSingle(String block, int chunkIndex) {
+    final parsed = _parser.parse(block, bankName: state.bankName);
+    if (parsed.isNotEmpty) {
+      return parsed.first.copyWith(
+        metadata: {
+          ...parsed.first.metadata,
+          'source': 'heuristic_fallback',
+          'chunkIndex': chunkIndex.toString(),
+        },
+        confidence:
+            (parsed.first.confidence * 0.8).clamp(0.0, 1.0),
+      );
+    }
+    return null;
+  }
+
+  /// 向 [ParseLogs] 表写入一条解析事件。
+  ///
+  /// 日志写入是"尽力而为"的操作——即使写入失败也不应中断导入流程。
+  Future<void> _logParseEvent({
+    required AppDatabase db,
+    required String jobId,
+    required String level,
+    required String message,
+    required Map<String, dynamic> context,
+  }) async {
+    try {
+      await db.into(db.parseLogs).insert(
+        ParseLogsCompanion.insert(
+          parseJobId: jobId,
+          level: level,
+          message: message,
+          contextJson: jsonEncode(context),
+          createdAt: DateTime.now(),
+        ),
+      );
+    } catch (_) {
+      // parse_log 是尽力而为的操作——静默失败不中断导入
+    }
+  }
+
+  // ── 原有辅助方法 ──
 
   String _deriveBankName(String fileName) {
     final base = p.basenameWithoutExtension(fileName);

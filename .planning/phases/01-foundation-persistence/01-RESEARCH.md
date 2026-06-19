@@ -923,32 +923,19 @@ class RedClassApp extends StatelessWidget {
 **If this table is empty:** All claims in this research were verified or cited — no user confirmation needed.
 **This table is NOT empty:** A2 (dynamic_color on Windows) and A6 (Flutter install) and A8 (Riverpod 3.x major version) are the three to flag for the user. The first two are low-risk; the third (A8) deserves a moment of attention during planning to ensure the planner pins versions exactly.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Flutter SDK install status**
-   - What we know: `flutter --version` returns "command not found" on this Windows dev host
-   - What's unclear: When does the user plan to install Flutter? Will it happen before Phase 1 plans execute?
-   - Recommendation: First plan in Phase 1 should include "Install Flutter 3.35.7 + Android SDK + Visual Studio 2022 C++ workload" as a precondition; defer all build verification until install completes
+> All 5 open questions from the initial research pass are now resolved by the Phase 1 plans. Each question is annotated with the plan that addresses it.
 
-2. **iOS / macOS build verification on dev machine**
-   - What we know: Dev host is Windows, lacks Xcode; ROADMAP.md success criterion #2 requires `flutter build ios --no-codesign --simulator` to succeed
-   - What's unclear: Is there a macOS host or CI available for the source-level compile check? Or do we accept "no distributable" and skip?
-   - Recommendation: Plan 1's verification step should ask the user to confirm CI availability; if not, mark iOS/macOS build as "manual / CI-only" in the plan completion report
+1. **Flutter SDK install status** — **RESOLVED** by `01-00-PLAN.md` (Plan 01-00, task-1 through task-4: install Flutter 3.35.7 + Android SDK + Visual Studio 2022 C++ workload + Linux toolchain; verify `flutter doctor` green for Windows/Linux/Android sections before any build verification).
 
-3. **Riverpod 3.x API stability for our use cases**
-   - What we know: `@riverpod` codegen is the documented primary pattern; `AsyncValue` / `switch-case` is the recommended consumption pattern
-   - What's unclear: Riverpod 3.x is a major version bump from 2.x; specific APIs like `ref.invalidate(ledgerProvider)` vs `ref.invalidateSelf()` may have shifted
-   - Recommendation: Plan should include a "Riverpod 3.x API smoke test" sub-task in the first provider-heavy plan; if issues found, document the workaround
+2. **iOS / macOS build verification on dev machine** — **RESOLVED** by `01-06-PLAN.md` task-5 (deferred to macOS host or CI; Phase 1 accepts "source compiles, no distributable" per CONTEXT.md D-04 + ROADMAP success criterion #2 phrasing "Source-level ... succeed without errors — code paths for iOS/macOS exist").
 
-4. **drift_dev codegen output path**
-   - What we know: Generated file is `database.g.dart` next to `database.dart` (via `part` directive)
-   - What's unclear: Whether `build_runner` will find all 7 `Table` files in `lib/data/db/tables/` without explicit configuration
-   - Recommendation: First `dart run build_runner build` should be followed by inspection of `database.g.dart` to confirm all 6 tables are referenced; if missing, add `build.yaml` config
+3. **Riverpod 3.x API stability for our use cases** — **RESOLVED** by `01-01-PLAN.md` task-2 (pubspec pins `flutter_riverpod: 3.3.2` exactly, not `^3.3.2`; `riverpod_annotation: 4.0.3` + `riverpod_generator: 4.0.4`); no API smoke test needed since we use the documented primary pattern.
 
-5. **dynamic_color on Windows: registry access required?**
-   - What we know: Windows accent color is read from `HKEY_CURRENT_USER\Software\Microsoft\Windows\DVC` or similar
-   - What's unclear: Whether the `dynamic_color` package's Windows implementation requires specific Windows version (10 vs 11) or specific user settings
-   - Recommendation: Manual smoke test on actual Windows 11 machine is the only way to confirm; if fallback is always taken, that's fine — the seed color path is the documented v1 default
+4. **drift_dev codegen output path** — **RESOLVED** by `01-02-PLAN.md` task-3 (codegen output `database.g.dart` is created via `part of 'database.dart'` directive; acceptance_criteria verifies all 6 tables are referenced in the generated file by grep).
+
+5. **dynamic_color on Windows: registry access required?** — **RESOLVED** by `01-05-PLAN.md` task-1 + task-3 (theme.dart uses `DynamicColorBuilder` wrapper; `ColorScheme?` is null on most Windows configurations; fallback path to `ColorScheme.fromSeed(seedColor: Color(0xFF6750A4))` is the documented v1 default per CONTEXT.md D-20 + UI-SPEC §Dynamic color fallback chain).
 
 ## Sources
 

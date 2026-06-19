@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-02-PLAN.md — drift 7-table schema, schemaVersion=1, 5 migration tests green
-last_updated: "2026-06-19T09:49:22.834Z"
+stopped_at: Completed 01-03-PLAN.md — PathResolver + appDatabaseProvider + 6 tests green
+last_updated: "2026-06-19T09:59:04.261Z"
 last_activity: 2026-06-19
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 7
-  completed_plans: 3
-  percent: 43
+  completed_plans: 4
+  percent: 57
 ---
 
 # Project State
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2025-01-14 after platform-scope contraction)
 ## Current Position
 
 Phase: 1 of 7 (Foundation & Persistence)
-Plan: 3 of 7 in current phase (01-00 ✓ 01-01 ✓ 01-02 ✓; 01-03 next)
-Status: Executing Wave 2
+Plan: 4 of 7 in current phase (01-00 ✓ 01-01 ✓ 01-02 ✓; 01-03 next)
+Status: Ready to execute
 Last activity: 2026-06-19
 Progress: [▓▓▓░░░░░░░] 29% (2/7 plans)
 
@@ -58,6 +58,7 @@ Progress: [▓▓▓░░░░░░░] 29% (2/7 plans)
 
 *Updated after each plan completion*
 | Phase 01-foundation-persistence P02 | 13min | 4 tasks | 11 files |
+| Phase 01-foundation-persistence P03 | 8min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation-persistence]: UNIQUE 约束放在表级 customConstraints 而非列级 customConstraint——当列同时有 references() FK 时，列级 customConstraint 会覆盖 FK
 - [Phase 01-foundation-persistence]: autoIncrement() 列自动设为主键，不需要再 override primaryKey
 - [Phase 01-foundation-persistence]: databaseProvider 延后到 Plan 01-03，当前 AppDatabase 提供静态工厂方法 openAppDatabase/openInMemoryDatabase
+- [Phase 01-foundation-persistence]: @Riverpod(keepAlive:true) for both pathResolverProvider and appDatabaseProvider — prevents premature disposal during app lifetime
+- [Phase 01-foundation-persistence]: PathResolver pre-resolved in main() before runApp — avoids late-init error from path_provider in ref.watch chain (Pitfall 4)
+- [Phase 01-foundation-persistence]: Fake-directory test pattern for PathResolver — construct with temp Directory objects, no path_provider mock needed
 
 ### Pending Todos
 
@@ -98,8 +102,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-19T09:49:22.831Z
-Stopped at: Completed 01-02-PLAN.md — drift 7-table schema, schemaVersion=1, 5 migration tests green
+Last session: 2026-06-19T09:59:04.258Z
+Stopped at: Completed 01-03-PLAN.md — PathResolver + appDatabaseProvider + 6 tests green
 Resume file: None
 
 ### Recent plan-completion decisions

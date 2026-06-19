@@ -43,7 +43,7 @@ Plans:
 - [x] 01-00: Toolchain bootstrap — Flutter 3.44.2 + Android SDK 35 + VS Build Tools 2026 installed; flutter doctor green for Flutter / Windows / Visual Studio / Connected device; Android toolchain recognized (SDK 35.0.0). End-to-end smoke test (flutter create --platforms=windows) passes.
 - [x] 01-01: Create Flutter project (`flutter create --platforms=windows,linux,android,ios,macos`) + pubspec deps
 - [x] 01-02: drift schema (QuestionBank / Question / AnswerAttempt / WrongLedger / Bookmark / ParseJob) + migrations
-- [ ] 01-03: PathResolver + database provider wiring + per-platform path tests
+- [x] 01-03: PathResolver + database provider wiring + per-platform path tests
 - [ ] 01-04: go_router config + placeholder screens for all routes
 - [ ] 01-05: Material 3 theme baseline (per ui-ux-pro-max) + home screen layout
 - [ ] 01-06: Cross-platform smoke test (`flutter test` + manual run on each v1 platform)

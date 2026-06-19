@@ -15,7 +15,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **IMP-01**: Desktop user can select a `.docx` file from local filesystem and import it as a question bank
 - [ ] **IMP-02**: Desktop user can select a `.pdf` file from local filesystem and import it as a question bank
-- [ ] **IMP-03**: Desktop app invokes a local on-device small LLM to parse raw text into structured questions (stem / options / answer)
+- [x] **IMP-03**: Desktop app invokes a local on-device small LLM to parse raw text into structured questions (stem / options / answer)
 - [ ] **IMP-04**: Parse process shows progress and failure reasons; user can retry on failure
 - [x] **IMP-05**: Imported questions are persisted to local database for long-term reuse
 - [ ] **IMP-06**: Desktop user can export a parsed question bank as a standard JSON file (public format, see `doc/question-bank-json.md`)
@@ -133,7 +133,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | IMP-01 | Phase 2 | Pending |
 | IMP-02 | Phase 2 | Pending |
-| IMP-03 | Phase 3 | Pending |
+| IMP-03 | Phase 3 | Complete |
 | IMP-04 | Phase 2 | Pending |
 | IMP-05 | Phase 1 | Complete |
 | IMP-06 | Phase 5 | Pending |

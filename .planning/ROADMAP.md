@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & Persistence** - Flutter project skeleton (3 v1 platforms + iOS/macOS source support), drift schema, go_router, Material 3 theme, PathResolver
 - [x] **Phase 2: Desktop File Import Pipeline** - `.docx`/`.pdf` text extraction + heuristic parser + import preview screen (desktop-only entry points)
-- [ ] **Phase 3: Desktop LLM Integration** - `LlmClient` abstraction (Stub + HTTP), model picker, GBNF-constrained JSON parsing — **desktop-only**, gated on `Platform.isWindows || Platform.isLinux`
+- [x] **Phase 3: Desktop LLM Integration** - `LlmClient` abstraction (Stub + HTTP), model picker, GBNF-constrained JSON parsing — **desktop-only**, gated on `Platform.isWindows || Platform.isLinux` (completed 2026-06-19)
 - [ ] **Phase 4: Quiz Core & Wrong-Question Ledger** - Quiz screen, single-choice grading, three review modes, shared ledger state machine
 - [ ] **Phase 5: JSON Cross-Device Transfer + Multiple-Choice + Bookmarks + Statistics** - JSON export (desktop), JSON import (all 3 platforms), multi-choice, bookmarks, stats, **platform-conditional import UI**
 - [ ] **Phase 6: UX Polish & Diagnostics** - UI alignment with ui-ux-pro-max, session state recovery, diagnostic-pack export
@@ -92,14 +92,14 @@ Plans:
 **Plans**: 8 plans in 4 waves (plus 1 independent FFI spike)
 
 Plans:
-- [ ] 03-01: `LlmClient` abstract interface + platform-conditional providers + `LlmError` types (Wave 1)
-- [ ] 03-02: `StubLlmClient` with fixture JSON + provider wiring (Wave 2, deps: 03-01)
-- [ ] 03-03: `HttpLlmClient` with retry+timeout+error mapping + provider wiring (Wave 2, deps: 03-01)
-- [ ] 03-04: Chunker + grammar (JSON Schema+GBNF) + canonicalizer + ImportNotifier LLM branch with retry/fallback/parse_log (Wave 3, deps: 03-01, 03-02)
-- [ ] 03-05: Model catalog + GGUF validator + ModelDownloader (Range+resume+SHA-256) + download/installed providers (Wave 1)
-- [ ] 03-06: SettingsScreen + ModelManagementScreen + ModelCard/DownloadProgress/AddModelDialog widgets + /settings routes (Wave 2, deps: 03-05)
-- [ ] 03-07: ParserChoiceDialog + ImportScreen integration + progress/preview/summary extensions with parse source badges (Wave 4, deps: 03-04, 03-06)
-- [ ] 03-08: FFI spike (prototype+report) + conditional FfiLlmClient or HTTP-only documentation (Wave *, deps: 03-01)
+- [x] 03-01: `LlmClient` abstract interface + platform-conditional providers + `LlmError` types (Wave 1)
+- [x] 03-02: `StubLlmClient` with fixture JSON + provider wiring (Wave 2, deps: 03-01)
+- [x] 03-03: `HttpLlmClient` with retry+timeout+error mapping + provider wiring (Wave 2, deps: 03-01)
+- [x] 03-04: Chunker + grammar (JSON Schema+GBNF) + canonicalizer + ImportNotifier LLM branch with retry/fallback/parse_log (Wave 3, deps: 03-01, 03-02)
+- [x] 03-05: Model catalog + GGUF validator + ModelDownloader (Range+resume+SHA-256) + download/installed providers (Wave 1)
+- [x] 03-06: SettingsScreen + ModelManagementScreen + ModelCard/DownloadProgress/AddModelDialog widgets + /settings routes (Wave 2, deps: 03-05)
+- [x] 03-07: ParserChoiceDialog + ImportScreen integration + progress/preview/summary extensions with parse source badges (Wave 4, deps: 03-04, 03-06)
+- [x] 03-08: FFI spike (prototype+report) + conditional FfiLlmClient or HTTP-only documentation (Wave *, deps: 03-01)
 
 **UI hint**: yes (model picker screen, settings entry for LLM mode -- desktop only)
 **Research flag**: **HIGH** -- Phase 3 genuinely needs a 1-week FFI spike before detailed planning; plan with a fallback (HTTP-only) if the spike fails
@@ -228,7 +228,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 |-------|----------------|--------|-----------|
 | 1. Foundation & Persistence | 7/7 | Complete | ✅ |
 | 2. Desktop File Import Pipeline | 4/4 | Complete ✅ | R2 verified: 66/66 tests, 0e0w |
-| 3. Desktop LLM Integration | 0/8 | Not started | - |
+| 3. Desktop LLM Integration | 8/8 | Complete   | 2026-06-19 |
 | 4. Quiz Core & Wrong-Question Ledger | 0/9 | Not started | - |
 | 5. JSON Cross-Device Transfer + Multiple-Choice + Bookmarks + Statistics | 0/9 | Not started | - |
 | 6. UX Polish & Diagnostics | 0/6 | Not started | - |

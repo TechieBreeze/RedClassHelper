@@ -41,7 +41,7 @@ dependencies:
   # Phase 2: File import pipeline dependencies
   archive: ^4.0.9          # ZIP decode for .docx
   xml: ^6.5.0              # WordprocessingML traversal
-  pdfx: ^2.9.2             # PDF text extraction via PDFium
+  pdfrx: ^1.1.8           # PDF text extraction + rendering via PDFium
   file_picker: ^11.0.2     # Native file dialog (desktop only)
   desktop_drop: ^0.7.1     # Drag-and-drop file import (desktop)
   uuid: ^4.5.1             # UUID generation for ParseJob IDs

@@ -5,7 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../features/bank_detail/presentation/bank_detail_screen.dart';
 import '../features/bookmarks/presentation/bookmarks_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/import/presentation/import_preview_screen.dart';
+import '../features/import/presentation/import_progress_screen.dart';
 import '../features/import/presentation/import_screen.dart';
+import '../features/import/presentation/import_summary_screen.dart';
 import '../features/quiz/presentation/quiz_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
 
@@ -44,6 +47,22 @@ final GoRouter appRouter = GoRouter(
       path: '/import',
       builder: (BuildContext context, GoRouterState state) =>
           const ImportScreen(),
+    ),
+    // Phase 2: 导入管道路由
+    GoRoute(
+      path: '/import/progress',
+      builder: (BuildContext context, GoRouterState state) =>
+          const ImportProgressScreen(),
+    ),
+    GoRoute(
+      path: '/import/preview/:jobId',
+      builder: (BuildContext context, GoRouterState state) =>
+          const ImportPreviewScreen(),
+    ),
+    GoRoute(
+      path: '/import/summary/:jobId',
+      builder: (BuildContext context, GoRouterState state) =>
+          const ImportSummaryScreen(),
     ),
   ],
   errorBuilder: (BuildContext context, GoRouterState state) => Scaffold(

@@ -21,13 +21,13 @@ class HeuristicParser {
   /// 选项标签：行首 A. / A、/ A． / Ａ、 后跟选项文本
   /// 支持半角 [A-H] 和全角 [Ａ-Ｈ] 字母
   static final RegExp _choiceLabelRE = RegExp(
-    r'^\s*([A-HＡ-Ｈ])\s*[.、．]\s*(.+)$',
+    r'^\s*([A-HＡ-Ｈ])\s*[.、．]\s*(.*)$',
   );
 
   /// 选项标签（空格分隔）：行首 "A 选项文本"（无点号），需上下文验证
   /// 支持半角 [A-H] 和全角 [Ａ-Ｈ] 字母
   static final RegExp _choiceLabelSpaceRE = RegExp(
-    r'^\s*([A-HＡ-Ｈ])\s+(.+)$',
+    r'^\s*([A-HＡ-Ｈ])\s+(.*)$',
   );
 
   /// 答案行：答案：A / 参考答案：ABC 等
@@ -74,8 +74,9 @@ class HeuristicParser {
   /// 一行内多个空格分隔选项：A xxx  B xxx  C xxx  D xxx（无点号）
   /// 仅当行中有 ≥2 个匹配时采信，避免把普通文本当选项
   /// 支持半角 [A-H] 和全角 [Ａ-Ｈ] 字母
+  /// 允许选项间无空格（e.g. "A xxxB yyy"）
   static final RegExp _inlineChoiceSpaceRE = RegExp(
-    r'(?<=\s|^)([A-HＡ-Ｈ])\s+(.+?)(?=\s+[A-HＡ-Ｈ]\s+|$)',
+    r'([A-HＡ-Ｈ])\s+(.+?)(?=\s*[A-HＡ-Ｈ]\s+|$)',
   );
 
   // ── 解析入口 ──
@@ -379,6 +380,14 @@ class HeuristicParser {
     afterNumber =
         afterNumber.replaceFirst(RegExp(r'^[.、．]+'), '').trim();
     final titleLines = <String>[];
+
+    // 同行的点号分隔选项：从题干中切掉
+    // e.g. "...原理是 A.矛盾的普遍性 B.量变和质变" → title ends before "A."
+    final firstInlineDot = _inlineChoiceRE.allMatches(afterNumber).toList();
+    if (firstInlineDot.length >= 2) {
+      final cutAt = firstInlineDot.first.start;
+      afterNumber = afterNumber.substring(0, cutAt).trim();
+    }
 
     // 同行的空格分隔选项：从题干中切掉
     // e.g. "...以（ D ）为主线 A 马克思主义理论  B ..." → title ends before "A 马克思"

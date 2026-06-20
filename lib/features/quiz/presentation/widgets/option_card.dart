@@ -60,7 +60,8 @@ class OptionCard extends StatelessWidget {
       color: _buildBackground(colorScheme),
       child: InkWell(
         onTap: state == OptionCardState.normal ||
-                state == OptionCardState.hovered
+                state == OptionCardState.hovered ||
+                state == OptionCardState.selected
             ? onTap
             : null,
         borderRadius: BorderRadius.circular(12),

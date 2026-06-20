@@ -312,5 +312,62 @@ D. 和平统一
       expect(candidates.first.answer, '对');
       expect(candidates.first.confidence, greaterThanOrEqualTo(0.7));
     });
+
+    // ── 选项跨行 / 一行多选紧贴 ──
+
+    test('option label on its own line, text on next line', () {
+      const input = '''
+1. 马克思主义中国化的科学内涵是
+A. 马克思主义基本原理同中国具体实际相结合
+B. 马克思主义理论在中国的传播
+C. 把马克思主义经典作家的著作翻译成中文
+D.
+实现中华民族伟大复兴的必由之路
+答案：A
+''';
+      final candidates = parser.parse(input);
+      expect(candidates, isNotEmpty);
+      expect(candidates.first.options.length, 4);
+      expect(candidates.first.options[3],
+          contains('实现中华民族伟大复兴的必由之路'));
+    });
+
+    test('inline options without space between them (dot-separated)', () {
+      const input = '''
+1. 中国特色社会主义的本质特征是中国共产党的领导A.中国特色社会主义B.马克思主义中国化C.邓小平理论D.三个代表重要思想
+''';
+      final candidates = parser.parse(input);
+      expect(candidates, isNotEmpty);
+      expect(candidates.first.options.length, 4);
+      expect(candidates.first.options[0], contains('中国特色社会主义'));
+      expect(candidates.first.options[1], contains('马克思主义中国化'));
+      expect(candidates.first.options[2], contains('邓小平理论'));
+      expect(candidates.first.options[3], contains('三个代表重要思想'));
+      // Title should not contain option labels
+      expect(candidates.first.title, isNot(contains('A.')));
+    });
+
+    test('inline options without space between them (space-separated)', () {
+      const input = '''
+1. 新民主主义革命的总路线是无产阶级领导的A 反对帝国主义B 反对封建主义C 反对官僚资本主义D 建立人民民主专政
+''';
+      final candidates = parser.parse(input);
+      expect(candidates, isNotEmpty);
+      // Space-separated with no space between options: should still split
+      expect(candidates.first.options.length, greaterThanOrEqualTo(3));
+    });
+
+    test('options on same line as question number are separated from title', () {
+      const input = '''
+1.题干内容A.选项1B.选项2C.选项3D.选项4
+答案：B
+''';
+      final candidates = parser.parse(input);
+      expect(candidates, isNotEmpty);
+      expect(candidates.first.options.length, 4);
+      expect(candidates.first.title, '题干内容');
+      final q = candidates.first;
+      expect(q.options[0], contains('A. 选项1'));
+    });
   });
 }

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 4 context gathered — 17 implementation decisions captured. Ready for `/gsd-plan-phase 4` or `/gsd-ui-phase 4`.
-last_updated: "2026-06-20T01:53:59.279Z"
-last_activity: 2026-06-20 -- Phase 04 execution started
+stopped_at: Phase 4 complete — UAT approved. Ready for Phase 5.
+last_updated: "2026-06-20T07:00:00.000Z"
+last_activity: 2026-06-20 -- Phase 04 completed
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 24
-  completed_plans: 19
-  percent: 79
+  completed_plans: 24
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-06-20 after Android scope cut)
 
 ## Current Position
 
-Phase: 04 (quiz-core-wrong-question-ledger) — EXECUTING
-Plan: 1 of 5
-Plans: 19 of 19 executed (Phases 1-3: 100%)
-Status: Executing Phase 04
-Last activity: 2026-06-20 -- Phase 04 execution started
-Progress: [████░░░░░░] 43% (3/7 phases completed)
+Phase: 04 (quiz-core-wrong-question-ledger) — COMPLETE
+Plan: 5 of 5
+Plans: 24 of 24 executed (Phases 1-4: 100%)
+Status: Phase 04 completed — UAT approved 2026-06-20
+Last activity: 2026-06-20 -- Phase 04 completed
+Progress: [████████░░] 57% (4/7 phases completed)
 
 ## Performance Metrics
 
@@ -46,7 +46,7 @@ Progress: [████░░░░░░] 43% (3/7 phases completed)
 | 1. Foundation & Persistence | 7/7 | Complete |
 | 2. Desktop File Import Pipeline | 4/4 | Complete |
 | 3. Desktop LLM Integration | 8/8 | Complete |
-| 4. Quiz Core & Wrong-Question Ledger | 0/5 | Ready to execute |
+| 4. Quiz Core & Wrong-Question Ledger | 5/5 | Complete |
 | 5. JSON Export/Import + Multiple-Choice + Bookmarks + Statistics | 0/7 | Not started |
 | 6. UX Polish & Diagnostics | 0/5 | Not started |
 | 7. Desktop Packaging & Verification | 0/5 | Not started |
@@ -118,9 +118,10 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-06-20
-Stopped at: Phase 4 context gathered — 17 implementation decisions captured. Ready for `/gsd-plan-phase 4` or `/gsd-ui-phase 4`.
+Stopped at: Phase 4 complete — UAT approved. Ready for Phase 5 (`/gsd-plan-phase 5`).
 Resume file: None
 
 ### Recent decisions
 
+- **2026-06-20**: Phase 4 UAT approved by user (time-constrained). 7/7 items signed off. All 116 core tests pass, dart analyze: 0 errors.
 - **2026-06-20**: Android dropped from v1 scope. v1 ships Windows + Linux only. Decision recorded in PROJECT.md Key Decisions.

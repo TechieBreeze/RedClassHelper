@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation & Persistence** - Flutter project skeleton (3 v1 platforms + iOS/macOS source support), drift schema, go_router, Material 3 theme, PathResolver
 - [x] **Phase 2: Desktop File Import Pipeline** - `.docx`/`.pdf` text extraction + heuristic parser + import preview screen (desktop-only entry points)
 - [x] **Phase 3: Desktop LLM Integration** - `LlmClient` abstraction (Stub + HTTP), model picker, GBNF-constrained JSON parsing — **desktop-only**, gated on `Platform.isWindows || Platform.isLinux` (completed 2026-06-19)
-- [ ] **Phase 4: Quiz Core & Wrong-Question Ledger** - Quiz screen, single-choice grading, three review modes, shared ledger state machine (desktop)
+- [x] **Phase 4: Quiz Core & Wrong-Question Ledger** - Quiz screen, single-choice grading, three review modes, shared ledger state machine (desktop) (completed 2026-06-20)
 - [ ] **Phase 5: JSON Export/Import + Multiple-Choice + Bookmarks + Statistics** - JSON export/import (desktop), multi-choice, bookmarks, stats
 - [ ] **Phase 6: UX Polish & Diagnostics** - UI alignment with ui-ux-pro-max, session state recovery, diagnostic-pack export (desktop)
 - [ ] **Phase 7: Desktop Packaging & Verification** - Windows + Linux builds, on-device LLM validation on real desktop hardware
@@ -157,7 +157,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Foundation & Persistence | 7/7 | Complete | ✅ |
 | 2. Desktop File Import Pipeline | 4/4 | Complete | ✅ R2 verified: 66/66 tests, 0e0w |
 | 3. Desktop LLM Integration | 8/8 | Complete | 2026-06-19 |
-| 4. Quiz Core & Wrong-Question Ledger | 0/5 | Planned | Ready to execute |
+| 4. Quiz Core & Wrong-Question Ledger | 5/5 | Complete | ✅ 2026-06-20 |
 | 5. JSON Export/Import + Multiple-Choice + Bookmarks + Statistics | 0/7 | Not started | - |
 | 6. UX Polish & Diagnostics | 0/5 | Not started | - |
 | 7. Desktop Packaging & Verification | 0/5 | Not started | - |

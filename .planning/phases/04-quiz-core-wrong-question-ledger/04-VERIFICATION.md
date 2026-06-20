@@ -1,7 +1,7 @@
 ---
 phase: 04-quiz-core-wrong-question-ledger
-verified: 2026-06-20T00:00:00Z
-status: human_needed
+verified: 2026-06-20T07:00:00Z
+status: verified
 score: 9/9 truths verified
 re_verification: false
 human_verification:

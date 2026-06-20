@@ -2,7 +2,7 @@
 phase: 04
 slug: quiz-core-wrong-question-ledger
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-06-20
 ---
@@ -36,16 +36,22 @@ created: 2026-06-20
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 04-01-01 | 01 | 1 | QST-01, UI-03 | T-04-01 | N/A | unit | `flutter test` | ❌ W0 | ⬜ pending |
-| 04-02-01 | 02 | 1 | REV-01, QST-01 | T-04-02 | N/A | unit | `flutter test` | ❌ W0 | ⬜ pending |
-| 04-03-01 | 03 | 2 | REV-02, REV-03, REV-04 | T-04-03 | Atomic ledger write within transaction | unit | `flutter test` | ❌ W0 | ⬜ pending |
-| 04-04-01 | 04 | 2 | REV-05, REV-06 | T-04-03 | mastered_at IS NULL guard | unit | `flutter test` | ❌ W0 | ⬜ pending |
-| 04-05-01 | 05 | 2 | STAT-01 | — | N/A | unit | `flutter test` | ❌ W0 | ⬜ pending |
-| 04-06-01 | 06 | 3 | REV-01~06, UI-03 | — | N/A | unit | `flutter test` | ❌ W0 | ⬜ pending |
-| 04-07-01 | 07 | 3 | REV-01~06 | — | N/A | unit | `flutter test` | ❌ W0 | ⬜ pending |
-| 04-08-01 | 08 | 1 | QST-01 | — | N/A | unit | `flutter test` | ❌ W0 | ⬜ pending |
+| Task | Plan | Wave | Requirements | Threat Ref | Secure Behavior | Test Type | Automated Command | Status |
+|------|------|------|-------------|------------|-----------------|-----------|-------------------|--------|
+| Models + shared_preferences | 04-01 | 1 | — | T-04-01 | N/A | unit | `flutter test` | ⬜ pending |
+| LedgerRepository + atomic txns | 04-01 | 1 | REV-02, REV-03, REV-04, REV-06, STAT-01 | T-04-01 | Atomic ledger write within drift transaction() | unit | `flutter test` | ⬜ pending |
+| Providers + SharedPreferences init | 04-01 | 1 | REV-01, REV-05 | — | N/A | unit | `flutter test` | ⬜ pending |
+| QuizSessionController | 04-02 | 2 | QST-01, REV-01~06, STAT-01 | T-04-02 | N/A | unit | `flutter test` | ⬜ pending |
+| Controller unit tests | 04-02 | 2 | QST-01, REV-01~06 | — | N/A | unit | `flutter test` | ⬜ pending |
+| Quiz widgets (OptionCard et al.) | 04-03 | 3 | QST-01, UI-03 | — | N/A | unit | `flutter test` | ⬜ pending |
+| QuizScreen implementation | 04-03 | 3 | QST-01, UI-03 | — | N/A | unit | `flutter test` | ⬜ pending |
+| build_runner codegen | 04-03 | 3 | — | — | N/A | integration | `dart analyze` | ⬜ pending |
+| BankPickerScreen | 04-04 | 3 | REV-01, REV-03, REV-05 | — | N/A | unit | `flutter test` | ⬜ pending |
+| QuizSummaryScreen | 04-04 | 3 | REV-01~06 | — | N/A | unit | `flutter test` | ⬜ pending |
+| GoRouter + redirect guards | 04-04 | 3 | REV-01, REV-03, REV-05 | T-04-04 | Redirect guard prevents access without session | unit | `flutter test` | ⬜ pending |
+| HomeScreen wrong-count badges | 04-05 | 4 | REV-01, REV-03, REV-05 | — | N/A | unit | `flutter test` | ⬜ pending |
+| SettingsScreen quiz toggles | 04-05 | 4 | QST-01, UI-03 | — | N/A | unit | `flutter test` | ⬜ pending |
+| Full dart analyze | 04-05 | 4 | — | — | N/A | integration | `dart analyze` | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -53,12 +59,12 @@ created: 2026-06-20
 
 ## Wave 0 Requirements
 
-- [ ] `test/features/quiz/quiz_session_controller_test.dart` — stubs for QuizSessionController
-- [ ] `test/data/repositories/ledger_repository_test.dart` — stubs for LedgerRepository
-- [ ] `test/features/quiz/quiz_screen_test.dart` — stubs for QuizScreen widget tests
-- [ ] `test/features/quiz/bank_picker_screen_test.dart` — stubs for BankPickerScreen
-- [ ] `test/features/quiz/quiz_summary_screen_test.dart` — stubs for QuizSummaryScreen
-- [ ] `test/data/repositories/answer_attempt_repository_test.dart` — stubs for AnswerAttemptRepository
+- [ ] `test/data/repositories/ledger_repository_test.dart` — stubs for LedgerRepository (04-01)
+- [ ] `test/features/quiz/quiz_session_controller_test.dart` — stubs for QuizSessionController (04-02)
+- [ ] `test/features/quiz/quiz_screen_test.dart` — stubs for QuizScreen widget tests (04-03)
+- [ ] `test/features/quiz/bank_pick_screen_test.dart` — stubs for BankPickerScreen (04-04)
+- [ ] `test/features/quiz/quiz_summary_screen_test.dart` — stubs for QuizSummaryScreen (04-04)
+- [ ] `test/features/home/home_screen_test.dart` — update for badge assertions (04-05)
 
 ---
 
@@ -74,11 +80,11 @@ created: 2026-06-20
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
 - [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending

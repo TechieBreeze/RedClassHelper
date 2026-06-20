@@ -571,7 +571,7 @@ LayoutBuilder(
 | A4 | Dart's `Timer` is sufficient for 2-second auto-advance (no need for `RestartableTimer` from async package) | Architecture Patterns Pattern 4 | Low -- Timer.timer + cancel() handles the use case; RestartableTimer is a convenience only |
 | A5 | Drift's `.watchSingle()` on a `selectOnly` query returns a `Stream<int>` usable in a StreamProvider | Architecture Patterns Pattern 2 | Medium -- if drift 2.34.0 stream API changed, ledger badge won't update reactively |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Bank pick screen design: full-screen vs modal bottom sheet?**
    - What we know: D-08 says "每次都弹出独立全屏选择页" -- full screen

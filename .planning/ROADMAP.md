@@ -89,11 +89,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   6. Each answer attempt writes to `answer_attempts` table with timestamp, elapsed time, mode, and correctness (STAT-01)
 **Plans**: 5 plans (in 4 waves)
 Plans:
-- [ ] 04-01-PLAN.md — LedgerRepository + Quiz models + Reactive providers + shared_preferences init (Wave 1)
-- [ ] 04-02-PLAN.md — QuizSessionController (AsyncNotifier parameterized by bankId+mode) (Wave 2)
-- [ ] 04-03-PLAN.md — Quiz widgets (OptionCard, ProgressBar, KeyboardHint, WrongQuestionChip) + QuizScreen (Wave 3)
-- [ ] 04-04-PLAN.md — BankPickerScreen + QuizSummaryScreen + GoRouter routes + redirect guards (Wave 3)
-- [ ] 04-05-PLAN.md — HomeScreen wrong-count badge + SettingsScreen quiz settings toggles (Wave 4)
+- [x] 04-01-PLAN.md — LedgerRepository + Quiz models + Reactive providers + shared_preferences init (Wave 1)
+- [x] 04-02-PLAN.md — QuizSessionController (AsyncNotifier parameterized by bankId+mode) (Wave 2)
+- [x] 04-03-PLAN.md — Quiz widgets (OptionCard, ProgressBar, KeyboardHint, WrongQuestionChip) + QuizScreen (Wave 3)
+- [x] 04-04-PLAN.md — BankPickerScreen + QuizSummaryScreen + GoRouter routes + redirect guards (Wave 3)
+- [x] 04-05-PLAN.md — HomeScreen wrong-count badge + SettingsScreen quiz settings toggles (Wave 4)
 
 **UI hint**: yes (quiz screen, results feedback, all three mode entry points)
 **Research flag**: no (state machine pattern is standard; ledger design is straightforward given the data model from Phase 1)

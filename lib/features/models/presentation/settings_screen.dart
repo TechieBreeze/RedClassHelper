@@ -23,7 +23,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDesktop = Platform.isWindows || Platform.isLinux;
-    final settings = ref.watch(quizSettingsNotifierProvider);
+    final settings = ref.watch(quizSettingsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -67,7 +67,7 @@ class SettingsScreen extends ConsumerWidget {
                           settings.submitMode == QuizSubmitMode.instant,
                       onChanged: (value) {
                         ref
-                            .read(quizSettingsNotifierProvider.notifier)
+                            .read(quizSettingsProvider.notifier)
                             .setSubmitMode(
                               value
                                   ? QuizSubmitMode.instant
@@ -81,7 +81,7 @@ class SettingsScreen extends ConsumerWidget {
                       value: settings.advanceMode == QuizAdvanceMode.auto,
                       onChanged: (value) {
                         ref
-                            .read(quizSettingsNotifierProvider.notifier)
+                            .read(quizSettingsProvider.notifier)
                             .setAdvanceMode(
                               value
                                   ? QuizAdvanceMode.auto

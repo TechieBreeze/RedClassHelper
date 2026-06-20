@@ -31,8 +31,8 @@ class ImportScreen extends ConsumerStatefulWidget {
 
 class _ImportScreenState extends ConsumerState<ImportScreen> {
   /// 支持的桌面端文件扩展名（用于拖放验证）
+  // Note: 'doc' is not supported — pandoc only handles docx.
   static const _supportedExtensions = [
-    'doc',
     'docx',
     'pdf',
     'json',
@@ -153,7 +153,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '支持 .docx / .doc / .pdf / .json',
+                        '支持 .docx / .pdf / .json',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context)
                                   .colorScheme
@@ -194,7 +194,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       return [
         FileFormatTile(
           title: 'Word 题库',
-          subtitle: '导入 .docx 或 .doc 格式的题库文件',
+          subtitle: '导入 .docx 格式的题库文件',
           icon: Icons.description_outlined,
           onTap: () => _pickWordFile(context),
         ),
@@ -231,7 +231,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   Future<void> _pickWordFile(BuildContext context) async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['docx', 'doc'],
+      allowedExtensions: ['docx'],
       allowMultiple: false,
     );
 
@@ -290,7 +290,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     if (!mounted) return;
     final parseMethod = await showDialog<ParseMethod>(
       context: context,
-      barrierDismissible: false,
       builder: (_) => const ParserChoiceDialog(),
     );
 
@@ -331,7 +330,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   void _showUnsupportedError(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('不支持的文件格式，请选择 .doc/.docx/.pdf/.json'),
+        content: Text('不支持的文件格式，请选择 .docx/.pdf/.json'),
         behavior: SnackBarBehavior.floating,
       ),
     );

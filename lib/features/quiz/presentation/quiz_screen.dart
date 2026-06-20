@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/quiz_session_state.dart';
@@ -93,7 +94,7 @@ class QuizScreen extends ConsumerWidget {
     final sessionAsync =
         ref.watch(quizSessionControllerProvider(bankId, mode));
     final session = sessionAsync.value;
-    final settings = ref.watch(quizSettingsNotifierProvider);
+    final settings = ref.watch(quizSettingsProvider);
     final selectedOption = ref.watch(_quizSelectedOptionProvider);
 
     // Loading state
@@ -161,7 +162,7 @@ class QuizScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               OutlinedButton(
-                onPressed: () => context.go('/'),
+                onPressed: () => context.pop(),
                 child: const Text('返回'),
               ),
             ],
@@ -213,11 +214,20 @@ class QuizScreen extends ConsumerWidget {
         title: Text('$modeName · $bankName'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
+          onPressed: () => context.pop(),
         ),
       ),
       body: Focus(
         autofocus: true,
+        onKeyEvent: (node, event) {
+          // Suppress Windows system beep for unhandled keys.
+          // CallbackShortcuts only handles A/B/C/D/Space/ArrowRight.
+          // Any other key event that falls through would trigger the beep.
+          if (event is KeyDownEvent || event is KeyRepeatEvent) {
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
         child: CallbackShortcuts(
           bindings: _buildKeyBindings(ref, settings, hasSubmitted),
           child: _buildQuizBody(
@@ -416,7 +426,7 @@ class QuizScreen extends ConsumerWidget {
         .submitAnswer(optionKey)
         .then((_) {
       // After submission: start auto-advance if in auto mode
-      final settings = ref.read(quizSettingsNotifierProvider);
+      final settings = ref.read(quizSettingsProvider);
       if (settings.advanceMode == QuizAdvanceMode.auto) {
         ref
             .read(quizSessionControllerProvider(bankId, mode).notifier)

@@ -1,6 +1,7 @@
 // lib/core/theme.dart
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Material 3 主题种子色 — fallback (D-20)
 const Color kSeedColor = Color(0xFF6750A4);
@@ -23,13 +24,14 @@ ThemeData buildDynamicTheme(Brightness brightness, ColorScheme? dynamicScheme) {
 }
 
 ThemeData _buildThemeData(ColorScheme scheme, Brightness brightness) {
+  // Noto Sans SC — consistent CJK stroke weight across all sizes.
+  // google_fonts caches the font locally after first download.
+  final textTheme = GoogleFonts.notoSansScTextTheme();
   return ThemeData(
     useMaterial3: true, // M3 baseline (D-22)
     colorScheme: scheme,
     brightness: brightness,
-    // Material 3 默认 typography (4 sizes / 2 weights per UI-SPEC §Typography)
-    // 36/24/16/14 来自 M3 headlineLarge / headlineSmall / bodyLarge / bodyMedium
-    // 不显式覆盖以减少维护成本 — Phase 6 polish 阶段可微调
+    textTheme: textTheme,
     scaffoldBackgroundColor: scheme.surface,
     appBarTheme: AppBarTheme(
       backgroundColor: scheme.surface,

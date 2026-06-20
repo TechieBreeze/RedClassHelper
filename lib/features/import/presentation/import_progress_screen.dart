@@ -41,8 +41,13 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
     if (!_isStarted) {
       final state = GoRouterState.of(context);
       _filePath = state.extra as String?;
-      _startImport();
       _isStarted = true;
+      // Defer provider modification to after the current build frame
+      // to avoid "Tried to modify a provider while the widget tree
+      // was building" error.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startImport();
+      });
     }
   }
 

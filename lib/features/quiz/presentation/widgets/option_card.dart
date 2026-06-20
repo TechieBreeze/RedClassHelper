@@ -1,6 +1,3 @@
-import 'dart:io' show Platform;
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Visual state for an option card during quiz interaction.
@@ -52,8 +49,6 @@ class OptionCard extends StatelessWidget {
   final String optionText; // The full option text
   final OptionCardState state;
   final VoidCallback? onTap;
-
-  bool get _isDesktop => !kIsWeb && (Platform.isWindows || Platform.isLinux);
 
   @override
   Widget build(BuildContext context) {

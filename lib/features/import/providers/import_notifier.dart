@@ -66,6 +66,8 @@ class ImportNotifier extends _$ImportNotifier {
     );
 
     final resolver = await ref.read(pathResolverProvider.future);
+    // Guard: provider may have been disposed during the await.
+    if (state.phase != ImportPhase.extracting) return;
 
     final allText = StringBuffer();
     final totalFiles = state.files.length;
@@ -87,6 +89,9 @@ class ImportNotifier extends _$ImportNotifier {
 
         allText.writeln(text);
         allText.writeln(); // 文件分隔
+
+        // Guard: provider may have been disposed during extractText await.
+        if (state.phase != ImportPhase.extracting) return;
       } on PandocNotFoundException catch (e) {
         state = state.copyWith(
           phase: ImportPhase.idle,
@@ -310,6 +315,8 @@ class ImportNotifier extends _$ImportNotifier {
     final candidates = <ParseCandidate>[];
     final sources = <int, ParseSource>{};
     final db = await ref.read(appDatabaseProvider.future);
+    // Guard: provider may have been disposed during the await.
+    if (state.phase != ImportPhase.llmParsing) return;
 
     for (var i = 0; i < blocks.length; i++) {
       state = state.copyWith(

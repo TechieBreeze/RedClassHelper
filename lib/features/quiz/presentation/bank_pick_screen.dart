@@ -118,7 +118,7 @@ class BankPickerScreen extends ConsumerWidget {
           Text('暂无题库', style: Theme.of(context).textTheme.bodyLarge),
           const SizedBox(height: 16),
           OutlinedButton(
-            onPressed: () => context.go('/import'),
+            onPressed: () => context.push('/import'),
             child: const Text('导入题库'),
           ),
         ],
@@ -151,7 +151,7 @@ class _BankCard extends StatelessWidget {
       opacity: item.isEmpty ? 0.4 : 1.0,
       child: Card(
         child: InkWell(
-          onTap: item.isEmpty ? null : () => context.go('/quiz/${item.bank.id}/$mode'),
+          onTap: item.isEmpty ? null : () => context.push('/quiz/${item.bank.id}/$mode'),
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -174,9 +174,15 @@ class _BankCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (!item.isEmpty) ...[
+                if (item.isEmpty) ...[
                   const SizedBox(width: 16),
-                  const Icon(Icons.chevron_right),
+                  const Icon(Icons.block, color: Colors.grey),
+                ] else ...[
+                  const SizedBox(width: 12),
+                  FilledButton.tonal(
+                    onPressed: () => context.push('/quiz/${item.bank.id}/$mode'),
+                    child: const Text('开始答题'),
+                  ),
                 ],
               ],
             ),

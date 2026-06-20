@@ -76,6 +76,12 @@ class _ParserChoiceDialogState extends ConsumerState<ParserChoiceDialog> {
           onPressed: () => Navigator.of(context).pop(null),
           child: const Text('取消'),
         ),
+        const SizedBox(width: 8),
+        FilledButton(
+          onPressed:
+              _selected != null ? () => Navigator.of(context).pop(_selected) : null,
+          child: const Text('开始解析'),
+        ),
       ],
     );
   }

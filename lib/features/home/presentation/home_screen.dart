@@ -27,7 +27,7 @@ class HomeScreen extends StatelessWidget {
           // 设置入口 — Phase 2 实现 SettingsScreen
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.go('/settings'),
+            onPressed: () => context.push('/settings'),
             tooltip: '设置',
           ),
         ],
@@ -35,7 +35,7 @@ class HomeScreen extends StatelessWidget {
       // Phase 2: 桌面端 FAB
       floatingActionButton: _isDesktop
           ? FloatingActionButton(
-              onPressed: () => context.go('/import'),
+              onPressed: () => context.push('/import'),
               tooltip: '导入题库',
               child: const Icon(Icons.add),
             )
@@ -149,7 +149,7 @@ class _BankEmptyStateCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: InkWell(
-        onTap: () => context.go('/import'),
+        onTap: () => context.push('/import'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16), // md
@@ -176,7 +176,7 @@ class _BankEmptyStateCard extends StatelessWidget {
               const SizedBox(width: 16),
               // CTA: 桌面端启用，Android 禁用
               FilledButton.tonal(
-                onPressed: isDesktop ? () => context.go('/import') : null,
+                onPressed: isDesktop ? () => context.push('/import') : null,
                 child: const Text('导入题库'),
               ),
             ],
@@ -211,7 +211,7 @@ class _ModeTile extends StatelessWidget {
 
     return Card(
       child: InkWell(
-        onTap: () => context.go('/quiz/pick/$mode'),
+        onTap: () => context.push('/quiz/pick/$mode'),
         borderRadius: BorderRadius.circular(12),
         child: Stack(
           clipBehavior: Clip.none,
@@ -244,7 +244,7 @@ class _ModeTile extends StatelessWidget {
                   const SizedBox(width: 16),
                   FilledButton.tonal(
                     onPressed:
-                        enabled ? () => context.go('/quiz/pick/$mode') : null,
+                        enabled ? () => context.push('/quiz/pick/$mode') : null,
                     child: const Text('开始'),
                   ),
                 ],
@@ -287,7 +287,7 @@ class _StatsEntryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: InkWell(
-        onTap: () => context.go('/stats'),
+        onTap: () => context.push('/stats'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),

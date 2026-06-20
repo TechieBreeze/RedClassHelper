@@ -57,6 +57,9 @@ dependencies:
   # Phase 4: Quiz settings persistence (shared_preferences)
   shared_preferences: ^2.3.0
 
+  # Noto Sans SC — consistent CJK font with even stroke weight
+  google_fonts: ^6.2.1
+
   # intl deferred to Phase 5 per CONTEXT.md "Claude's Discretion"
 
 dev_dependencies:

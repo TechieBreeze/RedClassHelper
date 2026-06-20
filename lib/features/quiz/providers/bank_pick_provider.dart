@@ -1,8 +1,9 @@
+import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../data/db/database.dart';
-import '../../../data/db/tables/question_banks.dart';
+
 import '../../../data/repositories/ledger_repository.dart';
 
 part 'bank_pick_provider.g.dart';

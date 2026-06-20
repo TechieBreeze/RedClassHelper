@@ -39,7 +39,7 @@ Declared values (must be multiples of 4). All values in logical pixels.
 |-------|-------|-------|
 | xs | 4px | Icon-label gap, chip padding, badge offset |
 | sm | 8px | Compact element spacing, option-card gap, keyboard-hint padding |
-| md | 16px | Default element spacing, Card inner padding, ListTile gap |
+| md | 16px | Default element spacing, Card inner padding, ListTile gap, summary stats card padding |
 | lg | 24px | Section vertical gaps, section header spacing, quiz feedback spacing |
 | xl | 32px | Horizontal layout padding (expanded desktop breakpoint) |
 | 2xl | 48px | CTA button minimum height (`Size.fromHeight(48)`), summary icon spacing |
@@ -55,16 +55,18 @@ Mapped to Material 3 `TextTheme` tokens. No custom font override — uses M3 def
 
 | Role | Token | Size | Weight | Line Height | Usage |
 |------|-------|------|--------|-------------|-------|
-| Body | `bodyMedium` | 14px | 400 | 1.5 | Descriptions, subtitles, keyboard hint, chip label |
+| Body | `bodyMedium` | 14px | 400 | 1.5 | Descriptions, subtitles, keyboard hint, chip label, progress text |
 | BodyLarge | `bodyLarge` | 16px | 400 | 1.5 | Option text, bank-list metadata, summary detail values |
-| Heading | `headlineSmall` | 24px | 500 (w600 in summary) | 1.2 | Section headers (`_SectionHeader`), quiz progress counter, summary title |
+| Heading | `headlineSmall` | 24px | 700 | 1.2 | Section headers, quiz progress counter, summary title |
 | Display | `headlineLarge` | 36px | 400 | 1.2 | Main page titles (when needed) |
 
+Weight constraints: exactly 2 weights — regular (400) and bold (700).
+
 **Quiz-specific type treatments:**
-- Question stem: `bodyLarge` (16px) at weight 500 — for readability of Chinese academic text
+- Question stem: `bodyLarge` (16px) at weight 700 — for readability of Chinese academic text
 - Option labels (A/B/C/D): `titleMedium` (16px) at weight 700 — bold prefix on option rows
-- Progress text ("第 3/20 题"): `labelLarge` (14px) at weight 500 — compact but legible
-- Keyboard shortcut hint: `labelSmall` (11px) at weight 400, semi-transparent (opacity 0.6)
+- Progress text ("第 3/20 题"): `bodyMedium` (14px) at weight 400 — compact but legible
+- Keyboard shortcut hint: `bodyMedium` (14px) at weight 400, semi-transparent (opacity 0.5)
 
 Source: M3 defaults confirmed in `lib/core/theme.dart` comment (line 30-32). Quiz-specific treatments are Claude's discretion based on D-01/D-04/D-06.
 
@@ -140,7 +142,7 @@ Route: `/quiz/pick/:mode`
 │ AppBar: "选择题库"                    │ ← scheme.surface, elevation 0
 ├──────────────────────────────────────┤
 │                                      │
-│  [_SectionHeader: "选择一个题库"]     │ ← headlineSmall, 24/500
+│  [_SectionHeader: "选择一个题库"]     │ ← headlineSmall, 24/700
 │                                      │
 │  ┌────────────────────────────────┐  │
 │  │ 📚 大学物理习题集     12 题    │  │ ← Card + InkWell, 16px padding
@@ -162,6 +164,8 @@ Route: `/quiz/pick/:mode`
 └──────────────────────────────────────┘
 ```
 
+**Focal Point:** The first (topmost) bank card. Visual weight is established by the section header label above it and its position as the leading item in the vertical scroll. The card uses full-width within the 720px constraint, making its hit area the primary interaction target. No decorative emphasis beyond standard Card elevation — hierarchy is positional.
+
 **States:**
 - **Loading:** LinearProgressIndicator while fetching bank list
 - **Empty:** "_SectionHeader" + centered text "暂无题库" + "导入题库" OutlinedButton
@@ -177,10 +181,10 @@ Route: `/quiz/:bankId/:mode`
 │ AppBar: "[模式名] · [题库名]"        │ ← with back button (auto)
 ├──────────────────────────────────────┤
 │  LinearProgressIndicator             │ ← scheme.primary, determinate
-│  第 3 / 20 题                        │ ← labelLarge, centered, 14/500
+│  第 3 / 20 题                        │ ← bodyMedium, centered, 14/400
 │                                      │
 │  ┌────────────────────────────────┐  │
-│  │ 题干：                          │  │ ← bodyLarge (16/500),
+│  │ 题干：                          │  │ ← bodyLarge (16/700),
 │  │ 下列选项中，不属于四大发明的是？ │  │    maxWidth 720 centered
 │  └────────────────────────────────┘  │
 │                                      │
@@ -200,10 +204,12 @@ Route: `/quiz/:bankId/:mode`
 │  ┌─ 已加入错题本 ─┐  ← auto-dismiss │ ← Chip, errorContainer, 1.5s
 │                                      │
 │  ──────────────────────────────────  │
-│  快捷键: A B C D 选择 · 空格 提交    │ ← labelSmall, opacity 0.6
+│  快捷键: A B C D 选择 · 空格 提交    │ ← bodyMedium, opacity 0.5
 │  · → 下一题                          │    fixed at bottom, over surface
 └──────────────────────────────────────┘
 ```
+
+**Focal Point:** The question stem block. It is the only element rendered in `bodyLarge` 16/700 (bold), creating immediate scale+weight contrast against the 14/400 progress text above and the 16/400 option text below. The four option cards form a uniform grid — no individual option is emphasized until the user interacts. After submission, the correct-answer green tint becomes the secondary focal point, drawing the eye to the right answer even when the user selected wrong.
 
 **Submit flow (instant mode, D-02 default):**
 1. User clicks option or presses A/B/C/D key
@@ -240,10 +246,10 @@ Route: reachable via quiz completion (not a standalone route — pushed as part 
 │            └────┘                    │    or 🎉 "全部掌握" (D-13)
 │                                      │
 │     正确率                            │
-│     85%          headlineSmall       │ ← 24/600, scheme.primary
+│     85%          headlineSmall       │ ← 24/700, scheme.primary
 │                                      │
 │  ┌────────────────────────────────┐  │
-│  │ 答对      17 / 20 题           │  │ ← Card, 20px padding
+│  │ 答对      17 / 20 题           │  │ ← Card, 16px padding
 │  │ 答错      3 题                 │  │    bodyMedium rows
 │  │ 总用时    4 分 32 秒           │  │    Dividers between rows
 │  │ 新增错题  3 题                 │  │
@@ -265,6 +271,8 @@ Route: reachable via quiz completion (not a standalone route — pushed as part 
 │  centered, SingleChildScrollView     │
 └──────────────────────────────────────┘
 ```
+
+**Focal Point:** The accuracy percentage (85%). It is the largest number on screen — rendered in `headlineSmall` 24/700 with `scheme.primary` color — and sits at the vertical center of the viewport. The 64px success icon above it acts as an emotional anchor, while the stats card below is deliberately lower-contrast (bodyMedium rows) to keep attention on the score. The "再来一轮" FilledButton is the primary action and the only element using the accent-filled treatment, making it the natural next step.
 
 **States:**
 - **Normal completion:** Green check icon + stats card + two buttons
@@ -289,8 +297,8 @@ Route: reachable via quiz completion (not a standalone route — pushed as part 
 
 Keyboard shortcut hint bar:
 - Fixed at bottom of quiz screen, above system chrome
-- Background: transparent, text: semi-transparent `onSurface.withOpacity(0.6)`
-- Font: `labelSmall` (11px)
+- Background: transparent, text: semi-transparent `onSurface.withOpacity(0.5)`
+- Font: `bodyMedium` (14px, weight 400)
 - Text: "快捷键: A B C D 选择 · 空格 提交 · → 下一题"
 - Show on desktop only (`Platform.isWindows || Platform.isLinux`)
 - Do NOT cover option area — place below the option list or as an overlay bar
@@ -338,9 +346,9 @@ Keyboard shortcut hint bar:
 | Quiz progress counter | "第 {current}/{total} 题" | D-05 |
 | Keyboard shortcut hint | "快捷键: A B C D 选择 · 空格 提交 · → 下一题" | D-06 (Claude's discretion for exact wording) |
 | Wrong-question chip | "已加入错题本" | D-15 |
-| Settings — submit mode label | "点击即提交" / "点击选项即提交" | D-02 |
+| Settings — submit mode label | "点击即提交" | D-02 |
 | Settings — submit mode subtitle | "关闭后需点击提交按钮确认答案" | Claude's discretion |
-| Settings — advance mode label | "自动翻题" / "自动跳转下一题" | D-03 |
+| Settings — advance mode label | "自动翻题" | D-03 |
 | Settings — advance mode subtitle | "关闭后需手动点击或按键跳转下一题" | Claude's discretion |
 | Settings — quiz section header | "答题设置" | D-07 |
 | Bank picker header | "选择题库" | D-08 |
@@ -427,11 +435,11 @@ This is a Flutter project using Material 3 built-in widgets and the `dynamic_col
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [ ] Dimension 1 Copywriting: pending
+- [ ] Dimension 2 Visuals: pending
+- [ ] Dimension 3 Color: pending
+- [ ] Dimension 4 Typography: pending
+- [ ] Dimension 5 Spacing: pending
+- [ ] Dimension 6 Registry Safety: pending
 
 **Approval:** pending

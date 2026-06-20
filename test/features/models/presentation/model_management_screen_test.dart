@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:redclass/core/paths.dart';
 import 'package:redclass/features/models/providers/model_catalog_provider.dart';
 import 'package:redclass/features/models/providers/model_download_provider.dart';
+import 'package:redclass/features/models/services/model_downloader.dart';
 import 'package:redclass/features/models/providers/installed_models_provider.dart';
 import 'package:redclass/features/models/presentation/settings_screen.dart';
 import 'package:redclass/features/models/presentation/model_management_screen.dart';
@@ -25,8 +26,9 @@ class _FakePathResolver extends Fake implements PathResolver {
   @override
   Future<Directory> get modelsDir async {
     final dir = Directory(_modelsPath);
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
+    // 使用同步 I/O 避免 testWidgets 的 FakeAsync zone 卡住真实 I/O Future
+    if (!dir.existsSync()) {
+      dir.createSync(recursive: true);
     }
     return dir;
   }
@@ -41,8 +43,8 @@ class _SimpleFakePathResolver extends Fake implements PathResolver {
   @override
   Future<Directory> get modelsDir async {
     final dir = Directory(_modelsPath);
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
+    if (!dir.existsSync()) {
+      dir.createSync(recursive: true);
     }
     return dir;
   }
@@ -70,13 +72,21 @@ void main() {
   group('SettingsScreen', () {
     testWidgets('renders 设置 AppBar title', (tester) async {
       await tester.pumpWidget(_wrapWithProviders(const SettingsScreen()));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
       expect(find.text('设置'), findsOneWidget);
     });
 
     testWidgets('renders 模型管理 ListTile on desktop', (tester) async {
       await tester.pumpWidget(_wrapWithProviders(const SettingsScreen()));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
       if (Platform.isWindows || Platform.isLinux) {
         expect(find.text('模型管理'), findsOneWidget);
         expect(find.text('查看已安装模型、下载推荐模型'), findsOneWidget);
@@ -118,7 +128,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.text('模型管理'), findsOneWidget);
     });
@@ -140,7 +154,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.text('已安装模型'), findsOneWidget);
       expect(find.text('推荐模型'), findsOneWidget);
@@ -164,7 +182,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.text('尚未安装模型'), findsOneWidget);
       expect(
@@ -189,7 +211,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       // Three preset model names from catalog
       expect(find.text('Qwen2.5-1.5B Q4_K_M'), findsOneWidget);
@@ -213,7 +239,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.text('推荐'), findsOneWidget);
       expect(find.text('快速'), findsOneWidget);
@@ -236,7 +266,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.text('添加模型'), findsOneWidget);
       expect(
@@ -261,11 +295,19 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       // Tap the "添加模型" card
       await tester.tap(find.text('添加模型'));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       // Dialog should appear with 2 tabs
       expect(find.text('添加自定义模型'), findsOneWidget);
@@ -290,7 +332,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       // All 3 models have "下载" buttons since none are installed
       expect(find.text('下载'), findsNWidgets(3));
@@ -313,7 +359,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.textContaining('约 1.2 GB'), findsOneWidget);
       expect(find.textContaining('需 2-3 GB'), findsOneWidget);
@@ -354,7 +404,11 @@ void main() {
       await tester.pumpWidget(_wrap(
         ModelCard(model: testModel),
       ));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.text('下载'), findsOneWidget);
       expect(find.text('推荐'), findsOneWidget);
@@ -366,7 +420,6 @@ void main() {
         bytesDownloaded: 50000000,
         totalBytes: 500000000,
         speedBytesPerSec: 3145728,
-        fraction: 0.1,
       );
       final activeDownload = ActiveDownload(
         modelId: 'test-model',
@@ -380,7 +433,11 @@ void main() {
           activeDownload: activeDownload,
         ),
       ));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
       expect(find.textContaining('下载中'), findsOneWidget);
@@ -393,7 +450,11 @@ void main() {
           isInstalled: true,
         ),
       ));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.text('已安装'), findsOneWidget);
       expect(find.text('删除'), findsOneWidget);
@@ -412,7 +473,11 @@ void main() {
           activeDownload: otherDownload,
         ),
       ));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.text('等待中'), findsOneWidget);
     });
@@ -430,7 +495,11 @@ void main() {
           activeDownload: errorDownload,
         ),
       ));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.text('重新下载'), findsOneWidget);
       expect(find.textContaining('网络连接异常'), findsOneWidget);
@@ -443,17 +512,20 @@ void main() {
         bytesDownloaded: 150000000,
         totalBytes: 500000000,
         speedBytesPerSec: 5242880,
-        fraction: 0.3,
       );
 
-      await tester.pumpWidget(const MaterialApp(
+      await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: DownloadProgressWidget(
             progress: progress,
           ),
         ),
       ));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       // 0.3 * 100 = 30
       expect(find.textContaining('30%'), findsOneWidget);
@@ -469,7 +541,11 @@ void main() {
 
       // Show the dialog
       showAddModelDialog(tester.element(find.byType(SizedBox)));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.text('添加自定义模型'), findsOneWidget);
       expect(find.text('从 URL 下载'), findsOneWidget);
@@ -481,14 +557,22 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: SizedBox()));
 
       showAddModelDialog(tester.element(find.byType(SizedBox)));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       // Enter non-HTTPS URL
       await tester.enterText(
         find.byType(TextField),
         'http://example.com/model.gguf',
       );
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.text('请输入有效的 HTTPS URL'), findsOneWidget);
     });
@@ -497,14 +581,22 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: SizedBox()));
 
       showAddModelDialog(tester.element(find.byType(SizedBox)));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       // Enter HTTPS URL without .gguf
       await tester.enterText(
         find.byType(TextField),
         'https://example.com/model.bin',
       );
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       expect(find.text('该地址不指向 .gguf 文件'), findsOneWidget);
     });
@@ -514,14 +606,22 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: SizedBox()));
 
       showAddModelDialog(tester.element(find.byType(SizedBox)));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       // Enter valid URL
       await tester.enterText(
         find.byType(TextField),
         'https://huggingface.co/Qwen/model.gguf',
       );
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       // No error should be visible, submit button enabled
       expect(find.text('请输入有效的 HTTPS URL'), findsNothing);
@@ -538,10 +638,18 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: SizedBox()));
 
       showAddModelDialog(tester.element(find.byType(SizedBox)));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       await tester.tap(find.text('取消'));
-      await tester.pumpAndSettle();
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        await tester.pump();
 
       // Dialog should be closed
       expect(find.text('添加自定义模型'), findsNothing);

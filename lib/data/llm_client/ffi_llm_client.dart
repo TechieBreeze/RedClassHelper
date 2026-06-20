@@ -8,7 +8,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi';
-import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 import 'package:redclass/features/import/parsing/parse_candidate.dart';
@@ -19,7 +18,9 @@ import 'llm_error.dart';
 // ── llama.cpp C 类型映射 ──
 
 final class llama_model extends Opaque {}
+
 final class llama_context extends Opaque {}
+
 typedef llama_token = Int32;
 
 // llama_model_params
@@ -167,36 +168,37 @@ typedef LlamaModelDefaultParamsDart = llama_model_params Function();
 typedef LlamaContextDefaultParamsNative = llama_context_params Function();
 typedef LlamaContextDefaultParamsDart = llama_context_params Function();
 
-typedef LlamaModelLoadNative = Pointer<llama_model> Function(
-  Pointer<Utf8> path,
-  llama_model_params params,
-);
-typedef LlamaModelLoadDart = Pointer<llama_model> Function(
-  Pointer<Utf8> path,
-  llama_model_params params,
-);
+typedef LlamaModelLoadNative =
+    Pointer<llama_model> Function(
+      Pointer<Utf8> path,
+      llama_model_params params,
+    );
+typedef LlamaModelLoadDart =
+    Pointer<llama_model> Function(
+      Pointer<Utf8> path,
+      llama_model_params params,
+    );
 
 typedef LlamaFreeModelNative = Void Function(Pointer<llama_model> model);
 typedef LlamaFreeModelDart = void Function(Pointer<llama_model> model);
 
-typedef LlamaNewContextNative = Pointer<llama_context> Function(
-  Pointer<llama_model> model,
-  llama_context_params params,
-);
-typedef LlamaNewContextDart = Pointer<llama_context> Function(
-  Pointer<llama_model> model,
-  llama_context_params params,
-);
+typedef LlamaNewContextNative =
+    Pointer<llama_context> Function(
+      Pointer<llama_model> model,
+      llama_context_params params,
+    );
+typedef LlamaNewContextDart =
+    Pointer<llama_context> Function(
+      Pointer<llama_model> model,
+      llama_context_params params,
+    );
 
 typedef LlamaFreeNative = Void Function(Pointer<llama_context> ctx);
 typedef LlamaFreeDart = void Function(Pointer<llama_context> ctx);
 
-typedef LlamaModelDescNative = Pointer<Utf8> Function(
-  Pointer<llama_model> model,
-);
-typedef LlamaModelDescDart = Pointer<Utf8> Function(
-  Pointer<llama_model> model,
-);
+typedef LlamaModelDescNative =
+    Pointer<Utf8> Function(Pointer<llama_model> model);
+typedef LlamaModelDescDart = Pointer<Utf8> Function(Pointer<llama_model> model);
 
 typedef LlamaNVocabNative = Int32 Function(Pointer<llama_model> model);
 typedef LlamaNVocabDart = int Function(Pointer<llama_model> model);
@@ -204,77 +206,71 @@ typedef LlamaNVocabDart = int Function(Pointer<llama_model> model);
 typedef LlamaNCtxNative = Int32 Function(Pointer<llama_context> ctx);
 typedef LlamaNCtxDart = int Function(Pointer<llama_context> ctx);
 
-typedef LlamaTokenizeNative = Int32 Function(
-  Pointer<llama_model> model,
-  Pointer<Utf8> text,
-  Int32 textLen,
-  Pointer<llama_token> tokens,
-  Int32 nMaxTokens,
-  Int32 addBos,
-  Int32 special,
-);
-typedef LlamaTokenizeDart = int Function(
-  Pointer<llama_model> model,
-  Pointer<Utf8> text,
-  int textLen,
-  Pointer<llama_token> tokens,
-  int nMaxTokens,
-  int addBos,
-  int special,
-);
+typedef LlamaTokenizeNative =
+    Int32 Function(
+      Pointer<llama_model> model,
+      Pointer<Utf8> text,
+      Int32 textLen,
+      Pointer<llama_token> tokens,
+      Int32 nMaxTokens,
+      Int32 addBos,
+      Int32 special,
+    );
+typedef LlamaTokenizeDart =
+    int Function(
+      Pointer<llama_model> model,
+      Pointer<Utf8> text,
+      int textLen,
+      Pointer<llama_token> tokens,
+      int nMaxTokens,
+      int addBos,
+      int special,
+    );
 
-typedef LlamaDecodeNative = Int32 Function(
-  Pointer<llama_context> ctx,
-  llama_batch batch,
-);
-typedef LlamaDecodeDart = int Function(
-  Pointer<llama_context> ctx,
-  llama_batch batch,
-);
+typedef LlamaDecodeNative =
+    Int32 Function(Pointer<llama_context> ctx, llama_batch batch);
+typedef LlamaDecodeDart =
+    int Function(Pointer<llama_context> ctx, llama_batch batch);
 
-typedef LlamaTokenToPieceNative = Int32 Function(
-  Pointer<llama_model> model,
-  llama_token token,
-  Pointer<Utf8> buf,
-  Int32 length,
-  Int32 lstrip,
-  Int32 special,
-);
-typedef LlamaTokenToPieceDart = int Function(
-  Pointer<llama_model> model,
-  int token,
-  Pointer<Utf8> buf,
-  int length,
-  int lstrip,
-  int special,
-);
+typedef LlamaTokenToPieceNative =
+    Int32 Function(
+      Pointer<llama_model> model,
+      llama_token token,
+      Pointer<Utf8> buf,
+      Int32 length,
+      Int32 lstrip,
+      Int32 special,
+    );
+typedef LlamaTokenToPieceDart =
+    int Function(
+      Pointer<llama_model> model,
+      int token,
+      Pointer<Utf8> buf,
+      int length,
+      int lstrip,
+      int special,
+    );
 
-typedef LlamaGetLogitsNative = Pointer<Float> Function(
-  Pointer<llama_context> ctx,
-);
-typedef LlamaGetLogitsDart = Pointer<Float> Function(
-  Pointer<llama_context> ctx,
-);
+typedef LlamaGetLogitsNative =
+    Pointer<Float> Function(Pointer<llama_context> ctx);
+typedef LlamaGetLogitsDart =
+    Pointer<Float> Function(Pointer<llama_context> ctx);
 
-typedef LlamaSampleTokenGreedyNative = llama_token Function(
-  Pointer<llama_context> ctx,
-  Pointer<llama_token_data_array> candidates,
-);
-typedef LlamaSampleTokenGreedyDart = int Function(
-  Pointer<llama_context> ctx,
-  Pointer<llama_token_data_array> candidates,
-);
+typedef LlamaSampleTokenGreedyNative =
+    llama_token Function(
+      Pointer<llama_context> ctx,
+      Pointer<llama_token_data_array> candidates,
+    );
+typedef LlamaSampleTokenGreedyDart =
+    int Function(
+      Pointer<llama_context> ctx,
+      Pointer<llama_token_data_array> candidates,
+    );
 
-typedef LlamaBatchInitNative = llama_batch Function(
-  Int32 nTokens,
-  Int32 embd,
-  Int32 nSeqMax,
-);
-typedef LlamaBatchInitDart = llama_batch Function(
-  int nTokens,
-  int embd,
-  int nSeqMax,
-);
+typedef LlamaBatchInitNative =
+    llama_batch Function(Int32 nTokens, Int32 embd, Int32 nSeqMax);
+typedef LlamaBatchInitDart =
+    llama_batch Function(int nTokens, int embd, int nSeqMax);
 
 // llama.cpp 线程安全互斥量包装
 // llama.cpp 的 C API 不是线程安全的——同一时间内只允许一个线程调用推理函数。
@@ -341,22 +337,30 @@ class FfiLlmClient implements LlmClient {
   llama_model_params Function()? _llamaModelDefaultParams;
   llama_context_params Function()? _llamaContextDefaultParams;
   Pointer<llama_model> Function(Pointer<Utf8>, llama_model_params)?
-      _llamaModelLoad;
+  _llamaModelLoad;
   void Function(Pointer<llama_model>)? _llamaFreeModel;
   Pointer<llama_context> Function(Pointer<llama_model>, llama_context_params)?
-      _llamaNewContext;
+  _llamaNewContext;
   void Function(Pointer<llama_context>)? _llamaFree;
   Pointer<Utf8> Function(Pointer<llama_model>)? _llamaModelDesc;
   int Function(Pointer<llama_model>)? _llamaNVocab;
   int Function(Pointer<llama_context>)? _llamaNCtx;
-  int Function(Pointer<llama_model>, Pointer<Utf8>, int, Pointer<llama_token>,
-      int, int, int)? _llamaTokenize;
+  int Function(
+    Pointer<llama_model>,
+    Pointer<Utf8>,
+    int,
+    Pointer<llama_token>,
+    int,
+    int,
+    int,
+  )?
+  _llamaTokenize;
   int Function(Pointer<llama_context>, llama_batch)? _llamaDecode;
   int Function(Pointer<llama_model>, int, Pointer<Utf8>, int, int, int)?
-      _llamaTokenToPiece;
+  _llamaTokenToPiece;
   Pointer<Float> Function(Pointer<llama_context>)? _llamaGetLogits;
-  int Function(Pointer<llama_context>,
-      Pointer<llama_token_data_array>)? _llamaSampleTokenGreedy;
+  int Function(Pointer<llama_context>, Pointer<llama_token_data_array>)?
+  _llamaSampleTokenGreedy;
   llama_batch Function(int, int, int)? _llamaBatchInit;
   Pointer<Void> Function()? _llamaMutexInit;
   void Function(Pointer<Void>)? _llamaMutexLock;
@@ -396,8 +400,9 @@ class FfiLlmClient implements LlmClient {
     if (_lib != null) return;
 
     // 加载共享库
+    final DynamicLibrary lib;
     try {
-      _lib = DynamicLibrary.open(libraryPath);
+      lib = DynamicLibrary.open(libraryPath);
     } on ArgumentError catch (e) {
       throw LlmConnectionException(
         serverUrl: libraryPath,
@@ -407,99 +412,103 @@ class FfiLlmClient implements LlmClient {
 
     // 解析原生函数符号
     try {
-      _llamaBackendInit =
-          _lib!.lookupFunction<LlamaBackendInitNative, LlamaBackendInitDart>(
-        'llama_backend_init',
-      );
+      _llamaBackendInit = lib
+          .lookupFunction<LlamaBackendInitNative, LlamaBackendInitDart>(
+            'llama_backend_init',
+          );
 
-      _llamaModelDefaultParams = _lib!
-          .lookupFunction<LlamaModelDefaultParamsNative,
-              LlamaModelDefaultParamsDart>('llama_model_default_params');
+      _llamaModelDefaultParams = lib
+          .lookupFunction<
+            LlamaModelDefaultParamsNative,
+            LlamaModelDefaultParamsDart
+          >('llama_model_default_params');
 
-      _llamaContextDefaultParams = _lib!
-          .lookupFunction<LlamaContextDefaultParamsNative,
-              LlamaContextDefaultParamsDart>('llama_context_default_params');
+      _llamaContextDefaultParams = lib
+          .lookupFunction<
+            LlamaContextDefaultParamsNative,
+            LlamaContextDefaultParamsDart
+          >('llama_context_default_params');
 
-      _llamaModelLoad = _lib!
+      _llamaModelLoad = lib
           .lookupFunction<LlamaModelLoadNative, LlamaModelLoadDart>(
-        'llama_model_load',
-      );
+            'llama_model_load',
+          );
 
-      _llamaFreeModel =
-          _lib!.lookupFunction<LlamaFreeModelNative, LlamaFreeModelDart>(
-        'llama_free_model',
-      );
+      _llamaFreeModel = lib
+          .lookupFunction<LlamaFreeModelNative, LlamaFreeModelDart>(
+            'llama_free_model',
+          );
 
-      _llamaNewContext =
-          _lib!.lookupFunction<LlamaNewContextNative, LlamaNewContextDart>(
-        'llama_new_context_with_model',
-      );
+      _llamaNewContext = lib
+          .lookupFunction<LlamaNewContextNative, LlamaNewContextDart>(
+            'llama_new_context_with_model',
+          );
 
-      _llamaFree = _lib!.lookupFunction<LlamaFreeNative, LlamaFreeDart>(
+      _llamaFree = lib.lookupFunction<LlamaFreeNative, LlamaFreeDart>(
         'llama_free',
       );
 
-      _llamaModelDesc =
-          _lib!.lookupFunction<LlamaModelDescNative, LlamaModelDescDart>(
-        'llama_model_desc',
-      );
+      _llamaModelDesc = lib
+          .lookupFunction<LlamaModelDescNative, LlamaModelDescDart>(
+            'llama_model_desc',
+          );
 
-      _llamaNVocab =
-          _lib!.lookupFunction<LlamaNVocabNative, LlamaNVocabDart>(
+      _llamaNVocab = lib.lookupFunction<LlamaNVocabNative, LlamaNVocabDart>(
         'llama_n_vocab',
       );
 
-      _llamaNCtx = _lib!.lookupFunction<LlamaNCtxNative, LlamaNCtxDart>(
+      _llamaNCtx = lib.lookupFunction<LlamaNCtxNative, LlamaNCtxDart>(
         'llama_n_ctx',
       );
 
-      _llamaTokenize =
-          _lib!.lookupFunction<LlamaTokenizeNative, LlamaTokenizeDart>(
-        'llama_tokenize',
-      );
+      _llamaTokenize = lib
+          .lookupFunction<LlamaTokenizeNative, LlamaTokenizeDart>(
+            'llama_tokenize',
+          );
 
-      _llamaDecode =
-          _lib!.lookupFunction<LlamaDecodeNative, LlamaDecodeDart>(
+      _llamaDecode = lib.lookupFunction<LlamaDecodeNative, LlamaDecodeDart>(
         'llama_decode',
       );
 
-      _llamaTokenToPiece = _lib!
+      _llamaTokenToPiece = lib
           .lookupFunction<LlamaTokenToPieceNative, LlamaTokenToPieceDart>(
-        'llama_token_to_piece',
-      );
+            'llama_token_to_piece',
+          );
 
-      _llamaGetLogits =
-          _lib!.lookupFunction<LlamaGetLogitsNative, LlamaGetLogitsDart>(
-        'llama_get_logits',
-      );
+      _llamaGetLogits = lib
+          .lookupFunction<LlamaGetLogitsNative, LlamaGetLogitsDart>(
+            'llama_get_logits',
+          );
 
-      _llamaSampleTokenGreedy = _lib!
-          .lookupFunction<LlamaSampleTokenGreedyNative,
-              LlamaSampleTokenGreedyDart>('llama_sample_token_greedy');
+      _llamaSampleTokenGreedy = lib
+          .lookupFunction<
+            LlamaSampleTokenGreedyNative,
+            LlamaSampleTokenGreedyDart
+          >('llama_sample_token_greedy');
 
-      _llamaBatchInit =
-          _lib!.lookupFunction<LlamaBatchInitNative, LlamaBatchInitDart>(
-        'llama_batch_init',
-      );
+      _llamaBatchInit = lib
+          .lookupFunction<LlamaBatchInitNative, LlamaBatchInitDart>(
+            'llama_batch_init',
+          );
 
       // 互斥量函数（可选——旧版 llama.cpp 可能不导出）
       try {
-        _llamaMutexInit =
-            _lib!.lookupFunction<LlamaMutexInitNative, LlamaMutexInitDart>(
-          'llama_mutex_init',
-        );
-        _llamaMutexLock =
-            _lib!.lookupFunction<LlamaMutexLockNative, LlamaMutexLockDart>(
-          'llama_mutex_lock',
-        );
-        _llamaMutexUnlock =
-            _lib!.lookupFunction<LlamaMutexUnlockNative, LlamaMutexUnlockDart>(
-          'llama_mutex_unlock',
-        );
-        _llamaMutexFree =
-            _lib!.lookupFunction<LlamaMutexFreeNative, LlamaMutexFreeDart>(
-          'llama_mutex_free',
-        );
+        _llamaMutexInit = lib
+            .lookupFunction<LlamaMutexInitNative, LlamaMutexInitDart>(
+              'llama_mutex_init',
+            );
+        _llamaMutexLock = lib
+            .lookupFunction<LlamaMutexLockNative, LlamaMutexLockDart>(
+              'llama_mutex_lock',
+            );
+        _llamaMutexUnlock = lib
+            .lookupFunction<LlamaMutexUnlockNative, LlamaMutexUnlockDart>(
+              'llama_mutex_unlock',
+            );
+        _llamaMutexFree = lib
+            .lookupFunction<LlamaMutexFreeNative, LlamaMutexFreeDart>(
+              'llama_mutex_free',
+            );
       } on ArgumentError {
         // 互斥量不可用——使用 Dart 侧同步替代方案
         _llamaMutexInit = null;
@@ -507,6 +516,9 @@ class FfiLlmClient implements LlmClient {
         _llamaMutexUnlock = null;
         _llamaMutexFree = null;
       }
+
+      // 所有符号解析成功后再缓存库句柄
+      _lib = lib;
     } on ArgumentError catch (e) {
       throw LlmConnectionException(
         serverUrl: libraryPath,
@@ -578,17 +590,19 @@ class FfiLlmClient implements LlmClient {
     if (_disposed) return;
     _disposed = true;
 
-    if (_ctx != nullptr) {
-      _llamaFree!(_ctx!);
-      _ctx = nullptr;
-    }
-    if (_model != nullptr) {
-      _llamaFreeModel!(_model!);
-      _model = nullptr;
-    }
-    if (_mutex != nullptr && _llamaMutexFree != null) {
-      _llamaMutexFree!(_mutex!);
-      _mutex = nullptr;
+    if (_lib != null) {
+      if (_ctx != nullptr && _llamaFree != null) {
+        _llamaFree!(_ctx!);
+        _ctx = nullptr;
+      }
+      if (_model != nullptr && _llamaFreeModel != null) {
+        _llamaFreeModel!(_model!);
+        _model = nullptr;
+      }
+      if (_mutex != nullptr && _llamaMutexFree != null) {
+        _llamaMutexFree!(_mutex!);
+        _mutex = nullptr;
+      }
     }
 
     _loaded = false;
@@ -601,13 +615,15 @@ class FfiLlmClient implements LlmClient {
     if (_disposed) {
       throw StateError('FfiLlmClient has been disposed');
     }
-    _loadModel();
 
     String lastError = '';
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        return await _attemptParse(rawText, bankName: bankName)
-            .timeout(timeout);
+        _loadModel();
+        return await _attemptParse(
+          rawText,
+          bankName: bankName,
+        ).timeout(timeout);
       } on TimeoutException {
         lastError = 'FFI inference timeout on attempt $attempt';
         if (attempt == maxRetries) {
@@ -619,7 +635,7 @@ class FfiLlmClient implements LlmClient {
       } on LlmJsonParseException {
         rethrow;
       } on LlmConnectionException {
-        lastError = 'FFI inference error on attempt $attempt';
+        lastError = 'FFI load/inference error on attempt $attempt';
         if (attempt == maxRetries) {
           throw LlmRetryExhaustedException(
             attempts: maxRetries,
@@ -739,7 +755,7 @@ class FfiLlmClient implements LlmClient {
           ..pos = posPtr
           ..n_seq_id = nSeqIdPtr
           ..seq_id = seqIdPtr
-          ..logits = (i + chunk.length == tokens.length) ? 1 : 0;
+          ..logits = _int8((i + chunk.length == tokens.length) ? 1 : 0);
 
         final code = _llamaDecode!(_ctx!, batch);
         if (code != 0) {
@@ -786,7 +802,7 @@ class FfiLlmClient implements LlmClient {
           ..pos = nextPosPtr
           ..n_seq_id = nextNSeqIdPtr
           ..seq_id = nextSeqIdPtr
-          ..logits = 1;
+          ..logits = _int8(1);
 
         final code = _llamaDecode!(_ctx!, nextBatch);
         if (code != 0) {
@@ -850,16 +866,31 @@ class FfiLlmClient implements LlmClient {
     return 2;
   }
 
+  /// Allocates a single [Pointer<Int8>] with the given boolean [value].
+  Pointer<Int8> _int8(int value) {
+    final ptr = calloc<Int8>();
+    ptr.value = value;
+    return ptr;
+  }
+
   /// 将 token 序列解码为文本字符串。
   String _detokenize(List<int> tokens) {
     final buf = StringBuffer();
-    final pieceBuf = calloc<Utf8>(256);
+    final pieceBuf = calloc<Int8>(256);
+    final pieceBufUtf8 = pieceBuf.cast<Utf8>();
 
     try {
       for (final token in tokens) {
-        final len = _llamaTokenToPiece!(_model!, token, pieceBuf, 256, 0, 0);
+        final len = _llamaTokenToPiece!(
+          _model!,
+          token,
+          pieceBufUtf8,
+          256,
+          0,
+          0,
+        );
         if (len < 0) continue;
-        buf.write(pieceBuf.toDartString(length: len));
+        buf.write(pieceBufUtf8.toDartString(length: len));
       }
     } finally {
       calloc.free(pieceBuf);
@@ -869,11 +900,7 @@ class FfiLlmClient implements LlmClient {
   }
 
   /// 解析 LLM 输出 JSON 为 ParseCandidate。
-  ParseCandidate _parseOutput(
-    String output,
-    String rawText,
-    String? bankName,
-  ) {
+  ParseCandidate _parseOutput(String output, String rawText, String? bankName) {
     final trimmed = output.trim();
 
     // 移除可能的 Markdown 代码块包裹
@@ -884,7 +911,8 @@ class FfiLlmClient implements LlmClient {
         jsonStr = jsonStr.substring(3, endIdx).trim();
         // 移除可能的语言标识符行
         final newlineIdx = jsonStr.indexOf('\n');
-        if (newlineIdx > 0 && jsonStr.substring(0, newlineIdx).trim() == 'json') {
+        if (newlineIdx > 0 &&
+            jsonStr.substring(0, newlineIdx).trim() == 'json') {
           jsonStr = jsonStr.substring(newlineIdx + 1).trim();
         }
       }
@@ -894,10 +922,7 @@ class FfiLlmClient implements LlmClient {
     try {
       llmJson = jsonDecode(jsonStr) as Map<String, dynamic>;
     } on FormatException catch (e) {
-      throw LlmJsonParseException(
-        rawResponse: output,
-        parseError: e.message,
-      );
+      throw LlmJsonParseException(rawResponse: output, parseError: e.message);
     }
 
     final candidateJson = <String, dynamic>{
@@ -917,10 +942,7 @@ class FfiLlmClient implements LlmClient {
 
     final candidate = ParseCandidate.fromJson(candidateJson);
     return candidate.copyWith(
-      metadata: {
-        'source': 'ffi',
-        if (bankName != null) 'bankName': bankName,
-      },
+      metadata: {'source': 'ffi', if (bankName != null) 'bankName': bankName},
     );
   }
 

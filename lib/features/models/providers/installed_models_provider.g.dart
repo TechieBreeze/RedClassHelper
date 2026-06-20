@@ -38,7 +38,7 @@ final class InstalledModelsProvider
         argument: null,
         retry: null,
         name: r'installedModelsProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -58,4 +58,4 @@ final class InstalledModelsProvider
   }
 }
 
-String _$installedModelsHash() => r'1f42d56f0fb4b3ac5a4fadee76fb457934c8873d';
+String _$installedModelsHash() => r'c5754f7e2498e707d898d50bb607aa66034de479';

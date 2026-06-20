@@ -55,9 +55,8 @@ void main() {
 
   group('FfiLlmClient error handling', () {
     test(
-      'parse() throws LlmConnectionException when shared library not found',
+      'parse() throws LlmRetryExhaustedException when shared library not found',
       () async {
-        // Use a library name that is guaranteed not to exist
         final client = FfiLlmClient(
           libraryPath: 'nonexistent_llama_library_xyz',
           modelPath: testModelPath,
@@ -66,13 +65,13 @@ void main() {
 
         await expectLater(
           client.parse('任意题目文本'),
-          throwsA(isA<LlmConnectionException>()),
+          throwsA(isA<LlmRetryExhaustedException>()),
         );
       },
     );
 
     test(
-      'parse() includes library path in error when library not found',
+      'parse() reports library path in retry-exhausted error',
       () async {
         const badLibraryName = 'lib_that_does_not_exist_abc123';
         final client = FfiLlmClient(
@@ -83,10 +82,10 @@ void main() {
 
         try {
           await client.parse('test question');
-          fail('Expected LlmConnectionException');
-        } on LlmConnectionException catch (e) {
-          expect(e.serverUrl, badLibraryName);
-          expect(e.originalError, isNotNull);
+          fail('Expected LlmRetryExhaustedException');
+        } on LlmRetryExhaustedException catch (e) {
+          expect(e.attempts, 1);
+          expect(e.lastError, contains('load/inference'));
         }
       },
     );
@@ -167,7 +166,7 @@ void main() {
 
   group('FfiLlmClient model path validation', () {
     test(
-      'modelPath empty string causes parse() to fail with LlmConnectionException',
+      'modelPath empty string causes parse() to fail with LlmRetryExhaustedException',
       () async {
         final client = FfiLlmClient(
           modelPath: '',
@@ -177,7 +176,7 @@ void main() {
 
         await expectLater(
           client.parse('test question'),
-          throwsA(isA<LlmConnectionException>()),
+          throwsA(isA<LlmRetryExhaustedException>()),
         );
       },
     );

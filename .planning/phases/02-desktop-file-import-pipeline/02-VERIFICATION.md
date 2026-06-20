@@ -1,68 +1,36 @@
 ---
 phase: "02-desktop-file-import-pipeline"
-verified: "2026-06-19T22:30:00Z"
-status: gaps_found
-score: 10/16 must-haves verified
-re_verification: false
-gaps:
-  - truth: "编译可用——代码生成缺失"
-    status: failed
-    reason: "import_notifier.g.dart 文件缺失。import_notifier.dart 通过 @riverpod 注解要求代码生成（part 'import_notifier.g.dart'），但该文件不存在。Blocking——代码无法通过编译。"
-    artifacts:
-      - path: "lib/features/import/providers/import_notifier.dart"
-        issue: "第20行引用不存在的 part 文件 import_notifier.g.dart"
-      - path: "lib/features/import/providers/import_notifier.g.dart"
-        issue: "文件缺失——需运行 dart run build_runner build"
-    missing:
-      - "运行 dart run build_runner build --delete-conflicting-outputs 生成 import_notifier.g.dart"
-  - truth: "用户可编辑题库名称，含CJK感知的20字符限制（D-18）"
-    status: failed
-    reason: "导入预览页（ImportPreviewScreen）缺少题库名称 TextField。当前 bankName 仅由文件名自动推导（_deriveBankName），用户无法编辑，也未实现中文字符=2、ASCII=1的20字符限制。"
-    artifacts:
-      - path: "lib/features/import/presentation/import_preview_screen.dart"
-        issue: "缺少题库名称编辑 TextField——PLAN 明确要求 'Top section: Bank name TextField (pre-filled from filename, max 20 chars with CJK mapping)'"
-    missing:
-      - "在 ImportPreviewScreen 顶部添加题库名称 TextField"
-      - "实现 CJK 感知字符计数：中文/全角=2，ASCII=1，上限20"
-      - "空名称验证：'请输入题库名称'"
-  - truth: "导入总结页展示跳过题目及重试选项（D-09）"
-    status: failed
-    reason: "ImportSummaryScreen 仅展示成功计数和题型分布，未展示因警告被跳过的题目列表及其重试/手动编辑按钮。PLAN 明确要求 'ListView of ListTile rows: ⚠ #{index}: {reason} + 重试 TextButton + 手动编辑 TextButton'。"
-    artifacts:
-      - path: "lib/features/import/presentation/import_summary_screen.dart"
-        issue: "缺少 skipped items 区域——无跳过题目列表、无重试按钮、无手动编辑按钮"
-    missing:
-      - "在 ImportSummaryScreen 添加跳过题目列表区域"
-      - "为每条跳过项添加'重试'按钮（重新解析）和'手动编辑'按钮（返回预览页）"
-      - "当无跳过项时隐藏该区域"
-  - truth: "深链接到过期 jobId 时重定向到首页"
-    status: failed
-    reason: "路由守卫未实现。PLAN 要求 '/import/preview/:jobId 和 /import/summary/:jobId 在没有活跃解析任务时应重定向到 /'。当前路由无 redirect 逻辑，ImportSummaryScreen 虽有 useEffect 检查但 ImportPreviewScreen 无此防护。"
-    artifacts:
-      - path: "lib/routing/router.dart"
-        issue: "路由重定向未实现——访问过期 /import/preview/:jobId 或 /import/summary/:jobId 不会重定向到 /"
-      - path: "lib/features/import/presentation/import_preview_screen.dart"
-        issue: "缺少 jobId 有效性检查——若刷新页面或直接访问此路由不会重定向"
-    missing:
-      - "在 router.dart 中添加 GoRouter redirect 逻辑"
-      - "或在 ImportPreviewScreen 的 initState 中添加 jobId 有效性检查"
-  - truth: "拖放操作提供视觉反馈覆盖层（D-03）"
-    status: partial
-    reason: "desktop_drop 包已集成，基本拖放功能可用。但 onDragEntered/onDragExited 为空操作回调——未实现 AnimatedContainer 虚线边框 + '释放以导入' 文字覆盖层。SUMMARY 文档承认此为已知 stub。"
-    artifacts:
-      - path: "lib/features/import/presentation/import_screen.dart"
-        issue: "第59-62行 onDragEntered/onDragExited 为空回调——拖放悬停时无视觉反馈覆盖层"
-    missing:
-      - "在 DropTarget builder 中实现拖放悬停覆盖层（AnimatedContainer 虚线边框 + '释放以导入' 提示）"
-  - truth: "进度页回退到格式选择页而非首页"
-    status: partial
-    reason: "ImportScreen 使用 context.go('/import/progress') 导航，这会替换 /import 路由而非推入。PLAN 要求 '/import/progress 推入到 /import 之上（不替换——用户可取消并返回选择其他格式）'。使用 context.push 可解决。"
-    artifacts:
-      - path: "lib/features/import/presentation/import_screen.dart"
-        issue: "第211行 context.go() 替换了 /import 路由——应使用 context.push()"
-    missing:
-      - "将 ImportScreen._navigateToProgress 中的 context.go() 改为 context.push()"
-      - "调整 ImportProgressScreen 取消逻辑以 pop 回 /import 而非 go('/')"
+verified: "2026-06-19T23:15:00Z"
+status: verified
+score: 16/16 must-haves verified
+re_verification: true
+gaps: []  # all 6 gaps closed — see gap_closure section below
+
+gap_closure:
+  - gap_id: "#1 编译可用——代码生成缺失"
+    status: closed
+    commit: d7516d3
+    fix: "dart run build_runner build --delete-conflicting-outputs 生成 import_notifier.g.dart + 添加 importNotifierProvider 别名兼容 Riverpod 4.x"
+  - gap_id: "#2 D-18 CJK 题库名称编辑"
+    status: closed
+    commit: 0e68cb5
+    fix: "ImportPreviewScreen 顶部添加 TextField + _countCjkChars 验证（中文/全角=2, ASCII=1, 上限20）+ 空名称验证"
+  - gap_id: "#3 D-09 跳过项列表"
+    status: closed
+    commit: 0e68cb5
+    fix: "ImportSummaryScreen 添加橙色跳过卡片 + '重试'按钮（retryParseCandidate）+ '编辑'按钮；ImportState 添加 skippedCandidates getter"
+  - gap_id: "#4 路由守卫缺失"
+    status: closed
+    commit: 0e68cb5
+    fix: "router.dart 中 /import/preview/:jobId 和 /import/summary/:jobId 添加 GoRouter redirect 守卫"
+  - gap_id: "#5 拖放视觉反馈 stub"
+    status: closed
+    commit: af813c3
+    fix: "ImportScreen 改为 StatefulWidget + _isDragOver 状态 + AnimatedContainer 虚线边框覆盖层 + '释放以导入' 文字提示"
+  - gap_id: "#6 导航栈管理 go→push"
+    status: closed
+    commit: af813c3
+    fix: "ImportScreen context.go→context.push 推入 /import/progress；ImportProgressScreen 取消→pop 回 /import 格式选择页"
 ---
 
 # Phase 02：桌面文件导入管道 验证报告
@@ -86,7 +54,7 @@ gaps:
 | 4 | IMP-04: 解析进度 + 失败原因 + 重试 | ✓ VERIFIED | ImportProgressScreen: LinearProgressIndicator + 10秒卡住检测 + 取消确认对话框 + 错误重试；ImportState 跟踪完整状态机 |
 | 5 | QST-03: 单选/多选自动检测 + 用户可覆盖 | ✓ VERIFIED | HeuristicParser: 检测答案长度（>1字母→多选）+ 判断题（✓✗×√）+ 简答题关键词；CandidateCard: SegmentedButton 允许用户切换类型 |
 | 6 | UI-04: 平台分支导入页——桌面3图块、Android仅.json（禁用） | ✓ VERIFIED | ImportScreen: Platform.isWindows\|\|Platform.isLinux 分支；桌面：Word+PDF+JSON 图块；Android：仅 JSON（enabled=false, onTap: (){}） |
-| 7 | 桌面端拖放支持 | ⚠️ PARTIAL | DropTarget 已集成，基本拖放有效。但悬停视觉反馈为空操作回调（已知stub） |
+| 7 | 桌面端拖放支持 | ✓ VERIFIED (R2) | DropTarget 已集成 + AnimatedContainer 虚线边框 + "释放以导入" 覆盖层（StatefulWidget + _isDragOver 状态机） |
 | 8 | 扫描/加密 PDF → 优雅错误 | ✓ VERIFIED | pdf_extractor: isEncrypted→EncryptedPdfException；逐页空文本检测→ScannedPdfException |
 | 9 | 解析期间取消 → 返回首页，无残留数据 | ✓ VERIFIED | ImportProgressScreen: PopScope + AlertDialog 确认 → ImportNotifier.reset() → context.go('/') |
 | 10 | 启发式解析器正确处理样本文件 | ✓ VERIFIED | heuristic_parser: 9步管道（规范化→按题号分块→题干提取→嵌入式答案→独立答案行→选项提取→类型检测→警告→过滤空题）；pipeline_integration_test 验证真实样本 |
@@ -94,10 +62,10 @@ gaps:
 | 12 | 解析进度显示有意义的步骤 | ✓ VERIFIED | ImportProgressScreen: 文件图标+文件名+LinearProgressIndicator+阶段标签（"提取文本中…"/"解析中…"）+10秒"仍在处理…"提示 |
 | 13 | 错误状态正确渲染 | ✓ VERIFIED | ImportProgressScreen: 错误图标+错误信息+重试/返回按钮；ImportScreen: SnackBar 提示不支持格式 |
 | 14 | 题库名称默认 = 文件名 | ✓ VERIFIED | ImportNotifier._deriveBankName(): 使用 path.basenameWithoutExtension + 移除学期/修订日期后缀 |
-| 15 | 编译可用 | ✗ FAILED | import_notifier.g.dart 缺失——@riverpod 代码生成未执行（详见差距） |
-| 16 | 导入总结含跳过项及重试 | ✗ FAILED | ImportSummaryScreen 缺少跳过项列表（详见差距） |
+| 15 | 编译可用 | ✓ VERIFIED (R2) | flutter analyze → 零错误、零警告（仅 16 info 级风格建议）；66/66 测试通过 |
+| 16 | 导入总结含跳过项及重试 | ✓ VERIFIED (R2) | ImportSummaryScreen 含橙色跳过卡片 + 重试按钮（retryParseCandidate）+ 编辑按钮；ImportState.skippedCandidates getter |
 
-**得分：** 10/16 真理已验证通过（存在部分扣分的真理按失败计算）
+**得分：** 16/16 真理已验证通过 ✅（第二轮验收：2026-06-19T23:15:00Z）
 
 ---
 
@@ -114,11 +82,11 @@ gaps:
 | `lib/features/import/parsing/parse_candidate.g.dart` | JSON序列化代码生成 | ✓ VERIFIED | 完整生成的 fromJson/toJson |
 | `lib/features/import/providers/import_state.dart` | 管道状态模型 | ✓ VERIFIED | 8阶段ImportPhase枚举 + ImportFile + ImportState(copyWith+便捷getter) |
 | `lib/features/import/providers/import_notifier.dart` | 管道状态管理 | ✓ VERIFIED | @riverpod Notifier + 完整生命周期 + 编辑方法 + commitToDatabase |
-| `lib/features/import/providers/import_notifier.g.dart` | Riverpod 代码生成 | ✗ MISSING | **文件缺失——无法编译** |
-| `lib/features/import/presentation/import_screen.dart` | 平台分支入口页 | ⚠️ ORPHANED（部分） | 完整实现但拖放反馈存根 + go() push()不匹配 |
+| `lib/features/import/providers/import_notifier.g.dart` | Riverpod 代码生成 | ✓ VERIFIED | build_runner 生成（32 个输出文件，46 秒）+ importNotifierProvider 别名兼容 Riverpod 4.x |
+| `lib/features/import/presentation/import_screen.dart` | 平台分支入口页 | ✓ VERIFIED (R2) | 完整 StatefulWidget + AnimatedContainer 拖放覆盖层 + context.push 导航 + FilePicker.pickFiles() API |
 | `lib/features/import/presentation/import_progress_screen.dart` | 解析进度页 | ✓ VERIFIED | 进度条+取消+错误+10秒卡住+自动导航 |
-| `lib/features/import/presentation/import_preview_screen.dart` | 预览编辑页 | ⚠️ PARTIAL | 缺少题库名称TextField + 缺少jobId有效性守卫 |
-| `lib/features/import/presentation/import_summary_screen.dart` | 导入总结页 | ⚠️ PARTIAL | 缺少跳过项列表+重试按钮+手动编辑按钮 |
+| `lib/features/import/presentation/import_preview_screen.dart` | 预览编辑页 | ✓ VERIFIED (R2) | 题库名称 TextField（CJK 感知 20 字符 + 空名称验证）+ CandidateCard + 题型筛选 + 全选/取消全选 |
+| `lib/features/import/presentation/import_summary_screen.dart` | 导入总结页 | ✓ VERIFIED (R2) | 成功计数 + 题型分布 + 跳过项目列表（橙色卡片 + 重试/编辑按钮） |
 | `lib/features/import/widgets/file_format_tile.dart` | 文件格式图块 | ✓ VERIFIED | 可复用Card+InkWell+enabled/disabled状态 |
 | `lib/features/import/widgets/candidate_card.dart` | 候选题编辑卡片 | ✓ VERIFIED | 可展开+题型SegmentedButton+选项TextFormField+答案编辑器+判断题ChoiceChip |
 | `lib/core/paths.dart` | PathResolver 扩展 | ✓ VERIFIED | pandoc getter（PATH→常见路径→异常）+ tempImportDir getter |
@@ -132,7 +100,8 @@ gaps:
 | 来源 | 目标 | 方式 | 状态 | 详情 |
 |------|------|------|------|------|
 | ImportScreen | FilePicker | `FilePicker.platform.pickFiles()` | ✓ WIRED | 3个格式处理器各调用正确的allowedExtensions |
-| ImportScreen | ImportProgressScreen | `context.go('/import/progress')` | ⚠️ PARTIAL | 已连线但使用 go()（替换）而非 push()（推入） |
+| ImportScreen | ImportProgressScreen | `context.push('/import/progress')` | ✓ WIRED (R2) | push() 保留 /import 在导航栈——取消可 pop 返回格式选择页 |
+| ImportProgressScreen → cancel | ImportScreen | `context.pop()` | ✓ WIRED (R2) | pop 回 /import 而非 go('/')——用户可重新选择格式 |
 | ImportProgressScreen | ImportNotifier | `ref.read(importNotifierProvider.notifier)` | ✓ WIRED | pickFiles→extractAndParse完整调用链 |
 | ImportNotifier | TextExtractor | `extractText(filePath, fileExtension:)` | ✓ WIRED | pandocResolver + tempImportDirResolver已注入 |
 | ImportNotifier | HeuristicParser | `_parser.parse(allText)` | ✓ WIRED | 解析器输出填充 state.candidates |
@@ -157,16 +126,18 @@ gaps:
 
 ---
 
-### 行为点检
+### 行为点检（R2）
 
 | 行为 | 命令 | 结果 | 状态 |
 |------|------|------|------|
-| 提取器模块导入 | `dart analyze lib/features/import/extraction/` | 需完整构建——跳过 | ? SKIP |
-| 解析器模块导入 | `dart analyze lib/features/import/parsing/` | 需完整构建——跳过 | ? SKIP |
+| 全量静态分析 | `flutter analyze` | 16 issues（全部 info 级）——零错误、零警告 | ✓ PASS |
+| 全量测试 | `flutter test` | 66 passed, 1 skip (PDFium), 0 failures | ✓ PASS |
+| 路由计数 | `flutter test test/routing/router_test.dart` | 9 routes registered（含 3 条 Phase 2 路由） | ✓ PASS |
+| 首页导航 | `flutter test test/features/home/home_screen_test.dart` | 6/6 tests passed | ✓ PASS |
+| 管道集成测试 | `flutter test test/features/import/pipeline_integration_test.dart` | .docx 解析产出 13 候选 | ✓ PASS |
 | pubspec依赖声明 | `grep -c "archive:\|xml:\|pdfrx:\|file_picker:\|desktop_drop:\|uuid:" pubspec.yaml` | 6/6 依赖存在 | ✓ PASS |
 | 样本文件就位 | `ls doc/example/*.docx doc/example/*.doc doc/example/*.pdf` | 全部4个样本存在 | ✓ PASS |
-
-> **注意：** 由于 `import_notifier.g.dart` 缺失，无法运行 `flutter analyze` 或 `flutter test`。完整点检需在代码生成修复后执行。
+| 代码生成验证 | `grep "importNotifierProvider" lib/features/import/providers/import_notifier.g.dart` | importProvider + importNotifierProvider 别名已生成 | ✓ PASS |
 
 ---
 
@@ -186,14 +157,16 @@ gaps:
 
 ### 反模式扫描
 
-| 文件 | 行 | 模式 | 严重级别 | 影响 |
+| 文件 | 行 | 模式 | 严重级别 | 影响（R2 状态） |
 |------|-----|------|----------|------|
-| `import_screen.dart` | 59-62 | `onDragEntered: (_) {}`, `onDragExited: (_) {}` — 空回调存根 | ⚠️ 警告 | 拖放无视觉反馈；已在SUMMARY中记录为已知存根 |
-| `import_screen.dart` | 155 | `onTap: () {}` — Android .json 图块禁用 | ℹ️ 信息 | 符合 Phase 5 延迟策略的预期存根 |
-| `import_screen.dart` | 211 | `context.go()` 代替 `context.push()` — 导航栈被替换 | ⚠️ 警告 | 用户取消后无法返回格式选择页（见差距 #6） |
-| `import_notifier.dart` | 20 | `part 'import_notifier.g.dart'` 引用缺失文件 | 🛑 阻断 | **阻断——代码无法编译**（见差距 #1） |
-| `doc_extractor.dart` | 58 | `Process.run(…, runInShell: true)` — shell执行 | ⚠️ 警告 | SUMMARY 已标记为 threat_flag: process-exec；Phase 3 修复 |
-| `import_progress_screen.dart` | 54 | `File.statSync()` — 同步文件IO | ⚠️ 警告 | SUMMARY 已标记为 threat_flag: file-access；大文件可能阻塞UI |
+| `import_screen.dart` | 155 | `onTap: () {}` — Android .json 图块禁用 | ℹ️ 信息 | 符合 Phase 5 延迟策略的预期存根（未变） |
+| `doc_extractor.dart` | 58 | `Process.run(…, runInShell: true)` — shell执行 | ⚠️ 警告 | SUMMARY 已标记为 threat_flag: process-exec；Phase 3 修复（未变） |
+| `import_progress_screen.dart` | 54 | `File.statSync()` — 同步文件IO | ⚠️ 警告 | SUMMARY 已标记为 threat_flag: file-access；大文件可能阻塞UI（未变） |
+
+> **R2 说明：** 以下原有反模式已在 gap_closure 中消除：
+> - `import_screen.dart:59-62` 空回调存根 → 替换为 AnimatedContainer 覆盖层（af813c3）
+> - `import_screen.dart:211` `context.go()` → 改为 `context.push()`（af813c3）
+> - `import_notifier.dart:20` 缺失 part 文件 → build_runner 生成（d7516d3）
 
 ---
 
@@ -212,23 +185,29 @@ gaps:
 
 ---
 
-### 差距摘要
+### 差距摘要（R2：全部关闭 ✅）
 
-发现 **6 个差距**，其中 **1 个阻断级**，**3 个功能缺失**，**2 个部分实现**：
+**R1** 发现 **6 个差距**——**全部在 R2 中关闭**：
 
-1. **🛑 阻断：import_notifier.g.dart 缺失** — `@riverpod` 注解要求代码生成，但生成文件不存在。项目无法编译。**修复：** 运行 `dart run build_runner build --delete-conflicting-outputs`。
+| # | 严重级别 | 描述 | R2 状态 | 提交 |
+|---|----------|------|---------|------|
+| 1 | 🛑 阻断 | import_notifier.g.dart 缺失 | ✅ 关闭 | `d7516d3` |
+| 2 | 功能缺失 | 题库名称编辑 + CJK 20字符限制 | ✅ 关闭 | `0e68cb5` |
+| 3 | 功能缺失 | 导入总结跳过项（D-09） | ✅ 关闭 | `0e68cb5` |
+| 4 | 功能缺失 | 路由守卫 | ✅ 关闭 | `0e68cb5` |
+| 5 | 部分实现 | 拖放视觉反馈 | ✅ 关闭 | `af813c3` |
+| 6 | 部分实现 | 导航栈管理 | ✅ 关闭 | `af813c3` |
 
-2. **功能缺失：题库名称编辑 + CJK 20字符限制（D-18）** — ImportPreviewScreen 不提供题库名称 TextField。用户无法编辑自动推导的名称，也未实现中文字符=2字符的20字符限制。
-
-3. **功能缺失：导入总结跳过项（D-09）** — ImportSummaryScreen 不展示因警告被跳过的题目，也无重试/手动编辑按钮。
-
-4. **功能缺失：路由守卫** — 访问过期 `/import/preview/:jobId` 或 `/import/summary/:jobId` 时不会重定向到首页。
-
-5. **部分实现：拖放视觉反馈** — 拖放悬停时的覆盖层视觉反馈仅为空操作存根。
-
-6. **部分实现：导航栈管理** — ImportScreen 使用 `context.go()`（替换）而非 `context.push()`（推入），用户取消后无法返回格式选择页。
+**R2 最终状态：**
+- `flutter analyze` — 零错误、零警告（16 info 级）
+- `flutter test` — 66/66 通过（1 skip: PDFium）
+- 16/16 真理已验证
+- 19/19 工件就位
+- 16/16 关键链接已连线
+- 3 个反模式保留（均为已知/Phase 3 修复项）
 
 ---
 
-*验证完成：2026-06-19T22:30:00Z*
-*验证者：Claude (gsd-verifier)*
+*R1验证完成：2026-06-19T22:30:00Z | R2（gap closure）验证完成：2026-06-19T23:15:00Z*
+*验证者：Claude (gsd-verifier, x2 rounds)*
+*最终状态：VERIFIED — 零错误、零警告、66/66 测试通过*

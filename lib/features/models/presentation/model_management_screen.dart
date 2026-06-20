@@ -31,16 +31,13 @@ class ModelManagementScreen extends ConsumerWidget {
     final activeDownload = ref.watch(modelDownloadProvider);
 
     // Build sets for quick lookup
-    final installedIds = installedAsync.valueOrNull
-            ?.map((m) => m.fileName)
-            .toSet() ??
+    final installedIds =
+        installedAsync.asData?.value.map((m) => m.fileName).toSet() ??
         const <String>{};
     final catalogIds = catalog.map((m) => '${m.id}.gguf').toSet();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('模型管理'),
-      ),
+      appBar: AppBar(title: const Text('模型管理')),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
@@ -58,11 +55,11 @@ class ModelManagementScreen extends ConsumerWidget {
           }
           return Center(
             child: ConstrainedBox(
-              constraints:
-                  BoxConstraints(maxWidth: maxWidth ?? double.infinity),
+              constraints: BoxConstraints(
+                maxWidth: maxWidth ?? double.infinity,
+              ),
               child: SingleChildScrollView(
-                padding:
-                    padding.add(const EdgeInsets.symmetric(vertical: 24)),
+                padding: padding.add(const EdgeInsets.symmetric(vertical: 24)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -83,8 +80,9 @@ class ModelManagementScreen extends ConsumerWidget {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: ModelCard(
                           model: model,
-                          isInstalled:
-                              installedIds.contains('${model.id}.gguf'),
+                          isInstalled: installedIds.contains(
+                            '${model.id}.gguf',
+                          ),
                           activeDownload: activeDownload,
                         ),
                       ),
@@ -99,24 +97,24 @@ class ModelManagementScreen extends ConsumerWidget {
                         final result = await showAddModelDialog(context);
                         if (result != null && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('已添加模型：${result.name}'),
-                            ),
+                            SnackBar(content: Text('已添加模型：${result.name}')),
                           );
                         }
                       },
                     ),
                     const SizedBox(height: 12),
                     // Show custom models (installed but not in catalog)
-                    ..._customModels(installedAsync.valueOrNull, catalogIds)
-                        .map(
+                    ..._customModels(
+                      installedAsync.asData?.value ?? const [],
+                      catalogIds,
+                    ).map(
                       (model) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _CustomModelCard(
                           fileName: model.fileName,
                           sizeBytes: model.sizeBytes,
-                          onDelete: () => _showCustomDeleteDialog(
-                              context, ref, model),
+                          onDelete: () =>
+                              _showCustomDeleteDialog(context, ref, model),
                         ),
                       ),
                     ),
@@ -171,9 +169,7 @@ class ModelManagementScreen extends ConsumerWidget {
   static Widget _platformUnavailable(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('模型管理')),
-      body: const Center(
-        child: Text('模型管理仅在桌面端可用'),
-      ),
+      body: const Center(child: Text('模型管理仅在桌面端可用')),
     );
   }
 }
@@ -186,10 +182,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.headlineSmall,
-    );
+    return Text(title, style: Theme.of(context).textTheme.headlineSmall);
   }
 }
 
@@ -269,10 +262,7 @@ class _InstalledSection extends ConsumerWidget {
 
 /// Card for an installed model in section 1.
 class _InstalledModelCard extends StatelessWidget {
-  const _InstalledModelCard({
-    required this.fileName,
-    required this.sizeBytes,
-  });
+  const _InstalledModelCard({required this.fileName, required this.sizeBytes});
 
   final String fileName;
   final int sizeBytes;
@@ -297,10 +287,7 @@ class _InstalledModelCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    fileName,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
+                  Text(fileName, style: Theme.of(context).textTheme.titleSmall),
                   const SizedBox(height: 4),
                   Text(
                     sizeDisplay,
@@ -394,15 +381,9 @@ class _CustomModelCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    fileName,
-                    style: theme.textTheme.titleSmall,
-                  ),
+                  Text(fileName, style: theme.textTheme.titleSmall),
                   const SizedBox(height: 4),
-                  Text(
-                    '$sizeDisplay · 本地导入',
-                    style: theme.textTheme.bodySmall,
-                  ),
+                  Text('$sizeDisplay · 本地导入', style: theme.textTheme.bodySmall),
                 ],
               ),
             ),

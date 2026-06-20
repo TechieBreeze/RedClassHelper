@@ -27,7 +27,7 @@ class InstalledModel {
 /// Lists installed .gguf model files in [PathResolver.modelsDir].
 ///
 /// Invalidated by [ModelDownloadNotifier] when a download completes.
-@riverpod
+@Riverpod(keepAlive: true)
 Future<List<InstalledModel>> installedModels(Ref ref) async {
   final resolver = await ref.read(pathResolverProvider.future);
   final modelsDir = await resolver.modelsDir;

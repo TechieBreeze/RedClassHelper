@@ -68,7 +68,8 @@ String _$llmModeHash() => r'7fc0b21f8ebf4057af373b8162bb945f0dd5a3cf';
 /// 在非桌面平台（Android/iOS）上访问此 provider 抛出 [UnsupportedError]。
 /// 在桌面平台上根据 [llmModeProvider] 的值切换具体实现：
 ///   - [LlmMode.stub] → [StubLlmClient] (deterministic, for dev/CI)
-///   - [LlmMode.http] → TODO: HttpLlmClient (03-03)
+///   - [LlmMode.http] → [HttpLlmClient] (local llama-server)
+///   - [LlmMode.ffi]  → [FfiLlmClient] (dart:ffi direct binding)
 
 @ProviderFor(llmClient)
 final llmClientProvider = LlmClientProvider._();
@@ -78,7 +79,8 @@ final llmClientProvider = LlmClientProvider._();
 /// 在非桌面平台（Android/iOS）上访问此 provider 抛出 [UnsupportedError]。
 /// 在桌面平台上根据 [llmModeProvider] 的值切换具体实现：
 ///   - [LlmMode.stub] → [StubLlmClient] (deterministic, for dev/CI)
-///   - [LlmMode.http] → TODO: HttpLlmClient (03-03)
+///   - [LlmMode.http] → [HttpLlmClient] (local llama-server)
+///   - [LlmMode.ffi]  → [FfiLlmClient] (dart:ffi direct binding)
 
 final class LlmClientProvider
     extends $FunctionalProvider<LlmClient, LlmClient, LlmClient>
@@ -88,7 +90,8 @@ final class LlmClientProvider
   /// 在非桌面平台（Android/iOS）上访问此 provider 抛出 [UnsupportedError]。
   /// 在桌面平台上根据 [llmModeProvider] 的值切换具体实现：
   ///   - [LlmMode.stub] → [StubLlmClient] (deterministic, for dev/CI)
-  ///   - [LlmMode.http] → TODO: HttpLlmClient (03-03)
+  ///   - [LlmMode.http] → [HttpLlmClient] (local llama-server)
+  ///   - [LlmMode.ffi]  → [FfiLlmClient] (dart:ffi direct binding)
   LlmClientProvider._()
     : super(
         from: null,
@@ -122,4 +125,4 @@ final class LlmClientProvider
   }
 }
 
-String _$llmClientHash() => r'7ebae238b120ea2f347951179034d6a421baf69f';
+String _$llmClientHash() => r'bfc364ea1a392756c168561522c2ec441f4ef3aa';

@@ -77,10 +77,7 @@ class _AddModelDialogState extends State<_AddModelDialog>
               height: 160,
               child: TabBarView(
                 controller: _tabController,
-                children: [
-                  _buildUrlTab(),
-                  _buildLocalFileTab(),
-                ],
+                children: [_buildUrlTab(), _buildLocalFileTab()],
               ),
             ),
           ],
@@ -161,8 +158,8 @@ class _AddModelDialogState extends State<_AddModelDialog>
             Text(
               _selectedFilePath!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -215,7 +212,7 @@ class _AddModelDialogState extends State<_AddModelDialog>
   Future<void> _pickFile() async {
     setState(() => _fileError = null);
 
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.any,
       allowMultiple: false,
     );
@@ -271,12 +268,16 @@ class _AddModelDialogState extends State<_AddModelDialog>
       final url = _urlController.text.trim();
       final uri = Uri.parse(url);
       final segments = uri.pathSegments;
-      final fileName =
-          segments.isNotEmpty ? segments.last : 'custom_model.gguf';
+      final fileName = segments.isNotEmpty
+          ? segments.last
+          : 'custom_model.gguf';
       final name = fileName.endsWith('.gguf')
           ? fileName.substring(0, fileName.length - 5)
           : fileName;
-      final modelId = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\-]'), '-');
+      final modelId = name.toLowerCase().replaceAll(
+        RegExp(r'[^a-z0-9\-]'),
+        '-',
+      );
 
       Navigator.of(context).pop(
         ModelInfo(
@@ -297,7 +298,10 @@ class _AddModelDialogState extends State<_AddModelDialog>
       final name = fileName.endsWith('.gguf')
           ? fileName.substring(0, fileName.length - 5)
           : fileName;
-      final modelId = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\-]'), '-');
+      final modelId = name.toLowerCase().replaceAll(
+        RegExp(r'[^a-z0-9\-]'),
+        '-',
+      );
 
       Navigator.of(context).pop(
         ModelInfo(

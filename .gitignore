@@ -26,3 +26,12 @@ Thumbs.db
 *.sqlite
 *.sqlite-journal
 models/*.gguf
+
+# Android Kotlin error logs
+android/.kotlin/
+
+# Example documents (real exam papers)
+doc/example/
+
+# Screenshots
+flutter_*.png

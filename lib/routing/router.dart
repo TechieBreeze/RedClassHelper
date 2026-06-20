@@ -36,47 +36,60 @@ final GoRouter appRouter = GoRouter(
           BankDetailScreen(bankId: state.pathParameters['id']!),
     ),
     GoRoute(
-      path: '/quiz/pick/:mode',
-      builder: (BuildContext context, GoRouterState state) => BankPickerScreen(
-        mode: state.pathParameters['mode']!,
-      ),
-    ),
-    GoRoute(
-      path: '/quiz/:bankId/:mode',
+      path: '/quiz',
       redirect: (BuildContext context, GoRouterState state) {
-        final mode = state.pathParameters['mode']!;
-        try {
-          reviewModeFromString(mode);
-        } on ArgumentError {
-          return '/'; // Invalid mode → redirect to home
-        }
+        if (state.uri.path == '/quiz') return '/';
         return null;
       },
-      builder: (BuildContext context, GoRouterState state) => QuizScreen(
-        bankId: state.pathParameters['bankId']!,
-        mode: state.pathParameters['mode']!,
-      ),
-    ),
-    GoRoute(
-      path: '/quiz/:bankId/:mode/summary',
-      redirect: (BuildContext context, GoRouterState state) {
-        final bankId = state.pathParameters['bankId']!;
-        final mode = state.pathParameters['mode']!;
-        final container = ProviderScope.containerOf(context);
-        final sessionAsync = container.read(
-          quizSessionControllerProvider(bankId, mode),
-        );
-        final session = sessionAsync.value;
-        if (session == null || session.status != QuizStatus.complete) {
-          return '/';
-        }
-        return null;
-      },
-      builder: (BuildContext context, GoRouterState state) =>
-          QuizSummaryScreen(
-        bankId: state.pathParameters['bankId']!,
-        mode: state.pathParameters['mode']!,
-      ),
+      routes: [
+        GoRoute(
+          path: 'pick/:mode',
+          builder: (BuildContext context, GoRouterState state) =>
+              BankPickerScreen(
+            mode: state.pathParameters['mode']!,
+          ),
+        ),
+        GoRoute(
+          path: ':bankId/:mode',
+          redirect: (BuildContext context, GoRouterState state) {
+            final mode = state.pathParameters['mode']!;
+            try {
+              reviewModeFromString(mode);
+            } on ArgumentError {
+              return '/';
+            }
+            return null;
+          },
+          routes: [
+            GoRoute(
+              path: 'summary',
+              redirect: (BuildContext context, GoRouterState state) {
+                final bankId = state.pathParameters['bankId']!;
+                final mode = state.pathParameters['mode']!;
+                final container = ProviderScope.containerOf(context);
+                final sessionAsync = container.read(
+                  quizSessionControllerProvider(bankId, mode),
+                );
+                final session = sessionAsync.value;
+                if (session == null ||
+                    session.status != QuizStatus.complete) {
+                  return '/';
+                }
+                return null;
+              },
+              builder: (BuildContext context, GoRouterState state) =>
+                  QuizSummaryScreen(
+                bankId: state.pathParameters['bankId']!,
+                mode: state.pathParameters['mode']!,
+              ),
+            ),
+          ],
+          builder: (BuildContext context, GoRouterState state) => QuizScreen(
+            bankId: state.pathParameters['bankId']!,
+            mode: state.pathParameters['mode']!,
+          ),
+        ),
+      ],
     ),
     GoRoute(
       path: '/stats',

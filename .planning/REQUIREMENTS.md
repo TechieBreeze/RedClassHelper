@@ -41,8 +41,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Bookmark (收藏)
 
-- [ ] **BMK-01**: User can bookmark a single question while answering
-- [ ] **BMK-02**: User can enter a unified bookmark view to review or inspect all bookmarked questions
+- [ ] **BMK-01**: User can bookmark a single question while answering — **Moved out (D-15):** removed from Phase 5, deferred to future phase
+- [ ] **BMK-02**: User can enter a unified bookmark view to review or inspect all bookmarked questions — **Moved out (D-15):** removed from Phase 5, deferred to future phase
 
 ### Statistics (统计)
 
@@ -148,8 +148,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REV-04 | Phase 4 | Pending |
 | REV-05 | Phase 4 | Pending |
 | REV-06 | Phase 4 | Pending |
-| BMK-01 | Phase 5 | Pending |
-| BMK-02 | Phase 5 | Pending |
+| BMK-01 | Future | Moved out (Phase 5 D-15) |
+| BMK-02 | Future | Moved out (Phase 5 D-15) |
 | STAT-01 | Phase 4 | Pending |
 | STAT-02 | Phase 5 | Pending |
 | PLT-01 | Phase 7 | Pending |

@@ -9,9 +9,13 @@ import 'parse_candidate.dart';
 class HeuristicParser {
   // ── 模式 A：显式题号格式的正则 ──
 
-  /// 题号：行首 "1." "21" "1、" "（1）" 等
+  /// 题号：行首 "1." "21" "1、" "（1）" "1．" 等
+  /// Matches explicit separators only (half/fullwidth period, ideographic
+  /// comma, right parentheses).  Whitespace is NOT a valid separator —
+  /// otherwise content lines like "1945 年" or "500 名" would be
+  /// misidentified as question numbers.
   static final RegExp _questionNumberRE = RegExp(
-    r'^\s*[（(]?\s*(\d{1,4})\s*[）).、\s]',
+    r'^\s*[（(]?\s*(\d{1,4})\s*[）).、．]',
   );
 
   /// 选项标签：行首 A. / A、/ A． / Ａ、 后跟选项文本
@@ -41,6 +45,12 @@ class HeuristicParser {
     r'[（(]\s*[✓✗×√×✔✘✅❌TF对错是非]\s*[）)]',
   );
 
+  /// 内联判断题答案：题干中的（对）（错）（T）（F）等
+  /// group(1): 开括号  group(2): 答案文字  group(3): 闭括号
+  static final RegExp _trueFalseInlineRE = RegExp(
+    r'([（(])\s*([✓✗×√×✔✘✅❌TFtf对错是非]{1,2})\s*([）)])',
+  );
+
   /// 简答题特征
   static final RegExp _shortAnswerRE = RegExp(
     r'(?:简述|简答|论述|分析|说明|概述|什么是|如何|怎样|为什么)',
@@ -50,8 +60,9 @@ class HeuristicParser {
 
   /// 内联答案：题干中的（A）/（AB）/（C D E）/（ＣD）等
   /// 支持半角/全角字母、空格分隔；可出现在题干任意位置
+  /// group(1): 开括号  group(2): 答案字母  group(3): 闭括号
   static final RegExp _inlineAnswerRE = RegExp(
-    r'[（(]\s*([A-Ha-hＡ-Ｈａ-ｈ\s]{1,24})\s*[）)]',
+    r'([（(])\s*([A-Ha-hＡ-Ｈａ-ｈ\s]{1,24})\s*([）)])',
   );
 
   /// 一行内多个选项：A.xxx  B.xxx  C.xxx  D.xxx / Ａ、Ｂ、Ｃ、Ｄ、
@@ -108,6 +119,9 @@ class HeuristicParser {
 
   // ── 块拆分 A：按题号边界 ──
 
+  /// Matches PDF-extraction page markers like "=== PAGE 36 ===".
+  static final RegExp _pageMarkerRE = RegExp(r'^=== PAGE \d+ ===$');
+
   List<_Block> _splitByQuestionNumbers(List<String> lines) {
     final blocks = <_Block>[];
     var currentLines = <String>[];
@@ -117,10 +131,28 @@ class HeuristicParser {
       final line = lines[i];
       final trimmed = line.trim();
 
+      // Skip page marker lines injected by PDF extraction tools.
+      if (_pageMarkerRE.hasMatch(trimmed)) continue;
+
       if (trimmed.isEmpty) {
         if (currentLines.isNotEmpty) {
-          blocks.add(_Block(currentLines, blockStartLine, i - 1));
-          currentLines = [];
+          // Peek ahead: if the next meaningful line is an option label
+          // (A-H + .、．or space), the empty line is a page-break
+          // artifact — keep accumulating into the current block.
+          var splitHere = true;
+          for (var j = i + 1; j < lines.length; j++) {
+            final next = lines[j].trim();
+            if (next.isEmpty || _pageMarkerRE.hasMatch(next)) continue;
+            if (_choiceLabelRE.hasMatch(next) ||
+                _choiceLabelSpaceRE.hasMatch(next)) {
+              splitHere = false;
+            }
+            break;
+          }
+          if (splitHere) {
+            blocks.add(_Block(currentLines, blockStartLine, i - 1));
+            currentLines = [];
+          }
         }
         continue;
       }
@@ -245,12 +277,25 @@ class HeuristicParser {
     final title = _extractTitle(lines, numberMatch);
     final options = _extractOptions(lines);
     var answer = _extractAnswer(lines);
-    // 无显式答案行时，尝试从题干中提取内联答案（X）
+    var cleanTitle = title;
+    // 无显式答案行时，尝试从题干中提取内联答案
     if (answer.isEmpty) {
-      answer = _extractInlineAnswer(title);
+      // 先试 A-H 字母答案（选择题）：（D）（ABC）等
+      final inlineMatch = _inlineAnswerRE.firstMatch(title);
+      if (inlineMatch != null) {
+        answer = _extractInlineAnswer(title);
+        cleanTitle = _removeInlineAnswer(title, inlineMatch);
+      } else {
+        // 再试判断题答案：（对）（错）（T）（F）等
+        final tfMatch = _trueFalseInlineRE.firstMatch(title);
+        if (tfMatch != null) {
+          answer = tfMatch.group(2)!.trim();
+          cleanTitle = _removeInlineAnswer(title, tfMatch);
+        }
+      }
     }
     final explanation = _extractExplanation(lines);
-    final candidateType = _determineType(title, options, answer);
+    final candidateType = _determineType(cleanTitle, options, answer);
     final confidence = _calculateConfidence(
       candidateType, options, answer, explanation,
     );
@@ -258,7 +303,7 @@ class HeuristicParser {
     return ParseCandidate(
       rawText: block.text,
       candidateType: candidateType,
-      title: title,
+      title: cleanTitle,
       options: options,
       answer: answer,
       explanation: explanation,
@@ -273,13 +318,19 @@ class HeuristicParser {
     final lines = block.lines;
     final titleLine = lines[0].trim();
 
-    // 提取内联答案
+    // 提取内联答案（选择题字母 或 判断题对/错）
     var answer = '';
-    final inlineMatch = _inlineAnswerRE.firstMatch(titleLine);
     String title = titleLine;
+    final inlineMatch = _inlineAnswerRE.firstMatch(titleLine);
     if (inlineMatch != null) {
-      answer = inlineMatch.group(1)!.toUpperCase();
-      // 从题干中移除答案标记，但不影响内联格式的显示
+      answer = inlineMatch.group(2)!.toUpperCase(); // group(2) = 答案字母
+      title = _removeInlineAnswer(titleLine, inlineMatch);
+    } else {
+      final tfMatch = _trueFalseInlineRE.firstMatch(titleLine);
+      if (tfMatch != null) {
+        answer = tfMatch.group(2)!.trim();
+        title = _removeInlineAnswer(titleLine, tfMatch);
+      }
     }
 
     // 提取选项（从后续行）
@@ -323,6 +374,10 @@ class HeuristicParser {
   String _extractTitle(List<String> lines, Match numberMatch) {
     final firstLine = lines[0].trim();
     var afterNumber = firstLine.substring(numberMatch.end).trim();
+    // Strip leading ornamental punctuation (e.g. stray fullwidth dot
+    // left over from merged blocks across page breaks).
+    afterNumber =
+        afterNumber.replaceFirst(RegExp(r'^[.、．]+'), '').trim();
     final titleLines = <String>[];
 
     // 同行的空格分隔选项：从题干中切掉
@@ -497,12 +552,23 @@ class HeuristicParser {
     return '';
   }
 
+  /// 从题干中移除内联答案字母，保留括号，如 "会议是（D）" → "会议是（）"
+  /// 同时处理空格："AAAAA（ D ）" → "AAAAA（）"
+  String _removeInlineAnswer(String title, Match match) {
+    final before = title.substring(0, match.start);
+    final after = title.substring(match.end);
+    // group(1)=开括号, group(3)=闭括号 — 只保留括号，丢弃答案
+    final openBracket = match.group(1) ?? '';
+    final closeBracket = match.group(3) ?? '';
+    return '$before$openBracket$closeBracket$after'.trim();
+  }
+
   /// 从题干中提取内联答案，如 "会议是（D）" → "D"
   /// 支持半角/全角字母、空格分隔的答案
   String _extractInlineAnswer(String title) {
     final m = _inlineAnswerRE.firstMatch(title);
     if (m == null) return '';
-    var raw = m.group(1)!.toUpperCase();
+    var raw = m.group(2)!.toUpperCase(); // group(2) = 答案字母
     // 全角字母转半角（U+FF21-U+FF3A → A-Z, U+FF41-U+FF5A → a-z）
     final buf = StringBuffer();
     for (var i = 0; i < raw.length; i++) {
@@ -545,7 +611,7 @@ class HeuristicParser {
     if (_shortAnswerRE.hasMatch(title)) return CandidateType.shortAnswer;
 
     if (answer.isNotEmpty &&
-        RegExp(r'^\s*[✓✗×√×✔✘✅❌TF对错是非]\s*$').hasMatch(answer)) {
+        RegExp(r'^\s*[✓✗×√×✔✘✅❌TF对错是非正确错误]{1,2}\s*$').hasMatch(answer)) {
       return CandidateType.trueFalse;
     }
 

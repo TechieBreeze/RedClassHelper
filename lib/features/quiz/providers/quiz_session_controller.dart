@@ -223,6 +223,24 @@ class QuizSessionController extends _$QuizSessionController {
     ref.invalidate(wrongQuestionsProvider);
   }
 
+  /// Go back to the previous question.
+  ///
+  /// Called by: left-arrow key. Shows the previously answered question
+  /// with its original feedback.
+  void goToPrevious() {
+    _autoAdvanceTimer?.cancel();
+    _autoAdvanceTimer = null;
+
+    final current = state.value;
+    if (current == null) return;
+    if (current.currentIndex <= 0) return;
+
+    state = AsyncData(current.copyWith(
+      currentIndex: current.currentIndex - 1,
+      status: QuizStatus.showingFeedback,
+    ));
+  }
+
   /// D-03: Advance to the next question.
   ///
   /// Called by: auto-advance timer (2s), right-arrow key, or manual button.
@@ -244,9 +262,12 @@ class QuizSessionController extends _$QuizSessionController {
         totalQuestions: current.questions.length,
       ));
     } else {
+      final alreadyAnswered = nextIndex < current.answers.length;
       state = AsyncData(current.copyWith(
         currentIndex: nextIndex,
-        status: QuizStatus.active,
+        status: alreadyAnswered
+            ? QuizStatus.showingFeedback
+            : QuizStatus.active,
       ));
     }
   }

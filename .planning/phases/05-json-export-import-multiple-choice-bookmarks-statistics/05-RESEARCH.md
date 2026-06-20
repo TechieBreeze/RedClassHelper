@@ -606,22 +606,19 @@ class ModeBreakdown {
 | A4 | User JSON format uses simple integer keys ("1", "2", ... "159") for question numbering | JSON Format Conversion | If format uses non-numeric keys (e.g., "Q1", "1-1"), sorting logic would break. Verified from user's real 159-question sample: keys are plain integers. HIGH confidence. |
 | A5 | JSON export file size is manageable (<5MB for largest banks) for synchronous `writeAsString()` | JSON Export | If a bank has >10,000 questions with long stems, the JSON string could be >10MB. Synchronous write on the UI thread may cause a brief frame drop. Mitigation: run in compute isolate if profiling shows >16ms. LOW risk for typical university exam banks (50-200 questions). |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **JSON export file encoding and BOM**
-   - What we know: `dart:io File().writeAsString()` writes UTF-8 without BOM by default.
-   - What's unclear: Whether Windows Notepad (which some users may use to inspect JSON) handles UTF-8 without BOM correctly for CJK characters.
-   - Recommendation: Write UTF-8 with BOM on Windows (`utf8.encodeWithBom`), UTF-8 without BOM on Linux. Add a `Platform.isWindows` branch.
+1. **JSON export file encoding and BOM** — RESOLVED
+   - Decision: Use `dart:io File().writeAsString()` (UTF-8 without BOM) on all platforms. Rationale: Windows Notepad has handled UTF-8 without BOM correctly since Windows 10 version 1903 (May 2019). The app targets Windows 10+, so BOM is unnecessary. Adding `utf8.encodeWithBom` would add complexity with no benefit for the target platform baseline.
+   - Plan impact: Plans 05-01 and 05-02 use plain `writeAsString()` — no BOM branch needed.
 
-2. **Stats provider caching strategy**
-   - What we know: Stats data changes after every quiz answer. `@riverpod` auto-disposes when no listeners.
-   - What's unclear: Whether to `keepAlive: true` (stats screen is a secondary view, may not be frequently visited) or let it recompute on each visit.
-   - Recommendation: Do NOT use `keepAlive: true`. StatsScreen queries are fast (<10ms for typical data volume). Re-computing on each visit is acceptable and ensures freshness.
+2. **Stats provider caching strategy** — RESOLVED
+   - Decision: Do NOT use `keepAlive: true`. StatsScreen queries are fast (<10ms for typical data volume). Re-computing on each visit ensures freshness since stats change after every quiz answer.
+   - Plan impact: Implemented in Plan 05-05 — provider uses default auto-dispose behavior.
 
-3. **JSON import -- what to show on import summary screen**
-   - What we know: D-05 says "直接解析提交入库（不走预览编辑页）". The existing `ImportSummaryScreen` shows committed count, bank name, and skipped items.
-   - What's unclear: Whether to reuse the existing `ImportSummaryScreen` (at `/import/summary/:jobId`) or navigate directly to bank detail after JSON import.
-   - Recommendation: Reuse `ImportSummaryScreen` for consistency. JSON import creates a ParseJob and uses the same `ImportNotifier` state. The summary shows "N 题导入成功" with the bank name. No skipped items (all JSON questions pass validation or the entire import is rejected).
+3. **JSON import -- what to show on import summary screen** — RESOLVED
+   - Decision: Reuse existing `ImportSummaryScreen` for consistency. JSON import creates a `ParseJob` with `ImportPhase.done` and navigates to `/import/summary/:jobId`. The summary shows "N 题导入成功" with the bank name. No skipped items (all JSON questions pass validation or the entire import is rejected).
+   - Plan impact: Implemented in Plan 05-03 — `importJsonFile()` sets phase to `done` and navigates to summary screen.
 
 ## Environment Availability
 

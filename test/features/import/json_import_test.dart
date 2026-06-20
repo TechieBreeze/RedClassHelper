@@ -112,7 +112,7 @@ void main() {
     expect(questions.length, 1);
     expect(questions.first.bankId, banks.first.id);
     expect(questions.first.type, 'single');
-    expect(questions.first.stem, '1. Test question 1?');
+    expect(questions.first.stem, 'Test question 1?');
   });
 
   // ═════════════════════════════════════════════════════════════
@@ -491,11 +491,11 @@ void main() {
     addTearDown(container.dispose);
 
     final stems = [
-      '1. What is A?',
-      '2. What is B?',
-      '3. What is C?',
-      '4. What is D?',
-      '5. What is E?',
+      'What is A?',
+      'What is B?',
+      'What is C?',
+      'What is D?',
+      'What is E?',
     ];
     final jsonData = _validJson(
       bankName: 'Five Questions',

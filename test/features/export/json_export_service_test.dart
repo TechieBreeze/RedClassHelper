@@ -98,7 +98,7 @@ void main() {
       expect(questions.length, 1);
 
       final q1 = questions['1'] as Map<String, dynamic>;
-      expect(q1['question'], '1. 数据库系统的核心是_____。');
+      expect(q1['question'], '数据库系统的核心是_____。');
       expect(q1['key'], 'B');
       expect(q1['answer_type'], 0);
 
@@ -191,6 +191,155 @@ void main() {
       // Top-level keys should be exactly name, version, questions
       expect(result.keys.toSet(), {'name', 'version', 'questions'});
     });
+
+    // Test 5a: inline answer brackets preserved, only answer letters removed
+    test('strips answer letters from （X）but keeps brackets', () {
+      final bank = _testBank(name: 'Test');
+      final question = _singleChoiceQuestion(
+        stem: '会议是（D）',
+        options: ['A选项', 'B选项', 'C选项', 'D选项'],
+        correctKey: 'D',
+      );
+
+      final result = bankToUserJson(bank, [question]);
+      final q1 = (result['questions'] as Map<String, dynamic>)['1']
+          as Map<String, dynamic>;
+      expect(q1['question'], '会议是（）');
+    });
+
+    test('strips answer letters from （ABC）but keeps brackets', () {
+      final bank = _testBank(name: 'Test');
+      final question = _multiChoiceQuestion(
+        stem: '下列哪些是正确的（ABC）',
+        options: ['A选项', 'B选项', 'C选项', 'D选项'],
+        correctKeys: ['A', 'B', 'C'],
+      );
+
+      final result = bankToUserJson(bank, [question]);
+      final q1 = (result['questions'] as Map<String, dynamic>)['1']
+          as Map<String, dynamic>;
+      expect(q1['question'], '下列哪些是正确的（）');
+    });
+
+    test('preserves stem without answer marker unchanged', () {
+      final bank = _testBank(name: 'Test');
+      final question = _singleChoiceQuestion(
+        stem: '普通无标记的题干',
+        options: ['A', 'B', 'C', 'D'],
+        correctKey: 'B',
+      );
+
+      final result = bankToUserJson(bank, [question]);
+      final q1 = (result['questions'] as Map<String, dynamic>)['1']
+          as Map<String, dynamic>;
+      expect(q1['question'], '普通无标记的题干');
+    });
+
+    test('strips true/false （对）marker, keeps brackets', () {
+      final bank = _testBank(name: 'Test');
+      final question = Question(
+        id: 'q-tf',
+        bankId: 'bank-1',
+        type: 'single',
+        stem: '资本是能够带来剩余价值的价值。（对）',
+        optionsJson: jsonEncode([]),
+        correctJson: jsonEncode(['对']),
+        rawText: '资本是能够带来剩余价值的价值。（对）',
+        createdAt: DateTime.now(),
+      );
+
+      final result = bankToUserJson(bank, [question]);
+      final q1 = (result['questions'] as Map<String, dynamic>)['1']
+          as Map<String, dynamic>;
+      expect(q1['question'], '资本是能够带来剩余价值的价值。（）');
+    });
+
+    test('strips true/false （错）marker, keeps brackets', () {
+      final bank = _testBank(name: 'Test');
+      final question = Question(
+        id: 'q-tf2',
+        bankId: 'bank-1',
+        type: 'single',
+        stem: '运动和发展是唯物辩证法的总特征。（错）',
+        optionsJson: jsonEncode([]),
+        correctJson: jsonEncode(['错']),
+        rawText: '运动和发展是唯物辩证法的总特征。（错）',
+        createdAt: DateTime.now(),
+      );
+
+      final result = bankToUserJson(bank, [question]);
+      final q1 = (result['questions'] as Map<String, dynamic>)['1']
+          as Map<String, dynamic>;
+      expect(q1['question'], '运动和发展是唯物辩证法的总特征。（）');
+    });
+
+    test('true/false with A/B options exports as single-choice', () {
+      final bank = _testBank(name: '马原理题库');
+      final question = Question(
+        id: 'q-tf-export',
+        bankId: 'bank-1',
+        type: 'single',
+        stem: '资本是能够带来剩余价值的价值。',
+        optionsJson: jsonEncode([
+          {'key': 'A', 'text': '对'},
+          {'key': 'B', 'text': '错'},
+        ]),
+        correctJson: jsonEncode(['A']),
+        rawText: '资本是能够带来剩余价值的价值。',
+        createdAt: DateTime.now(),
+      );
+
+      final result = bankToUserJson(bank, [question]);
+      final q1 = (result['questions'] as Map<String, dynamic>)['1']
+          as Map<String, dynamic>;
+
+      expect(q1['answer_type'], 0);
+      expect(q1['key'], 'A');
+      expect(q1['answer'], {'A': '对', 'B': '错'});
+      expect(q1['question'], '资本是能够带来剩余价值的价值。');
+    });
+
+    test('true/false export round-trip preserves options and key', () async {
+      // Simulate the full import→DB→export→import cycle for a true/false question.
+      // Step 1: Export an already-normalized true/false question from DB
+      final bank = _testBank(name: '判断题库', id: 'tf-round');
+      final originalQ = Question(
+        id: 'tf-q',
+        bankId: 'tf-round',
+        type: 'single',
+        stem: '垄断价格是垄断组织规定的旨在保证获取最大限度利润的市场价格。',
+        optionsJson: jsonEncode([
+          {'key': 'A', 'text': '对'},
+          {'key': 'B', 'text': '错'},
+        ]),
+        correctJson: jsonEncode(['A']),
+        rawText: '垄断价格...（对）',
+        createdAt: DateTime.now(),
+      );
+
+      // Export
+      final exported = bankToUserJson(bank, [originalQ]);
+
+      // Step 2: Import back
+      final imported = userJsonToEntities(exported, 'new-bank');
+
+      // Verify bank name preserved
+      expect(imported.bankName, '判断题库');
+
+      // Verify question
+      expect(imported.questions.length, 1);
+      final q = imported.questions.first;
+      expect(q.type.value, 'single');
+      expect(q.stem.value, '垄断价格是垄断组织规定的旨在保证获取最大限度利润的市场价格。');
+
+      final options = jsonDecode(q.optionsJson.value) as List;
+      expect(options.length, 2);
+      expect(options[0], {'key': 'A', 'text': '对'});
+      expect(options[1], {'key': 'B', 'text': '错'});
+
+      final correct = jsonDecode(q.correctJson.value) as List;
+      expect(correct, ['A']);
+    });
   });
 
   // ═════════════════════════════════════════════════════════════
@@ -226,7 +375,7 @@ void main() {
       final q = result.questions.first;
       expect(q.type.present, isTrue);
       expect(q.type.value, 'single');
-      expect(q.stem.value, '1. What is 2+2?');
+      expect(q.stem.value, 'What is 2+2?');
       expect(q.bankId.value, 'bank-id-1');
 
       // Verify optionsJson was correctly converted
@@ -381,11 +530,11 @@ void main() {
       expect(imported.bankName, 'Round Trip Bank');
       expect(imported.questions.length, 3);
 
-      // Verify stems preserved
+      // Verify stems preserved (no number prefix — numbering is in the map keys)
       final stems = imported.questions.map((q) => q.stem.value).toList();
-      expect(stems[0], startsWith('1.'));
-      expect(stems[1], startsWith('2.'));
-      expect(stems[2], startsWith('3.'));
+      expect(stems[0], 'What is the capital of France?');
+      expect(stems[1], 'Select prime numbers.');
+      expect(stems[2], 'What is 1+1?');
 
       // Verify single-choice question
       final q1 = imported.questions[0];

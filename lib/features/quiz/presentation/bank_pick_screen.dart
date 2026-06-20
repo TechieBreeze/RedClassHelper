@@ -150,42 +150,40 @@ class _BankCard extends StatelessWidget {
     return Opacity(
       opacity: item.isEmpty ? 0.4 : 1.0,
       child: Card(
-        child: InkWell(
-          onTap: item.isEmpty ? null : () => context.push('/quiz/${item.bank.id}/$mode'),
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                const Icon(Icons.library_books_outlined, size: 28),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(item.bank.name, style: textTheme.titleMedium),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.isEmpty
-                            ? 'N/A'
-                            : '${item.totalQuestions} 题    错题: ${item.activeWrongCount}',
-                        style: textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(Icons.library_books_outlined, size: 28),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.bank.name, style: textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.isEmpty
+                          ? 'N/A'
+                          : '${item.totalQuestions} 题    错题: ${item.activeWrongCount}',
+                      style: textTheme.bodyMedium,
+                    ),
+                  ],
                 ),
-                if (item.isEmpty) ...[
-                  const SizedBox(width: 16),
-                  const Icon(Icons.block, color: Colors.grey),
-                ] else ...[
-                  const SizedBox(width: 12),
-                  FilledButton.tonal(
-                    onPressed: () => context.push('/quiz/${item.bank.id}/$mode'),
-                    child: const Text('开始答题'),
-                  ),
-                ],
+              ),
+              if (item.isEmpty) ...[
+                const SizedBox(width: 16),
+                const Icon(Icons.block, color: Colors.grey),
+              ] else ...[
+                const SizedBox(width: 12),
+                FilledButton.tonal(
+                  onPressed: () => context.go('/quiz/${item.bank.id}/$mode'),
+                  child: const Text('开始答题'),
+                ),
               ],
-            ),
+            ],
           ),
         ),
       ),

@@ -4,6 +4,32 @@ import 'package:uuid/uuid.dart';
 
 import 'package:redclass/data/db/database.dart';
 
+/// Matches inline answer markers like （D）, (ABC), (A B), （ A ）etc.
+/// Captures opening and closing brackets separately so only the answer
+/// letters inside are removed, preserving the brackets themselves.
+final RegExp _inlineAnswerCleanRE = RegExp(
+  r'([（(])\s*[A-Ha-h\s]{1,24}\s*([）)])',
+);
+
+/// Matches inline true/false markers like （对）（错）（T）（F）（✓）（×）.
+/// Captures opening and closing brackets separately so only the answer
+/// text inside is removed, preserving the brackets themselves.
+final RegExp _trueFalseCleanRE = RegExp(
+  r'([（(])\s*[✓✗×√×✔✘✅❌TFtf对错是非]{1,2}\s*([）)])',
+);
+
+/// Strips inline answer letters and true/false markers from brackets in a
+/// question stem, preserving the brackets themselves.
+///  "会议是（D）" → "会议是（）"
+///  "资本是...价值。（对）" → "资本是...价值。（）"
+String _stripInlineAnswer(String stem) {
+  stem = stem.replaceAllMapped(_inlineAnswerCleanRE,
+      (m) => '${m.group(1)}${m.group(2)}');
+  stem = stem.replaceAllMapped(_trueFalseCleanRE,
+      (m) => '${m.group(1)}${m.group(2)}');
+  return stem;
+}
+
 /// Converts a bank and its questions to the user's established JSON format.
 ///
 /// Output structure (D-01):
@@ -17,8 +43,10 @@ import 'package:redclass/data/db/database.dart';
 /// }
 /// ```
 ///
-/// Questions are numbered 1-based in the given [questions] list order.
+/// Questions are numbered 1-based by the map keys; the stem itself carries
+/// no number prefix.
 /// Does NOT include timestamps, UUIDs, or rawText (D-02).
+/// Inline answer markers like （D）are stripped from the question stem.
 Map<String, dynamic> bankToUserJson(
   QuestionBank bank,
   List<Question> questions,
@@ -39,7 +67,7 @@ Map<String, dynamic> bankToUserJson(
     final keyStr = correctList.join();
 
     questionsMap['${i + 1}'] = {
-      'question': '${i + 1}. ${q.stem}',
+      'question': _stripInlineAnswer(q.stem),
       'answer': answerMap,
       'key': keyStr,
       'answer_type': q.type == 'multiple' ? 1 : 0,
@@ -140,14 +168,17 @@ Map<String, dynamic> bankToUserJson(
     final correctList = rawKey.split('').toList();
 
     final questionText = qData['question'];
+    // 去掉旧格式可能残留的 "1. " 编号前缀
+    final stem = (questionText is String ? questionText : '$questionText')
+        .replaceFirst(RegExp(r'^\d+[.、．]\s*'), '');
     companions.add(QuestionsCompanion.insert(
       id: const Uuid().v4(),
       bankId: bankId,
       type: answerType == 1 ? 'multiple' : 'single',
-      stem: questionText is String ? questionText : '$questionText',
+      stem: stem,
       optionsJson: jsonEncode(optionsList),
       correctJson: jsonEncode(correctList),
-      rawText: questionText is String ? questionText : '$questionText',
+      rawText: stem,
       createdAt: DateTime.now(),
     ));
   }

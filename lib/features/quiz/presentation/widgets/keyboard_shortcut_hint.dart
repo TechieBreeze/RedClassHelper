@@ -26,7 +26,7 @@ class KeyboardShortcutHint extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Text(
-        '快捷键: A B C D 选择 · 空格 提交 · → 下一题',
+        '快捷键: A~H 选择 · 空格 提交 · ← 上一题 · → 下一题',
         textAlign: TextAlign.center,
         style: textTheme.bodyMedium?.copyWith(
           color: colorScheme.onSurface.withOpacity(0.5),

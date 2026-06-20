@@ -165,7 +165,7 @@ class BankDetailScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     FilledButton.tonalIcon(
-                      onPressed: () => context.push('/quiz/pick/random'),
+                      onPressed: () => context.go('/quiz/$bankId/random'),
                       icon: const Icon(Icons.play_arrow),
                       label: const Text('开始复习'),
                     ),

@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:redclass/data/db/database.dart';
+
 import '../models/quiz_session_state.dart';
 import '../models/quiz_settings.dart';
 import '../models/review_mode.dart';
@@ -88,6 +90,18 @@ class QuizScreen extends ConsumerWidget {
 
   /// Whether this is a desktop platform (Windows or Linux).
   bool get _isDesktop => !kIsWeb && (Platform.isWindows || Platform.isLinux);
+
+  /// Map from option letter to keyboard key, up to 8 options (A-H).
+  static const _letterToKey = <String, LogicalKeyboardKey>{
+    'A': LogicalKeyboardKey.keyA,
+    'B': LogicalKeyboardKey.keyB,
+    'C': LogicalKeyboardKey.keyC,
+    'D': LogicalKeyboardKey.keyD,
+    'E': LogicalKeyboardKey.keyE,
+    'F': LogicalKeyboardKey.keyF,
+    'G': LogicalKeyboardKey.keyG,
+    'H': LogicalKeyboardKey.keyH,
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -242,17 +256,33 @@ class QuizScreen extends ConsumerWidget {
       body: Focus(
         autofocus: true,
         onKeyEvent: (node, event) {
-          // Suppress Windows system beep for unhandled keys.
-          // CallbackShortcuts only handles A/B/C/D/Space/ArrowRight.
-          // Any other key event that falls through would trigger the beep.
-          if (event is KeyDownEvent || event is KeyRepeatEvent) {
+          if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+            return KeyEventResult.ignored;
+          }
+          final isMultiChoice = correctKeys.length > 1;
+          for (final opt in options) {
+            final letter = opt['key'] as String;
+            final key = _letterToKey[letter];
+            if (key != null && event.logicalKey == key) {
+              _onOptionTap(ref, letter, settings, hasSubmitted, isMultiChoice);
+              return KeyEventResult.handled;
+            }
+          }
+          if (event.logicalKey == LogicalKeyboardKey.space && !hasSubmitted) {
+            _onSubmitConfirm(ref);
             return KeyEventResult.handled;
           }
-          return KeyEventResult.ignored;
+          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+            _onPrevious(ref);
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowRight && hasSubmitted) {
+            _onAdvance(ref);
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.handled;
         },
-        child: CallbackShortcuts(
-          bindings: _buildKeyBindings(ref, settings, hasSubmitted, correctKeys),
-          child: _buildQuizBody(
+        child: _buildQuizBody(
             context,
             ref,
             _stripInlineAnswer(question.stem),
@@ -266,38 +296,7 @@ class QuizScreen extends ConsumerWidget {
             session,
           ),
         ),
-      ),
     );
-  }
-
-  /// Build keyboard shortcut bindings for desktop (D-06).
-  Map<ShortcutActivator, VoidCallback> _buildKeyBindings(
-    WidgetRef ref,
-    QuizSettings settings,
-    bool hasSubmitted,
-    List<String> correctKeys,
-  ) {
-    final isMultiChoice = correctKeys.length > 1;
-    return <ShortcutActivator, VoidCallback>{
-      const SingleActivator(LogicalKeyboardKey.keyA):
-          () => _onOptionTap(ref, 'A', settings, hasSubmitted, isMultiChoice),
-      const SingleActivator(LogicalKeyboardKey.keyB):
-          () => _onOptionTap(ref, 'B', settings, hasSubmitted, isMultiChoice),
-      const SingleActivator(LogicalKeyboardKey.keyC):
-          () => _onOptionTap(ref, 'C', settings, hasSubmitted, isMultiChoice),
-      const SingleActivator(LogicalKeyboardKey.keyD):
-          () => _onOptionTap(ref, 'D', settings, hasSubmitted, isMultiChoice),
-      const SingleActivator(LogicalKeyboardKey.space): () {
-        if (settings.submitMode == QuizSubmitMode.confirm && !hasSubmitted) {
-          _onSubmitConfirm(ref);
-        }
-      },
-      const SingleActivator(LogicalKeyboardKey.arrowRight): () {
-        if (hasSubmitted && settings.advanceMode == QuizAdvanceMode.manual) {
-          _onAdvance(ref);
-        }
-      },
-    };
   }
 
   /// Build the main quiz body with LayoutBuilder + ConstrainedBox pattern.
@@ -347,7 +346,7 @@ class QuizScreen extends ConsumerWidget {
                           // Type badge
                           Row(
                             children: [
-                              _buildTypeChip(context, session.currentQuestion!.type),
+                              _buildTypeChip(context, session.currentQuestion!),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -370,8 +369,9 @@ class QuizScreen extends ConsumerWidget {
                     final state = computeOptionState(
                       optionKey: key,
                       correctKeys: correctKeys,
-                      selectedKeys: hasSubmitted
-                          ? session.answers.last.givenAnswer.toSet()
+                      selectedKeys: hasSubmitted &&
+                              session.currentIndex < session.answers.length
+                          ? session.answers[session.currentIndex].givenAnswer.toSet()
                           : selectedKeys,
                       hasSubmitted: hasSubmitted,
                     );
@@ -404,6 +404,7 @@ class QuizScreen extends ConsumerWidget {
                   if (hasSubmitted) ...[
                     const SizedBox(height: 8),
                     WrongQuestionChip(
+                      key: ValueKey(currentNumber),
                       show: _shouldShowWrongChip(session),
                     ),
                   ],
@@ -490,6 +491,13 @@ class QuizScreen extends ConsumerWidget {
     });
   }
 
+  /// Go back to the previous question (left-arrow shortcut).
+  void _onPrevious(WidgetRef ref) {
+    ref
+        .read(quizSessionControllerProvider(bankId, mode).notifier)
+        .goToPrevious();
+  }
+
   /// Advance to the next question (D-03, D-06).
   void _onAdvance(WidgetRef ref) {
     ref
@@ -498,11 +506,14 @@ class QuizScreen extends ConsumerWidget {
   }
 
   /// Build a small chip showing the question type (单选题/多选题/判断题).
-  Widget _buildTypeChip(BuildContext context, String dbType) {
-    final (label, icon) = switch (dbType) {
-      'single' => ('单选题', Icons.radio_button_checked),
+  Widget _buildTypeChip(BuildContext context, Question question) {
+    final isTrueFalse = _isTrueFalseQuestion(question);
+    final (label, icon) = switch (question.type) {
+      'single' => isTrueFalse
+          ? ('判断题', Icons.thumbs_up_down)
+          : ('单选题', Icons.radio_button_checked),
       'multiple' => ('多选题', Icons.checklist),
-      _ => (dbType, Icons.help_outline),
+      _ => (question.type, Icons.help_outline),
     };
     return Chip(
       avatar: Icon(icon, size: 14),
@@ -513,14 +524,26 @@ class QuizScreen extends ConsumerWidget {
     );
   }
 
+  /// Detect true/false questions by options content: exactly A=对, B=错.
+  bool _isTrueFalseQuestion(Question question) {
+    try {
+      final options = jsonDecode(question.optionsJson) as List;
+      if (options.length != 2) return false;
+      final texts = options.map((o) => (o as Map)['text'] as String).toSet();
+      return texts.contains('对') && texts.contains('错');
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Determine whether to show the wrong-question chip (D-15).
   ///
   /// True when the last answer was wrong AND the mode writes to the ledger
   /// (not spotcheck mode).
   bool _shouldShowWrongChip(QuizSessionState session) {
-    if (session.answers.isEmpty) return false;
-    final lastAnswer = session.answers.last;
-    // Spotcheck mode does not write to the ledger (D-17)
-    return !lastAnswer.isCorrect && session.mode != ReviewMode.spotcheck;
+    final idx = session.currentIndex;
+    if (idx >= session.answers.length) return false;
+    final answer = session.answers[idx];
+    return !answer.isCorrect && session.mode != ReviewMode.spotcheck;
   }
 }

@@ -236,13 +236,22 @@ class ImportNotifier extends _$ImportNotifier {
       // 逐个插入 Question
       for (var i = 0; i < confirmedCandidates.length; i++) {
         final c = confirmedCandidates[i];
+        late final String optionsJson;
+        late final String correctJson;
+        if (c.candidateType == CandidateType.trueFalse) {
+          optionsJson = _tfOptionsJson;
+          correctJson = jsonEncode([_trueFalseToKey(c.answer)]);
+        } else {
+          optionsJson = _optionsToJson(c.options);
+          correctJson = _answerToJson(c.answer);
+        }
         final question = QuestionsCompanion.insert(
           id: _uuid.v4(),
           bankId: bankId,
           type: _toDbType(c.candidateType),
           stem: c.title.isNotEmpty ? c.title : c.rawText,
-          optionsJson: _optionsToJson(c.options),
-          correctJson: _answerToJson(c.answer),
+          optionsJson: optionsJson,
+          correctJson: correctJson,
           rawText: c.rawText,
           createdAt: now,
         );
@@ -677,4 +686,14 @@ class ImportNotifier extends _$ImportNotifier {
         .split('');
     return jsonEncode(chars);
   }
+
+  /// 判断题答案 → A/B: 对/是/正确/T/True/✓ → A; 错/非/错误/F/False/× → B
+  String _trueFalseToKey(String answer) {
+    final a = answer.trim();
+    if (RegExp(r'^[✓✔✅Tt对是正]|^[Tt]rue$|^正确$').hasMatch(a)) return 'A';
+    return 'B';
+  }
+
+  /// 判断题标准选项 JSON
+  static const _tfOptionsJson = '[{"key":"A","text":"对"},{"key":"B","text":"错"}]';
 }

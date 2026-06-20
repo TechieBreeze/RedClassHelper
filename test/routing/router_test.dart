@@ -24,7 +24,7 @@ void main() {
         containsAll(<String>[
           '/',
           '/bank/:id',
-          '/quiz/:bankId/:mode',
+          '/quiz',
           '/stats',
           '/bookmarks',
           '/import',

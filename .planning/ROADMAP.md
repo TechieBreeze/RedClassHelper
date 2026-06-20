@@ -114,12 +114,12 @@ Plans:
   7. Home screen shows real bank list (not placeholder); tapping a bank card opens bank detail page
 **Plans**: 6 plans
 Plans:
-- [ ] 05-01-PLAN.md -- JSON export service (DB <-> user format bidirectional converter) + unit tests
+- [x] 05-01-PLAN.md -- JSON export service (DB <-> user format bidirectional converter) + unit tests
 - [ ] 05-02-PLAN.md -- BankDetailScreen (bank info card + export button + review entry) + widget tests
 - [ ] 05-03-PLAN.md -- JSON import fast-track (ImportNotifier.importJsonFile) + unit tests
-- [ ] 05-04-PLAN.md -- Multi-choice grading test verification (extend quiz_session_controller_test)
-- [ ] 05-05-PLAN.md -- Statistics provider + StatsScreen (expandable per-bank cards + per-mode breakdown) + tests
-- [ ] 05-06-PLAN.md -- Home screen bank list (replace placeholder with real BankCard widgets) + widget tests
+- [x] 05-04-PLAN.md -- Multi-choice grading test verification (extend quiz_session_controller_test)
+- [x] 05-05-PLAN.md -- Statistics provider + StatsScreen (expandable per-bank cards + per-mode breakdown) + tests
+- [x] 05-06-PLAN.md -- Home screen bank list (replace placeholder with real BankCard widgets) + widget tests
 
 **Research flag**: no (JSON spec design is internal; round-trip test pattern is standard)
 **Pitfalls addressed**: PITFALL 5 (answer stringification — multi-choice stored as canonical set from day 1)
@@ -164,7 +164,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. Desktop File Import Pipeline | 4/4 | Complete | ✅ R2 verified: 66/66 tests, 0e0w |
 | 3. Desktop LLM Integration | 8/8 | Complete | 2026-06-19 |
 | 4. Quiz Core & Wrong-Question Ledger | 5/5 | Complete | ✅ 2026-06-20 |
-| 5. JSON Export/Import + Multiple-Choice + Statistics | 0/6 | Context gathered | - |
+| 5. JSON Export/Import + Multiple-Choice + Statistics | 0/6 | Planned | - |
 | 6. UX Polish & Diagnostics | 0/5 | Not started | - |
 | 7. Desktop Packaging & Verification | 0/5 | Not started | - |
 

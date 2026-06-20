@@ -80,30 +80,24 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
-        if (!didPop) {
-          final confirmed = await _showExitDialog();
-          if (confirmed == true && context.mounted) {
-            ref.read(importNotifierProvider.notifier).reset();
-            context.go('/');
-          }
-        }
+        if (!didPop) await _onDiscard(context);
       },
       child: Scaffold(
         appBar: AppBar(
           title: Text(
             '审核结果（${confirmedIndices.length}/${candidates.length}）',
           ),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            tooltip: '放弃并返回',
+            onPressed: () => _onDiscard(context),
+          ),
           actions: [
-            if (confirmedIndices.isNotEmpty)
-              FilledButton(
-                onPressed: () => _onSave(context),
-                child: const Text('保存'),
-              ),
-            if (confirmedIndices.isEmpty)
-              FilledButton(
-                onPressed: null,
-                child: const Text('保存'),
-              ),
+            FilledButton(
+              onPressed:
+                  confirmedIndices.isNotEmpty ? () => _onSave(context) : null,
+              child: const Text('保存'),
+            ),
             const SizedBox(width: 8),
           ],
         ),
@@ -327,6 +321,14 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
           .toList()) {
         notifier.toggleCandidate(i);
       }
+    }
+  }
+
+  Future<void> _onDiscard(BuildContext context) async {
+    final confirmed = await _showExitDialog();
+    if (confirmed == true && context.mounted) {
+      ref.read(importNotifierProvider.notifier).reset();
+      context.go('/');
     }
   }
 

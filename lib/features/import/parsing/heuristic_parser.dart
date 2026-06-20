@@ -14,9 +14,16 @@ class HeuristicParser {
     r'^\s*[（(]?\s*(\d{1,4})\s*[）).、\s]',
   );
 
-  /// 选项标签：行首 A. / A、/ A． 后跟选项文本
+  /// 选项标签：行首 A. / A、/ A． / Ａ、 后跟选项文本
+  /// 支持半角 [A-H] 和全角 [Ａ-Ｈ] 字母
   static final RegExp _choiceLabelRE = RegExp(
-    r'^\s*([A-H])\s*[.、．]\s*(.+)$',
+    r'^\s*([A-HＡ-Ｈ])\s*[.、．]\s*(.+)$',
+  );
+
+  /// 选项标签（空格分隔）：行首 "A 选项文本"（无点号），需上下文验证
+  /// 支持半角 [A-H] 和全角 [Ａ-Ｈ] 字母
+  static final RegExp _choiceLabelSpaceRE = RegExp(
+    r'^\s*([A-HＡ-Ｈ])\s+(.+)$',
   );
 
   /// 答案行：答案：A / 参考答案：ABC 等
@@ -47,9 +54,17 @@ class HeuristicParser {
     r'[（(]\s*([A-Ha-hＡ-Ｈａ-ｈ\s]{1,24})\s*[）)]',
   );
 
-  /// 一行内多个选项：A.xxx  B.xxx  C.xxx  D.xxx
+  /// 一行内多个选项：A.xxx  B.xxx  C.xxx  D.xxx / Ａ、Ｂ、Ｃ、Ｄ、
+  /// 支持半角 [A-H] 和全角 [Ａ-Ｈ] 字母
   static final RegExp _inlineChoiceRE = RegExp(
-    r'([A-H])\s*[.、．]\s*(.+?)(?=\s*[A-H]\s*[.、．]|$)',
+    r'([A-HＡ-Ｈ])\s*[.、．]\s*(.+?)(?=\s*[A-HＡ-Ｈ]\s*[.、．]|$)',
+  );
+
+  /// 一行内多个空格分隔选项：A xxx  B xxx  C xxx  D xxx（无点号）
+  /// 仅当行中有 ≥2 个匹配时采信，避免把普通文本当选项
+  /// 支持半角 [A-H] 和全角 [Ａ-Ｈ] 字母
+  static final RegExp _inlineChoiceSpaceRE = RegExp(
+    r'(?<=\s|^)([A-HＡ-Ｈ])\s+(.+?)(?=\s+[A-HＡ-Ｈ]\s+|$)',
   );
 
   // ── 解析入口 ──
@@ -135,7 +150,9 @@ class HeuristicParser {
       if (trimmed.isEmpty) {
         tags.add(_LineTag.empty);
       } else if (_choiceLabelRE.hasMatch(trimmed) ||
-                 _inlineChoiceRE.hasMatch(trimmed)) {
+                 _inlineChoiceRE.hasMatch(trimmed) ||
+                 _choiceLabelSpaceRE.hasMatch(trimmed) ||
+                 _inlineChoiceSpaceRE.allMatches(trimmed).length >= 2) {
         tags.add(_LineTag.option);
       } else if (_answerLineRE.hasMatch(trimmed)) {
         tags.add(_LineTag.answer);
@@ -305,16 +322,29 @@ class HeuristicParser {
 
   String _extractTitle(List<String> lines, Match numberMatch) {
     final firstLine = lines[0].trim();
-    final afterNumber = firstLine.substring(numberMatch.end).trim();
+    var afterNumber = firstLine.substring(numberMatch.end).trim();
     final titleLines = <String>[];
+
+    // 同行的空格分隔选项：从题干中切掉
+    // e.g. "...以（ D ）为主线 A 马克思主义理论  B ..." → title ends before "A 马克思"
+    final firstInlineSpace = _inlineChoiceSpaceRE.allMatches(afterNumber).toList();
+    if (firstInlineSpace.length >= 2) {
+      // 以第一个空格分隔选项标签为界截断
+      final cutAt = firstInlineSpace.first.start;
+      afterNumber = afterNumber.substring(0, cutAt).trim();
+    }
+
     if (afterNumber.isNotEmpty) titleLines.add(afterNumber);
 
     for (var i = 1; i < lines.length; i++) {
       final line = lines[i].trim();
       if (line.isEmpty) continue;
       if (_choiceLabelRE.hasMatch(line)) break;
+      if (_choiceLabelSpaceRE.hasMatch(line)) break;
       if (_answerLineRE.hasMatch(line)) break;
       if (_explanationLineRE.hasMatch(line)) break;
+      // 空格分隔多选行：A xxx  B xxx  C xxx
+      if (_inlineChoiceSpaceRE.allMatches(line).length >= 2) break;
       titleLines.add(line);
     }
     return titleLines.join(' ').trim();
@@ -323,6 +353,17 @@ class HeuristicParser {
   // ── 选项提取（共用） ──
 
   List<String> _extractOptions(List<String> lines) {
+    // 先尝试标准格式（点号分隔）
+    final result = _extractStandardOptions(lines);
+    if (result.isNotEmpty) return result;
+
+    // 回退：空格分隔格式（A 选项文本  B 选项文本）
+    // 安全约束：至少 2 个匹配才采信
+    return _extractSpaceOptions(lines);
+  }
+
+  /// 标准格式（A. / A、/ A．）：逐行提取，支持单行多选和多行延续
+  List<String> _extractStandardOptions(List<String> lines) {
     final options = <String>[];
     for (final rawLine in lines) {
       final line = rawLine.trim();
@@ -332,7 +373,7 @@ class HeuristicParser {
       final inlineMatches = _inlineChoiceRE.allMatches(line).toList();
       if (inlineMatches.length >= 2) {
         for (final m in inlineMatches) {
-          final label = m.group(1) ?? '';
+          final label = _normalizeOptionLabel(m.group(1) ?? '');
           final text = (m.group(2) ?? '').trim();
           options.add('$label. $text');
         }
@@ -342,23 +383,94 @@ class HeuristicParser {
       // 标准单选项格式：A.xxx
       final m = _choiceLabelRE.firstMatch(line);
       if (m != null) {
-        final label = m.group(1) ?? '';
+        final label = _normalizeOptionLabel(m.group(1) ?? '');
         final text = (m.group(2) ?? '').trim();
         options.add('$label. $text');
         continue;
       }
 
-      // 选项跨行延续（紧跟前一行非选项标签的行，且不是答案/解析/标题）
+      // 选项跨行延续
       if (options.isNotEmpty &&
           !_answerLineRE.hasMatch(line) &&
           !_explanationLineRE.hasMatch(line) &&
           !RegExp(r'^\d').hasMatch(line)) {
-        // Append to last option
         options[options.length - 1] =
             '${options[options.length - 1]} $line';
       }
     }
     return options;
+  }
+
+  /// 空格分隔格式（A 选项文本  B 选项文本）：无点号，仅空格分隔
+  ///
+  /// 安全约束：块中必须出现 ≥2 个空格分隔的选项标签才采信，
+  /// 避免将普通文本中出现的 "A xxx" 误识别为选项。
+  List<String> _extractSpaceOptions(List<String> lines) {
+    // 先全局扫描，统计空格分隔的选项标签数量
+    var totalLabels = 0;
+    for (final rawLine in lines) {
+      final line = rawLine.trim();
+      if (line.isEmpty || _answerLineRE.hasMatch(line) ||
+          _explanationLineRE.hasMatch(line)) continue;
+      final matches = _inlineChoiceSpaceRE.allMatches(line).toList();
+      if (matches.length >= 2) {
+        totalLabels += matches.length;
+      } else {
+        final single = _choiceLabelSpaceRE.firstMatch(line);
+        if (single != null) totalLabels++;
+      }
+    }
+    // 安全约束：至少 2 个标签才采信
+    if (totalLabels < 2) return [];
+
+    final options = <String>[];
+    for (final rawLine in lines) {
+      final line = rawLine.trim();
+      if (line.isEmpty) continue;
+
+      // 跳过答案行和解析行
+      if (_answerLineRE.hasMatch(line) || _explanationLineRE.hasMatch(line)) {
+        continue;
+      }
+
+      // 单行多选：A xxx  B xxx  C xxx  D xxx（≥2 个匹配才采信）
+      final inlineMatches = _inlineChoiceSpaceRE.allMatches(line).toList();
+      if (inlineMatches.length >= 2) {
+        for (final m in inlineMatches) {
+          final label = _normalizeOptionLabel(m.group(1) ?? '');
+          final text = (m.group(2) ?? '').trim();
+          options.add('$label. $text');
+        }
+        continue;
+      }
+
+      // 单行单选：A xxx
+      final m = _choiceLabelSpaceRE.firstMatch(line);
+      if (m != null) {
+        final label = _normalizeOptionLabel(m.group(1) ?? '');
+        final text = (m.group(2) ?? '').trim();
+        options.add('$label. $text');
+        continue;
+      }
+
+      // 选项跨行延续
+      if (options.isNotEmpty &&
+          !RegExp(r'^\d').hasMatch(line)) {
+        options[options.length - 1] =
+            '${options[options.length - 1]} $line';
+      }
+    }
+    return options;
+  }
+
+  /// 规范化选项标签：全角字母（Ａ-Ｈ）→ 半角字母（A-H）
+  String _normalizeOptionLabel(String label) {
+    if (label.isEmpty) return label;
+    final ch = label.codeUnitAt(0);
+    if (ch >= 0xFF21 && ch <= 0xFF28) {
+      return String.fromCharCode('A'.codeUnitAt(0) + ch - 0xFF21);
+    }
+    return label;
   }
 
   // ── 答案提取（模式 A） ──

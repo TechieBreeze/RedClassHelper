@@ -36,9 +36,13 @@ final importNotifierProvider = importProvider;
 class ImportNotifier extends _$ImportNotifier {
   final HeuristicParser _parser = HeuristicParser();
   final Uuid _uuid = const Uuid();
+  bool _mounted = true;
 
   @override
-  ImportState build() => const ImportState();
+  ImportState build() {
+    ref.onDispose(() => _mounted = false);
+    return const ImportState();
+  }
 
   /// 阶段 0 → 1: 选择文件
   void pickFiles(List<ImportFile> files) {
@@ -67,7 +71,7 @@ class ImportNotifier extends _$ImportNotifier {
 
     final resolver = await ref.read(pathResolverProvider.future);
     // Guard: provider may have been disposed during the await.
-    if (state.phase != ImportPhase.extracting) return;
+    if (!_mounted) return;
 
     final allText = StringBuffer();
     final totalFiles = state.files.length;
@@ -91,7 +95,7 @@ class ImportNotifier extends _$ImportNotifier {
         allText.writeln(); // 文件分隔
 
         // Guard: provider may have been disposed during extractText await.
-        if (state.phase != ImportPhase.extracting) return;
+        if (!_mounted) return;
       } on PandocNotFoundException catch (e) {
         state = state.copyWith(
           phase: ImportPhase.idle,
@@ -316,7 +320,7 @@ class ImportNotifier extends _$ImportNotifier {
     final sources = <int, ParseSource>{};
     final db = await ref.read(appDatabaseProvider.future);
     // Guard: provider may have been disposed during the await.
-    if (state.phase != ImportPhase.llmParsing) return;
+    if (!_mounted) return;
 
     for (var i = 0; i < blocks.length; i++) {
       state = state.copyWith(

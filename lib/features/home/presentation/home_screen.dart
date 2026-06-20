@@ -5,7 +5,10 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../quiz/providers/wrong_questions_provider.dart';
 
 /// 主页 (UI-SPEC §Layout — Home Screen)
 /// Phase 2 状态: 桌面端 FAB + 启用按钮；Android 端禁用
@@ -71,28 +74,43 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 24), // lg (section gap)
                     const _SectionHeader(title: '复习模式'),
                     const SizedBox(height: 16), // md
-                    const _ModeTile(
-                      title: '乱序抽题',
-                      subtitle: '随机抽题，立刻判分',
-                      icon: Icons.shuffle,
-                      mode: 'random',
-                      enabled: true,
-                    ),
-                    const SizedBox(height: 12), // sm (between tiles)
-                    const _ModeTile(
-                      title: '错题复习',
-                      subtitle: '从错题本复习，答对即掌握',
-                      icon: Icons.replay_outlined,
-                      mode: 'review',
-                      enabled: true,
-                    ),
-                    const SizedBox(height: 12),
-                    const _ModeTile(
-                      title: '错题抽查',
-                      subtitle: '从错题本随机抽 10 题自测',
-                      icon: Icons.bolt_outlined,
-                      mode: 'spotcheck',
-                      enabled: true,
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final wrongCountAsync =
+                            ref.watch(wrongQuestionsProvider);
+                        final wrongCount = wrongCountAsync.value ?? 0;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const _ModeTile(
+                              title: '乱序抽题',
+                              subtitle: '随机抽题，立刻判分',
+                              icon: Icons.shuffle,
+                              mode: 'random',
+                              enabled: true,
+                            ),
+                            const SizedBox(height: 12),
+                            _ModeTile(
+                              title: '错题复习',
+                              subtitle: '从错题本复习，答对即掌握',
+                              icon: Icons.replay_outlined,
+                              mode: 'review',
+                              enabled: true,
+                              badgeCount: wrongCount,
+                            ),
+                            const SizedBox(height: 12),
+                            _ModeTile(
+                              title: '错题抽查',
+                              subtitle: '从错题本随机抽 10 题自测',
+                              icon: Icons.bolt_outlined,
+                              mode: 'spotcheck',
+                              enabled: true,
+                              badgeCount: wrongCount,
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 24), // lg
                     const _SectionHeader(title: '数据统计'),
@@ -176,6 +194,7 @@ class _ModeTile extends StatelessWidget {
     required this.icon,
     required this.mode,
     this.enabled = false,
+    this.badgeCount,
   });
 
   final String title;
@@ -183,43 +202,78 @@ class _ModeTile extends StatelessWidget {
   final IconData icon;
   final String mode;
   final bool enabled;
+  final int? badgeCount;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final showBadge = badgeCount != null && badgeCount! > 0;
+
     return Card(
       child: InkWell(
         onTap: () => context.go('/quiz/pick/$mode'),
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // md x md
-          child: Row(
-            children: [
-              Icon(icon, size: 28),
-              const SizedBox(width: 16), // md
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              child: Row(
+                children: [
+                  Icon(icon, size: 28),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4), // xs
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(width: 16),
+                  FilledButton.tonal(
+                    onPressed:
+                        enabled ? () => context.go('/quiz/pick/$mode') : null,
+                    child: const Text('开始'),
+                  ),
+                ],
+              ),
+            ),
+            if (showBadge)
+              Positioned(
+                top: -8,
+                right: -8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.error,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    badgeCount.toString(),
+                    style: TextStyle(
+                      color: colorScheme.onError,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
-                  ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 16),
-              FilledButton.tonal(
-                onPressed: enabled ? () => context.go('/quiz/pick/$mode') : null,
-                child: const Text('开始'),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );

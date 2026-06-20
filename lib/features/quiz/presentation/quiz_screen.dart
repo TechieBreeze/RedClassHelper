@@ -172,7 +172,13 @@ class QuizScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               OutlinedButton(
-                onPressed: () => context.pop(),
+                onPressed: () {
+                  if (Navigator.of(context).canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/');
+                  }
+                },
                 child: const Text('返回'),
               ),
             ],
@@ -224,7 +230,13 @@ class QuizScreen extends ConsumerWidget {
         title: Text('$modeName · $bankName'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              context.pop();
+            } else {
+              context.go('/');
+            }
+          },
         ),
       ),
       body: Focus(
@@ -329,11 +341,23 @@ class QuizScreen extends ConsumerWidget {
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Text(
-                        stem,
-                        style: textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Type badge
+                          Row(
+                            children: [
+                              _buildTypeChip(context, question.type),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            stem,
+                            style: textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -471,6 +495,22 @@ class QuizScreen extends ConsumerWidget {
     ref
         .read(quizSessionControllerProvider(bankId, mode).notifier)
         .advanceToNext();
+  }
+
+  /// Build a small chip showing the question type (单选题/多选题/判断题).
+  Widget _buildTypeChip(BuildContext context, String dbType) {
+    final (label, icon) = switch (dbType) {
+      'single' => ('单选题', Icons.radio_button_checked),
+      'multiple' => ('多选题', Icons.checklist),
+      _ => (dbType, Icons.help_outline),
+    };
+    return Chip(
+      avatar: Icon(icon, size: 14),
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: EdgeInsets.zero,
+    );
   }
 
   /// Determine whether to show the wrong-question chip (D-15).

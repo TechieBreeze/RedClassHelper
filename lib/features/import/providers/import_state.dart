@@ -85,6 +85,9 @@ class ImportState {
   /// 例如 "正在解析第 12 题…" / "第 47 题重试中（2/3）…" 等。
   final String? parseStatus;
 
+  /// 提交后生成的题库 ID（用于导航到答题页）。
+  final String bankId;
+
   const ImportState({
     this.jobId = '',
     this.phase = ImportPhase.idle,
@@ -98,6 +101,7 @@ class ImportState {
     this.bankName = '',
     this.parseSources = const {},
     this.parseStatus,
+    this.bankId = '',
   });
 
   /// 便捷检查器
@@ -149,6 +153,7 @@ class ImportState {
     String? bankName,
     Map<int, ParseSource>? parseSources,
     String? parseStatus,
+    String? bankId,
     bool clearError = false,
     bool clearParseStatus = false,
   }) {
@@ -166,6 +171,7 @@ class ImportState {
       parseSources: parseSources ?? this.parseSources,
       parseStatus:
           clearParseStatus ? null : (parseStatus ?? this.parseStatus),
+      bankId: bankId ?? this.bankId,
     );
   }
 }

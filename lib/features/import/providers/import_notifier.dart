@@ -248,6 +248,7 @@ class ImportNotifier extends _$ImportNotifier {
         phase: ImportPhase.done,
         committedCount: confirmedCandidates.length,
         progress: 1.0,
+        bankId: bankId,
       );
     } on Exception catch (e) {
       state = state.copyWith(

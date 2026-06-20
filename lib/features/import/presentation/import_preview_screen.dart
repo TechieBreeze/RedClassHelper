@@ -28,6 +28,7 @@ class ImportPreviewScreen extends ConsumerStatefulWidget {
 class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
   CandidateType? _filterType;
   bool _selectAll = true;
+  bool _isSaving = false;
 
   late final TextEditingController _bankNameController;
   String? _bankNameError;
@@ -93,11 +94,29 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
             onPressed: () => _onDiscard(context),
           ),
           actions: [
-            FilledButton(
-              onPressed:
-                  confirmedIndices.isNotEmpty ? () => _onSave(context) : null,
-              child: const Text('保存'),
-            ),
+            if (state.isCommitting || _isSaving)
+              FilledButton(
+                onPressed: null,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text('保存中...'),
+                  ],
+                ),
+              )
+            else
+              FilledButton(
+                onPressed: confirmedIndices.isNotEmpty
+                    ? () => _onSave(context)
+                    : null,
+                child: const Text('保存'),
+              ),
             const SizedBox(width: 8),
           ],
         ),
@@ -118,7 +137,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                         labelText: '题库名称',
                         hintText: '输入题库名称',
                         errorText: _bankNameError,
-                        helperText: '中文/全角=2字符，ASCII=1字符，上限20',
+                        helperText: '中文/全角=2字符，ASCII=1字符，上限100',
                         border: const OutlineInputBorder(),
                         isDense: true,
                       ),
@@ -353,6 +372,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
   }
 
   Future<void> _onSave(BuildContext context) async {
+    if (_isSaving) return;
     // 验证题库名称
     final nameError = _validateBankName(_bankNameController.text);
     if (nameError != null) {
@@ -363,12 +383,18 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     ref.read(importNotifierProvider.notifier)
         .setBankName(_bankNameController.text.trim());
 
-    final notifier = ref.read(importNotifierProvider.notifier);
-    await notifier.commitToDatabase();
+    setState(() => _isSaving = true);
 
-    final state = ref.read(importNotifierProvider);
-    if (state.isDone && mounted) {
-      context.go('/import/summary/${state.jobId}');
+    try {
+      final notifier = ref.read(importNotifierProvider.notifier);
+      await notifier.commitToDatabase();
+
+      final state = ref.read(importNotifierProvider);
+      if (state.isDone && mounted) {
+        context.go('/import/summary/${state.jobId}');
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -397,7 +423,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
   String? _validateBankName(String name) {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return '请输入题库名称';
-    if (_cjkAwareLength(trimmed) > 20) return '题库名称过长（上限20字符，中文=2）';
+    if (_cjkAwareLength(trimmed) > 100) return '题库名称过长（上限100字符，中文=2）';
     return null;
   }
 

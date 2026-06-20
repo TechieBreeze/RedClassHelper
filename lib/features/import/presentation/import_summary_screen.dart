@@ -103,13 +103,14 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                             value: fileName,
                           ),
                           const Divider(height: 16),
-                          _buildInfoRow(
-                            context,
-                            icon: Icons.tag,
-                            label: '题库 ID',
-                            value: state.jobId,
-                            monospace: true,
-                          ),
+                          if (state.bankId.isNotEmpty)
+                            _buildInfoRow(
+                              context,
+                              icon: Icons.tag,
+                              label: '题库 ID',
+                              value: state.bankId,
+                              monospace: true,
+                            ),
                           if (typeCounts.isNotEmpty) ...[
                             const Divider(height: 16),
                             _buildTypeBreakdown(context, typeCounts),
@@ -132,9 +133,9 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                   // ── CTA 按钮 ──
                   FilledButton.icon(
                     onPressed: () {
+                      final bankId = state.bankId;
                       ref.read(importNotifierProvider.notifier).reset();
-                      // 使用 bankId（即 jobId）导航到复习页面
-                      context.go('/quiz/${state.jobId}/random');
+                      context.go('/quiz/$bankId/random');
                     },
                     icon: const Icon(Icons.play_arrow),
                     label: const Text('开始复习'),

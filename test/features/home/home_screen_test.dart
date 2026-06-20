@@ -1,7 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:redclass/data/db/tables/question_banks.dart';
+import 'package:redclass/features/home/presentation/home_screen.dart';
+import 'package:redclass/features/quiz/providers/bank_pick_provider.dart';
 import 'package:redclass/routing/router.dart';
+
+/// Helper: provides a default empty bank list so the home screen
+/// shows the empty-state card (rather than loading or error) when a
+/// test does not supply its own [bankPickListProvider] override.
+List<Override> _emptyBankListOverrides() => [
+      bankPickListProvider.overrideWith((ref) async => <BankPickItem>[]),
+    ];
 
 void main() {
   setUp(() {
@@ -13,6 +25,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(
       ProviderScope(
+        overrides: _emptyBankListOverrides(),
         child: MaterialApp.router(routerConfig: appRouter),
       ),
     );
@@ -50,6 +63,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(
       ProviderScope(
+        overrides: _emptyBankListOverrides(),
         child: MaterialApp.router(routerConfig: appRouter),
       ),
     );
@@ -67,6 +81,7 @@ void main() {
   testWidgets('Tapping stats entry navigates to /stats', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
+        overrides: _emptyBankListOverrides(),
         child: MaterialApp.router(routerConfig: appRouter),
       ),
     );
@@ -87,6 +102,7 @@ void main() {
   testWidgets('Disabled buttons are present', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
+        overrides: _emptyBankListOverrides(),
         child: MaterialApp.router(routerConfig: appRouter),
       ),
     );
@@ -100,6 +116,7 @@ void main() {
   testWidgets('Tapping bank empty state navigates to /import', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
+        overrides: _emptyBankListOverrides(),
         child: MaterialApp.router(routerConfig: appRouter),
       ),
     );
@@ -110,5 +127,135 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('导入题库'), findsOneWidget); // app bar on ImportScreen
+  });
+
+  testWidgets('HomeScreen shows real bank cards when banks exist',
+      (tester) async {
+    final testBanks = [
+      BankPickItem(
+        bank: QuestionBank(
+          id: 'b1',
+          name: '题库A',
+          source: '/path/a.docx',
+          questionCount: 30,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+        totalQuestions: 30,
+        activeWrongCount: 5,
+      ),
+      BankPickItem(
+        bank: QuestionBank(
+          id: 'b2',
+          name: '题库B',
+          source: '/path/b.docx',
+          questionCount: 50,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+        totalQuestions: 50,
+        activeWrongCount: 0,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          bankPickListProvider.overrideWith((ref) async => testBanks),
+        ],
+        child: MaterialApp.router(routerConfig: appRouter),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(_BankCard), findsNWidgets(2));
+    expect(find.text('题库A'), findsOneWidget);
+    expect(find.text('题库B'), findsOneWidget);
+    expect(find.textContaining('30题'), findsOneWidget);
+    expect(find.textContaining('50题'), findsOneWidget);
+  });
+
+  testWidgets('HomeScreen shows empty state when bank list is empty',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          bankPickListProvider.overrideWith((ref) async => <BankPickItem>[]),
+        ],
+        child: MaterialApp.router(routerConfig: appRouter),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('还没有题库'), findsOneWidget);
+    expect(find.byType(_BankEmptyStateCard), findsOneWidget);
+  });
+
+  testWidgets('HomeScreen shows loading state while bank list loads',
+      (tester) async {
+    final completer = Completer<List<BankPickItem>>();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          bankPickListProvider.overrideWith((ref) => completer.future),
+        ],
+        child: MaterialApp.router(routerConfig: appRouter),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsAtLeast(1));
+    expect(find.byType(_BankListLoading), findsOneWidget);
+  });
+
+  testWidgets('HomeScreen shows error state when bank list fails',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          bankPickListProvider.overrideWith((ref) async {
+            throw Exception('connection failed');
+          }),
+        ],
+        child: MaterialApp.router(routerConfig: appRouter),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('加载题库列表失败'), findsOneWidget);
+    expect(find.text('重试'), findsOneWidget);
+  });
+
+  testWidgets('Tapping bank card navigates to /bank/:id', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          bankPickListProvider.overrideWith((ref) async => [
+                BankPickItem(
+                  bank: QuestionBank(
+                    id: 'bank-123',
+                    name: '测试题库',
+                    source: '/path/test.docx',
+                    questionCount: 10,
+                    createdAt: DateTime.now(),
+                    updatedAt: DateTime.now(),
+                  ),
+                  totalQuestions: 10,
+                  activeWrongCount: 0,
+                ),
+              ]),
+        ],
+        child: MaterialApp.router(routerConfig: appRouter),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap the bank card to navigate
+    await tester.tap(find.text('测试题库'));
+    await tester.pumpAndSettle();
+
+    // Verify we navigated to bank detail screen
+    expect(find.text('题库详情'), findsOneWidget);
   });
 }

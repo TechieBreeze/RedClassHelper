@@ -7,7 +7,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path/path.dart' as p;
 
+import '../../quiz/providers/bank_pick_provider.dart';
 import '../../quiz/providers/wrong_questions_provider.dart';
 
 /// 主页 (UI-SPEC §Layout — Home Screen)
@@ -70,7 +72,36 @@ class HomeScreen extends StatelessWidget {
                   children: <Widget>[
                     const _SectionHeader(title: '题库'),
                     const SizedBox(height: 16), // md
-                    _BankEmptyStateCard(isDesktop: _isDesktop),
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final banksAsync = ref.watch(bankPickListProvider);
+                        return banksAsync.when(
+                          loading: () => const _BankListLoading(),
+                          error: (error, _) => _BankListError(
+                            message: error.toString(),
+                            onRetry: () =>
+                                ref.invalidate(bankPickListProvider),
+                          ),
+                          data: (banks) {
+                            if (banks.isEmpty) {
+                              return _BankEmptyStateCard(
+                                  isDesktop: _isDesktop);
+                            }
+                            return Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.stretch,
+                              children: [
+                                for (final item in banks) ...[
+                                  _BankCard(item: item),
+                                  const SizedBox(
+                                      height: 12), // md-sm card gap
+                                ],
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    ),
                     const SizedBox(height: 24), // lg (section gap)
                     const _SectionHeader(title: '复习模式'),
                     const SizedBox(height: 16), // md
@@ -311,6 +342,149 @@ class _StatsEntryTile extends StatelessWidget {
                   ],
                 ),
               ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BankListLoading extends StatelessWidget {
+  const _BankListLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < 3; i++) ...[
+          Card(
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 200,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: 140,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        const Center(child: CircularProgressIndicator()),
+      ],
+    );
+  }
+}
+
+class _BankListError extends StatelessWidget {
+  const _BankListError({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Icon(Icons.error_outline,
+                size: 32, color: Theme.of(context).colorScheme.error),
+            const SizedBox(height: 8),
+            Text('加载题库列表失败',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(message,
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            OutlinedButton(
+                onPressed: onRetry, child: const Text('重试')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BankCard extends StatelessWidget {
+  const _BankCard({required this.item});
+  final BankPickItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final bank = item.bank;
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => context.push('/bank/${bank.id}'),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(Icons.library_books_outlined, size: 28),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(bank.name,
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${item.totalQuestions}题 · ${p.basename(bank.source)}',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
               const Icon(Icons.chevron_right),
             ],
           ),

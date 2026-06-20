@@ -39,6 +39,16 @@ created: 2026-06-20
 
 ---
 
+## Visual Focal Point
+
+The **home screen bank card list** is the primary focal point of the application. Visual hierarchy is established as follows:
+
+1. **Focal point:** The first bank card's title text (`titleMedium`, bank name) is the entry anchor for the card list.
+2. **Supporting hierarchy:** Each card's trailing chevron icon (`Icons.chevron_right`) signals navigability. The card's secondary line (question count + source filename) provides scan context without competing with the title.
+3. **Screen-level layering:** On BankDetailScreen, the "导出 JSON" `FilledButton` (accent) draws attention as the primary action. On StatsScreen, the correct-rate percentage text is the visual anchor within each expandable card.
+
+---
+
 ## Spacing Scale
 
 Declared values (8-point scale, from existing codebase conventions):
@@ -47,12 +57,19 @@ Declared values (8-point scale, from existing codebase conventions):
 |-------|-------|-------|
 | xs | 4px | Compact text spacing (subtitle gap), tight inline gaps |
 | sm | 8px | Within-card content gaps, chip-to-text spacing |
-| md-sm | 12px | Card list gap (between cards in vertical list) |
+| md-sm | 12px | Card list gap (between cards in vertical list) — see exception below |
 | md | 16px | Default element spacing, card inner padding, section body gap |
 | lg | 24px | Section break, vertical scroll padding, app body top/bottom |
 | xl | 32px | Horizontal margin on expanded layouts (>=840px) |
 
-Exceptions: None. Inline `EdgeInsets` / `SizedBox` using these values only.
+### Spacing Exception
+
+**12px (`md-sm`) is a deliberate exception to the strict 8-point scale.** Justification:
+
+- The codebase uses `SizedBox(height: 12)` and `const EdgeInsets.only(bottom: 12)` across 20+ locations (`home_screen.dart`, `import_screen.dart`, `import_summary_screen.dart`, `quiz_screen.dart`, `bank_pick_screen.dart`, `model_card.dart`, `option_card.dart`, `quiz_summary_screen.dart`, and others).
+- 12px serves as the standard **card-list vertical gap** — a "one-and-a-half step" between sm (8px) and md (16px). At 8px, cards feel cramped in a vertical list; at 16px, the gap reads as a section break rather than list-item spacing.
+- 12px is also the project's **card corner radius** (`BorderRadius.circular(12)`), which is a visual property rather than layout spacing (and therefore out of scope for the spacing scale).
+- This value should continue to be used for card-list gaps and border radii. Do not replace with 8px or 16px.
 
 **Note for planner/executor:** The codebase uses inline `const EdgeInsets.all(16)` and `const SizedBox(height: 12)` rather than named spacing constants. This contract enforces the values above but does not require extracting them into named tokens — inline is the established project convention.
 
@@ -66,17 +83,31 @@ All font sizes and weights come from Material 3 `textTheme` with Noto Sans SC. T
 |------|---------|---------------|--------|-------------|-------|
 | Display | — | — | — | — | Not used in v1 |
 | Heading | `headlineSmall` | ~24px | 400 (regular) | M3 default (~1.2) | Section headers (题库, 复习模式, 数据统计, 题库详情) |
-| Title | `titleMedium` | ~16px | 500 (medium) | M3 default (~1.5) | Card titles (题库名, 模式名, 统计卡片标题) |
+| Title | `titleMedium` | ~16px | 400 (regular) | M3 default (~1.5) | Card titles (题库名, 模式名, 统计卡片标题) |
 | Body | `bodyLarge` | ~16px | 400 (regular) | M3 default (~1.5) | Quiz question stems (with optional `w700` for emphasis) |
 | Body-Sub | `bodyMedium` | ~14px | 400 (regular) | M3 default (~1.5) | Card subtitles, secondary descriptions |
 | Label | `bodySmall` | ~12px | 400 (regular) | M3 default (~1.4) | Drag-drop hints, secondary labels, metadata |
 
-Font weights used:
-- **Regular (400):** Default for body, headings, subtitles, labels
-- **Semibold (600/w600):** Drop-target hint text ("释放以导入")
-- **Bold (700/w700):** Quiz stem emphasis, option letter keys, badge counts
+### Font Weights (Declared)
 
-**Rule:** Never go above 700 weight. `900` (black) is banned.
+This project declares exactly **2 font weights**. No other weight values may be introduced.
+
+| Weight | Value | Reserved For |
+|--------|-------|-------------|
+| **Regular** | 400 | All default body text, headings, subtitles, labels, card titles — every text role unless listed under Bold below |
+| **Bold** | 700 | Quiz stem emphasis (`bodyLarge` with `w700`), option letter keys (`A`/`B`/`C`/`D`), badge counts, drop-target hint text ("释放以导入"), stat summary numbers, task count labels |
+
+**Rules:**
+- Never go above 700 weight. `FontWeight.w900` (black) is banned.
+- Never introduce `FontWeight.w500` (medium), `FontWeight.w600` (semibold), `FontWeight.w800` (extra-bold), or any other weight tier. The codebase has exactly 2 declared weights.
+
+### Inherited M3 Role Default (Not a Declared Weight Tier)
+
+The Material 3 `titleMedium` role includes a default weight of 500 (medium) when served from `GoogleFonts.notoSansScTextTheme()`. This 500 weight is an **inherited M3 role default**, not a project-declared weight tier. Do not call `copyWith(fontWeight: FontWeight.w500)` anywhere — if the default `titleMedium` renders at weight 500 via the M3 text theme, accept it as-is but never explicitly invoke weight 500.
+
+### Pre-Existing Codebase w600 Usages
+
+Some pre-UI-SPEC code uses `FontWeight.w600` (`import_screen.dart`, `import_summary_screen.dart`, `parser_choice_dialog.dart`, `model_card.dart` — 5 locations). These are **pre-existing codebase usages** written before this design contract. Phase 5 additions must use `w700` (Bold) for all emphasis. Pre-existing `w600` usages should be harmonized to `w700` in **Phase 6 (UX polish)** — do not introduce new `w600` usages in Phase 5.
 
 ---
 
@@ -148,6 +179,8 @@ Accent (`scheme.primary` / `scheme.primaryContainer`) is reserved for:
 
 **Change from current:** Replace `_BankEmptyStateCard` with a `Consumer` widget that watches a bank list provider.
 
+**Focal point:** The bank card list is the focal point. The first card's title text (bank name, `titleMedium` weight 400) anchors the user's eye. The trailing `chevron_right` icon on each card signals navigability. The list gap (12px) between cards creates a rhythmic scan pattern.
+
 **States:**
 
 | State | What User Sees |
@@ -166,7 +199,7 @@ Card (elevation: 1, borderRadius: 12)
         ├─ SizedBox(width: 16)
         ├─ Expanded
         │    Column (crossAxisAlignment: start)
-        │      ├─ Text(bank.name, style: titleMedium)        ← 题库名
+        │      ├─ Text(bank.name, style: titleMedium)        ← 题库名 (focal anchor)
         │      ├─ SizedBox(height: 4)
         │      └─ Text("N题 · source_filename", style: bodyMedium)  ← 题数+来源
         ├─ SizedBox(width: 16)
@@ -203,7 +236,7 @@ Column (crossAxisAlignment: stretch, padding: 24)
   │      Icons.upload_file,
   │      "导出 JSON",
   │      onPressed: _exportJson
-  │    )    ← full width via crossAxisAlignment.stretch
+  │    )    ← full width via crossAxisAlignment.stretch; this is the primary visual action on this screen
   ├─ SizedBox(height: 12)
   └─ FilledButton.tonal.icon(
          Icons.play_arrow,
@@ -253,8 +286,8 @@ Card (elevation: 1, borderRadius: 12)
         │    └─ AnimatedRotation(icon: Icons.expand_more, turns: expanded ? 0.5 : 0)
         ├─ SizedBox(height: 12)
         ├─ Row(mainAxisAlignment: spaceAround)
-        │    ├─ _StatChip("正确率", "78%")   ← primary color emphasis
-        │    └─ _StatChip("错题本", "12")     ← error color if >0, muted if 0
+        │    ├─ _StatChip("正确率", "78%")   ← bold weight (700) for percentage, primary color emphasis
+        │    └─ _StatChip("错题本", "12")     ← bold weight (700) for count, error color if >0, muted if 0
         ├─ if (expanded)
         │    SizedBox(height: 12)
         │    Divider(height: 1)

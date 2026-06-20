@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:riverpod/riverpod.dart';
@@ -60,6 +62,49 @@ Future<void> _insertWrongEntry({
       firstWrongAt: now,
       lastWrongAt: now,
       masteredAt: mastered ? Value(now) : const Value.absent(),
+    ),
+  );
+}
+
+/// Helper: Insert a multi-choice Question with given correct keys and type.
+Future<void> _insertMultiChoiceQuestion({
+  required AppDatabase db,
+  required String questionId,
+  required String bankId,
+  required List<String> correctKeys,
+  String stem = 'Multi-choice test question?',
+}) async {
+  final now = DateTime.now();
+  final existing = await (db.select(db.questionBanks)
+    ..where((b) => b.id.equals(bankId))
+  ).getSingleOrNull();
+  if (existing == null) {
+    await db.into(db.questionBanks).insert(
+      QuestionBanksCompanion.insert(
+        id: bankId,
+        name: 'Test Bank $bankId',
+        source: 'test',
+        questionCount: 1,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+  }
+  // Build options for keys A through D
+  final optionsList = ['A', 'B', 'C', 'D'].map((k) => {
+    'key': k,
+    'text': '选项$k',
+  }).toList();
+  await db.into(db.questions).insert(
+    QuestionsCompanion.insert(
+      id: questionId,
+      bankId: bankId,
+      type: 'multiple',
+      stem: stem,
+      optionsJson: jsonEncode(optionsList),
+      correctJson: jsonEncode(correctKeys),
+      rawText: stem,
+      createdAt: now,
     ),
   );
 }
@@ -517,5 +562,195 @@ void main() {
 
     // Cancel auto-advance should not crash
     controller.cancelAutoAdvance();
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // Test 16: Multi-choice exact match with all correct options
+  // ═════════════════════════════════════════════════════════════
+  test(
+      'multi-choice exact match: selecting all correct options '
+      'scores correct', () async {
+    await _insertMultiChoiceQuestion(
+        db: db, questionId: 'mq1', bankId: 'bM1', correctKeys: ['A', 'C']);
+    final container = _createContainer(db);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(quizSessionControllerProvider('bM1', 'random').notifier);
+    await container
+        .read(quizSessionControllerProvider('bM1', 'random').future);
+    await controller.submitAnswer(['A', 'C']);
+    final state = container
+        .read(quizSessionControllerProvider('bM1', 'random'))
+        .value!;
+    expect(state.answers.first.isCorrect, true);
+    expect(state.correctCount, 1);
+    expect(state.wrongCount, 0);
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // Test 17: Multi-choice — subset of correct = incorrect
+  // ═════════════════════════════════════════════════════════════
+  test(
+      'multi-choice exact match: selecting only a subset of '
+      'correct options scores incorrect', () async {
+    await _insertMultiChoiceQuestion(
+        db: db, questionId: 'mq2', bankId: 'bM2', correctKeys: ['A', 'C', 'D']);
+    final container = _createContainer(db);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(quizSessionControllerProvider('bM2', 'random').notifier);
+    await container
+        .read(quizSessionControllerProvider('bM2', 'random').future);
+    await controller.submitAnswer(['A', 'C']); // Missing 'D'
+    final state = container
+        .read(quizSessionControllerProvider('bM2', 'random'))
+        .value!;
+    expect(state.answers.first.isCorrect, false);
+    expect(state.wrongCount, 1);
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // Test 18: Multi-choice — correct + extra wrong = incorrect
+  // ═════════════════════════════════════════════════════════════
+  test(
+      'multi-choice exact match: selecting correct options plus '
+      'an extra scores incorrect', () async {
+    await _insertMultiChoiceQuestion(
+        db: db, questionId: 'mq3', bankId: 'bM3', correctKeys: ['A', 'C']);
+    final container = _createContainer(db);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(quizSessionControllerProvider('bM3', 'random').notifier);
+    await container
+        .read(quizSessionControllerProvider('bM3', 'random').future);
+    await controller.submitAnswer(['A', 'C', 'D']); // Extra 'D'
+    final state = container
+        .read(quizSessionControllerProvider('bM3', 'random'))
+        .value!;
+    expect(state.answers.first.isCorrect, false);
+    expect(state.wrongCount, 1);
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // Test 19: Multi-choice — completely wrong = incorrect
+  // ═════════════════════════════════════════════════════════════
+  test(
+      'multi-choice exact match: selecting none of the correct '
+      'options scores incorrect', () async {
+    await _insertMultiChoiceQuestion(
+        db: db, questionId: 'mq4', bankId: 'bM4', correctKeys: ['A', 'C']);
+    final container = _createContainer(db);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(quizSessionControllerProvider('bM4', 'random').notifier);
+    await container
+        .read(quizSessionControllerProvider('bM4', 'random').future);
+    await controller.submitAnswer(['B', 'D']);
+    final state = container
+        .read(quizSessionControllerProvider('bM4', 'random'))
+        .value!;
+    expect(state.answers.first.isCorrect, false);
+    expect(state.wrongCount, 1);
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // Test 20: Multi-choice wrong → ledger entry created
+  // ═════════════════════════════════════════════════════════════
+  test(
+      'multi-choice wrong answer in random mode adds to '
+      'wrong-question ledger', () async {
+    await _insertMultiChoiceQuestion(
+        db: db, questionId: 'mq5', bankId: 'bM5', correctKeys: ['A', 'C']);
+    final container = _createContainer(db);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(quizSessionControllerProvider('bM5', 'random').notifier);
+    await container
+        .read(quizSessionControllerProvider('bM5', 'random').future);
+    await controller.submitAnswer(['A']); // Only 1 of 2 correct → wrong
+    final state = container
+        .read(quizSessionControllerProvider('bM5', 'random'))
+        .value!;
+    expect(state.answers.first.isCorrect, false);
+    expect(state.newlyWrongCount, 1);
+    // Verify ledger entry was created
+    final entries = await db.select(db.wrongLedgerEntries).get();
+    expect(entries.length, 1);
+    expect(entries.first.questionId, 'mq5');
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // Test 21: Multi-choice answer attempt records given selection
+  // ═════════════════════════════════════════════════════════════
+  test(
+      'multi-choice answer stores given selection as JSON array '
+      'in answer_attempts', () async {
+    await _insertMultiChoiceQuestion(
+        db: db, questionId: 'mq6', bankId: 'bM6', correctKeys: ['A', 'B', 'C']);
+    final container = _createContainer(db);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(quizSessionControllerProvider('bM6', 'random').notifier);
+    await container
+        .read(quizSessionControllerProvider('bM6', 'random').future);
+    await controller.submitAnswer(['A', 'C']);
+    // Verify answer_attempts record
+    final attempts = await db.select(db.answerAttempts).get();
+    expect(attempts.length, 1);
+    expect(attempts.first.questionId, 'mq6');
+    expect(attempts.first.isCorrect, false);
+    expect(attempts.first.mode, 'random');
+    // givenAnswerJson should be '["A","C"]'
+    final givenJson = jsonDecode(attempts.first.givenAnswerJson) as List;
+    expect(givenJson, containsAll(['A', 'C']));
+    expect(givenJson.length, 2);
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // Test 22: Multi-choice correct in review mode marks as mastered
+  // ═════════════════════════════════════════════════════════════
+  test(
+      'multi-choice correct answer in review mode marks question '
+      'as mastered', () async {
+    await _insertMultiChoiceQuestion(
+        db: db, questionId: 'mq7', bankId: 'bM7', correctKeys: ['A', 'B', 'D']);
+    await _insertWrongEntry(db: db, questionId: 'mq7');
+    final container = _createContainer(db);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(quizSessionControllerProvider('bM7', 'review').notifier);
+    await container
+        .read(quizSessionControllerProvider('bM7', 'review').future);
+    await controller.submitAnswer(['A', 'B', 'D']);
+    final state = container
+        .read(quizSessionControllerProvider('bM7', 'review'))
+        .value!;
+    expect(state.answers.first.isCorrect, true);
+    expect(state.newlyMasteredCount, 1);
+    // Verify masteredAt is set
+    final entry = await (db.select(db.wrongLedgerEntries)
+      ..where((e) => e.questionId.equals('mq7'))
+    ).getSingle();
+    expect(entry.masteredAt, isNotNull);
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // Test 23: Multi-choice — empty selection = incorrect
+  // ═════════════════════════════════════════════════════════════
+  test('multi-choice: submitting empty selection scores incorrect', () async {
+    await _insertMultiChoiceQuestion(
+        db: db, questionId: 'mq8', bankId: 'bM8', correctKeys: ['A', 'C']);
+    final container = _createContainer(db);
+    addTearDown(container.dispose);
+    final controller =
+        container.read(quizSessionControllerProvider('bM8', 'random').notifier);
+    await container
+        .read(quizSessionControllerProvider('bM8', 'random').future);
+    await controller.submitAnswer([]);
+    final state = container
+        .read(quizSessionControllerProvider('bM8', 'random'))
+        .value!;
+    expect(state.answers.first.isCorrect, false);
+    expect(state.wrongCount, 1);
   });
 }

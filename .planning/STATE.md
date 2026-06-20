@@ -3,54 +3,52 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 03-08-PLAN.md: FfiLlmClient implemented, Phase 3 LLM integration complete"
-last_updated: "2026-06-19T23:18:00.713Z"
-last_activity: 2026-06-19
+stopped_at: "Phase 4 context gathered — 17 implementation decisions captured in 04-CONTEXT.md"
+last_updated: "2026-06-20"
+last_activity: 2026-06-20
 progress:
   total_phases: 7
   completed_phases: 3
-  total_plans: 19
+  total_plans: 44
   completed_plans: 19
-  percent: 100
+  percent: 43
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2025-01-14 after platform-scope contraction)
+See: .planning/PROJECT.md (updated 2026-06-20 after Android scope cut)
 
-**Core value:** 把"老师发的题库文件"零摩擦地变成"可立刻投入复习的结构化题库"，让本地刷题体验比任何在线刷题网站都更顺手——**离线可用、零配置、解析即用、桌面解析、移动轻量**。
-**Current focus:** Phase 03 — desktop-llm-integration-parse-quality
+**Core value:** 把"老师发的题库文件"零摩擦地变成"可立刻投入复习的结构化题库"，让本地刷题体验比任何在线刷题网站都更顺手——**离线可用、零配置、解析即用、桌面本地推理**。
+**Current focus:** Phase 4 — quiz-core-wrong-question-ledger (next phase)
 
 ## Current Position
 
-Phase: 03 (desktop-llm-integration-parse-quality) — EXECUTING
-Plan: 2 of 8
-Plans: 4 of 4 (all completed and R2 verified)
-Status: Ready to execute
-Last activity: 2026-06-19
-Progress: [██░░░░░░░░] 29% (2/7 phases, 11/11 plans executed)
+Phase: 3 of 7 complete — transitioning to Phase 4
+Plans: 19 of 19 executed (Phases 1-3: 100%)
+Status: Phase 3 complete, Phase 4 not yet planned
+Last activity: 2026-06-20 (scope cut: Android dropped, desktop-only)
+Progress: [████░░░░░░] 43% (3/7 phases completed)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 11
-- Average duration: 18 min
+- Total plans completed: 19
 - Total execution time: ~7 hours
 
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 1. Foundation & Persistence | 7/7 | ~5 hrs | 25 min |
-| 2. Desktop File Import Pipeline | 4/4 plans (11/11 total) | ~25 min (exec) + ~60 min (gap closure + R2) | 6 min avg |
-| 3. Desktop LLM Integration | 0/8 | — | — |
-| 4. Quiz Core & Wrong-Question Ledger | 0/9 | — | — |
-| 5. JSON Cross-Device Transfer + Multiple-Choice + Bookmarks + Statistics | 0/9 | — | — |
-| 6. UX Polish & Diagnostics | 0/6 | — | — |
-| 7. Three-Platform Packaging & Verification | 0/7 | — | — |
+| Phase | Plans | Status |
+|-------|-------|--------|
+| 1. Foundation & Persistence | 7/7 | Complete |
+| 2. Desktop File Import Pipeline | 4/4 | Complete |
+| 3. Desktop LLM Integration | 8/8 | Complete |
+| 4. Quiz Core & Wrong-Question Ledger | 0/8 | Not started |
+| 5. JSON Export/Import + Multiple-Choice + Bookmarks + Statistics | 0/7 | Not started |
+| 6. UX Polish & Diagnostics | 0/5 | Not started |
+| 7. Desktop Packaging & Verification | 0/5 | Not started |
 
 **Recent Trend:**
 
@@ -113,18 +111,15 @@ None yet.
 - **Phase 2 — docx/doc parsing**: No mature pure-Dart `.docx` reader on pub.dev; `archive + xml` works but requires hand-rolled WordprocessingML traversal. `.doc` (Word 97-2003 OLE2 binary) is now in scope — no known pure Dart OLE2 reader; may need pandoc/LibreOffice CLI fallback. Mitigation: pull 3-5 real Chinese university `.docx` files during planning; `doc/example/` has 4 real samples (2 `.doc`, 1 `.docx`, 1 `.pdf`). (PITFALL 6, MEDIUM confidence)
 - **Phase 3 — LLM FFI**: No pub.dev wrapper covers Windows + Linux; ~1-2 weeks of FFI shim work expected. Mitigation: 1-week spike before locking plan; HTTP-only fallback documented. (PITFALL 4, MEDIUM confidence)
 - **Phase 3 — desktop OOM**: 1.5B Q4_K_M model needs ~2-2.5 GB peak RAM; low-end laptops are at risk. Mitigation: capability probe + lazy model load + n_ctx=1024 + "Fast/Recommended/Experimental" tier UI. (PITFALL 4)
-- **Phase 7 — Cross-platform real-device validation**: Builds behave differently per platform; real device smoke tests required before shipping. Windows SmartScreen, Linux distro compatibility, Android signing key management are all non-trivial.
+- **Phase 7 — Desktop packaging**: Builds behave differently per platform; real device smoke tests required before shipping. Windows SmartScreen, Linux distro compatibility are non-trivial.
 - **Phase 5 — JSON format design**: The public JSON schema must be stable across the app's lifetime; get it right in plan-phase or commit to a versioning strategy (semver inside the JSON, e.g., `{"version": "1.0.0", ...}`).
 
 ## Session Continuity
 
-Last session: 2026-06-19T23:18:00.710Z
-Stopped at: Completed 03-08-PLAN.md: FfiLlmClient implemented, Phase 3 LLM integration complete
+Last session: 2026-06-20
+Stopped at: Phase 4 context gathered — 17 implementation decisions captured. Ready for `/gsd-plan-phase 4` or `/gsd-ui-phase 4`.
 Resume file: None
 
-### Recent plan-completion decisions
+### Recent decisions
 
-- **Plan 01-00 (this plan, latest)**: Flutter SDK installed via direct git clone (not FVM) at `C:\Users\Lenovo\flutter`. Version 3.44.2 stable (newer than plan's 3.35.7; satisfies "3.35.7+" must-have).
-- **Plan 01-00 (this plan)**: Android SDK installed via cmdline-tools CLI (not Android Studio GUI) at `C:\Users\Lenovo\AppData\Local\Android\Sdk`. Platform 35 + Build-Tools 35.0.0 + platform-tools 37.0.0; all 17 licenses accepted. Java 21 from `D:\Java\jdk-21` used as JAVA_HOME.
-- **Plan 01-00 (this plan)**: Visual Studio Build Tools 2026 18.1.1 was pre-existing (not VS 2022 Community); flutter doctor confirms green for VS toolchain. No install needed.
-- **Plan 01-00 (this plan)**: `flutter create --template=app --platforms=windows` end-to-end smoke test passed (27 files, pub deps resolved). Toolchain ready for Plan 01-01's `flutter create --platforms=windows,linux,android,ios,macos`.
+- **2026-06-20**: Android dropped from v1 scope. v1 ships Windows + Linux only. Decision recorded in PROJECT.md Key Decisions.

@@ -157,14 +157,14 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Foundation & Persistence | 7/7 | Complete | ✅ |
 | 2. Desktop File Import Pipeline | 4/4 | Complete | ✅ R2 verified: 66/66 tests, 0e0w |
 | 3. Desktop LLM Integration | 8/8 | Complete | 2026-06-19 |
-| 4. Quiz Core & Wrong-Question Ledger | 0/5 | Not started | - |
+| 4. Quiz Core & Wrong-Question Ledger | 0/5 | Planned | Ready to execute |
 | 5. JSON Export/Import + Multiple-Choice + Bookmarks + Statistics | 0/7 | Not started | - |
 | 6. UX Polish & Diagnostics | 0/5 | Not started | - |
 | 7. Desktop Packaging & Verification | 0/5 | Not started | - |
 
 **Summary:**
 - Total phases: 7
-- Total estimated plans: 44 across all phases (was 53 before mobile scope cut)
+- Total estimated plans: 41 across all phases (was 53 before mobile scope cut)
 - v1 platforms (distributable artifacts): 2 (Windows / Linux)
 - Platform scope cut: Android dropped from v1 (see PROJECT.md decision)
 - Phases with research flag: 2 (Phase 2 — docx samples; Phase 3 — LLM FFI spike)

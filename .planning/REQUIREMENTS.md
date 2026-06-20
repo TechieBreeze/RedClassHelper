@@ -1,11 +1,9 @@
 # Requirements: RedClass (红课复习)
 
-**Defined:** 2025-01-14
-**Core Value:** 把"老师发的题库文件"零摩擦地变成"可立刻投入复习的结构化题库"，让本地刷题体验比任何在线刷题网站都更顺手——**离线可用、零配置、解析即用、桌面解析、移动轻量**。
+**Defined:** 2025-01-14 | **Updated:** 2026-06-20 (Android scope cut)
+**Core Value:** 把"老师发的题库文件"零摩擦地变成"可立刻投入复习的结构化题库"，让本地刷题体验比任何在线刷题网站都更顺手——**离线可用、零配置、解析即用、桌面本地推理**。
 
-> **平台差异说明**：v1 打包目标为 3 端（Windows / Linux / Android）。**LLM 解析能力仅在桌面端（Windows / Linux）启用**；Android 只通过"导入 JSON 文件"获得题库。导入页 UI 按平台分支渲染（桌面端三入口，Android 一入口）。这是显式的工程取舍，已记入 PROJECT.md 的 Key Decisions。
->
-> **不在 v1 范围**：iOS / macOS 打包。Flutter 代码本身已能在这两个平台编译运行（源码层面支持），但开发者当前没有 macOS 工具链和 Apple Developer 账号，因此 v1 不产出 `.ipa` / `.app`。
+> **平台范围**：v1 打包目标为 2 桌面端（Windows / Linux）。Android 在 2026-06-20 被移出 v1 范围（见 PROJECT.md Key Decisions）。**LLM 解析能力为桌面端专属**。iOS / macOS 源码层面可编译，但不在 v1 打包范围。
 
 ## v1 Requirements
 
@@ -19,12 +17,12 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **IMP-04**: Parse process shows progress and failure reasons; user can retry on failure
 - [x] **IMP-05**: Imported questions are persisted to local database for long-term reuse
 - [ ] **IMP-06**: Desktop user can export a parsed question bank as a standard JSON file (public format, see `doc/question-bank-json.md`)
-- [ ] **IMP-07**: Android user can select a `.json` file from local filesystem and import it as a question bank (LLM not invoked)
+- [ ] **IMP-07**: Desktop user can select a `.json` file from local filesystem and import it as a question bank
 
 ### Storage (持久化)
 
 - [x] **STOR-01**: App uses a local SQLite database for all question/attempt/ledger/bookmark data (no backend)
-- [x] **STOR-02**: Wrong-question ledger, bookmarks, and statistics are all locally accessible from Windows / Linux / Android
+- [x] **STOR-02**: Wrong-question ledger, bookmarks, and statistics are all locally accessible from Windows / Linux
 
 ### Question Types (题目类型)
 
@@ -55,17 +53,17 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **PLT-01**: Windows build can be packaged as a `.exe` (single-file or portable)
 - [ ] **PLT-02**: Linux build can be packaged as an executable + `.AppImage` / `.deb`
-- [ ] **PLT-03**: Android build can be packaged as a `.apk` (arm64-v8a mandatory, x86_64 optional)
-- [x] **PLT-04**: A single Flutter codebase serves all three v1 platforms, with UI that adapts to window size and touch/mouse input
-- [x] **PLT-05**: Local SQLite database file is accessible and stable on all three v1 platforms
-- [ ] **PLT-06**: JSON question-bank file is portable across all three v1 platforms (desktop exports → Android imports)
+- ~~**PLT-03**: Android `.apk`~~ — out of scope (Android dropped from v1, 2026-06-20)
+- [x] **PLT-04**: A single Flutter codebase serves both desktop platforms, with UI that adapts to window size
+- [x] **PLT-05**: Local SQLite database file is accessible and stable on both desktop platforms
+- [ ] **PLT-06**: JSON question-bank file is portable across desktop platforms (export → import)
 
 ### UI (用户界面)
 
 - [ ] **UI-01**: UI is consistent, professional, and restrained — focused on distraction-free studying (per `ui-ux-pro-max` reference)
 - [ ] **UI-02**: Home screen shows bank list + entries for the three review modes + statistics entry
 - [ ] **UI-03**: Quiz screen presents clear stems, tappable options, immediate submission feedback, and explicit correct/incorrect display
-- [ ] **UI-04**: Import page branches by platform: desktop shows `.docx` / `.pdf` / `.json` entries; Android shows only `.json` entry. LLM parse UI is hidden on Android.
+- [ ] **UI-04**: Import page provides `.docx` / `.pdf` / `.json` entries for desktop users
 
 ## v2 Requirements
 
@@ -105,6 +103,7 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
+| Android packaging (`.apk`) | Dropped from v1 on 2026-06-20 to focus on desktop delivery |
 | iOS packaging (`.ipa`) | Developer lacks macOS toolchain + Apple Developer account; source compiles but no distributable produced in v1 |
 | macOS packaging (`.app` / `.dmg`) | Developer lacks macOS host; source compiles but no distributable produced in v1 |
 | Cloud sync / multi-device sync | Personal/small-group tool, no backend; JSON file is the user's transmission protocol |
@@ -134,10 +133,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | IMP-01 | Phase 2 | Pending |
 | IMP-02 | Phase 2 | Pending |
 | IMP-03 | Phase 3 | Complete |
-| IMP-04 | Phase 2 | Pending |
+| IMP-04 | Phase 3, Phase 2 | Partial (retry + progress in Phase 3; full model download in Phase 3) |
 | IMP-05 | Phase 1 | Complete |
 | IMP-06 | Phase 5 | Pending |
-| IMP-07 | Phase 5 | Pending |
+| IMP-07 | Phase 5 (was Phase 2) | Pending (desktop JSON import) |
 | STOR-01 | Phase 1 | Complete |
 | STOR-02 | Phase 1 | Complete |
 | QST-01 | Phase 4 | Pending |
@@ -155,7 +154,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STAT-02 | Phase 5 | Pending |
 | PLT-01 | Phase 7 | Pending |
 | PLT-02 | Phase 7 | Pending |
-| PLT-03 | Phase 7 | Pending |
+| PLT-03 | — | Out of scope (Android dropped) |
 | PLT-04 | Phase 1 | Complete |
 | PLT-05 | Phase 1 | Complete |
 | PLT-06 | Phase 5 | Pending |
@@ -165,11 +164,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-04 | Phase 2 | Pending |
 
 **Coverage:**
-- v1 requirements: 31 total
-- Mapped to phases: 31
+- v1 requirements: 30 total (PLT-03 removed as out of scope)
+- Mapped to phases: 30
 - Unmapped: 0 ✓
 
 ---
 
 *Requirements defined: 2025-01-14*
-*Last updated: 2025-01-14 after platform-scope contraction (3 platforms: Windows / Linux / Android)*
+*Last updated: 2026-06-20 — Android scope cut, PLT-03 removed*

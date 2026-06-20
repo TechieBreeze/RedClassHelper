@@ -18,13 +18,23 @@ import 'widgets/option_card.dart';
 import 'widgets/quiz_progress_bar.dart';
 import 'widgets/wrong_question_chip.dart';
 
-/// Ephemeral UI-only state for the selected option in confirm submit mode.
+/// Ephemeral UI-only state for selected options (single or multi-choice).
 ///
-/// This is a transient selection that the user makes before confirming
-/// via Space key or "确认提交" button. It resets after submission or
-/// when the question changes. Uses built-in [StateProvider] to avoid
-/// code generation for this UI-local state.
-final _quizSelectedOptionProvider = StateProvider<String?>((ref) => null);
+/// Single-choice holds 0-1 keys; multi-choice holds 0-N keys.
+/// Uses [Set<String>] to support toggling for multi-choice.
+/// Resets on submission or question change.
+final _quizSelectedOptionProvider =
+    StateProvider<Set<String>>((ref) => {});
+
+/// Regex to strip inline answer markers like （A）, （ D ）, （AB）from stems.
+final _inlineAnswerStripRE = RegExp(
+  r'[（(]\s*[A-Ha-h\s]{1,24}\s*[）)]',
+);
+
+/// Strip inline answer from a question stem so the user doesn't see the answer.
+String _stripInlineAnswer(String stem) {
+  return stem.replaceAll(_inlineAnswerStripRE, '（  ）').trim();
+}
 
 /// Compute the visual state of an option card based on quiz context.
 ///
@@ -34,17 +44,17 @@ final _quizSelectedOptionProvider = StateProvider<String?>((ref) => null);
 OptionCardState computeOptionState({
   required String optionKey,
   required List<String> correctKeys,
-  required String? selectedKey,
+  required Set<String> selectedKeys,
   required bool hasSubmitted,
 }) {
   if (!hasSubmitted) {
-    return selectedKey == optionKey
+    return selectedKeys.contains(optionKey)
         ? OptionCardState.selected
         : OptionCardState.normal;
   }
   // Post-submit states
   final isCorrectOption = correctKeys.contains(optionKey);
-  final isSelectedByUser = selectedKey == optionKey;
+  final isSelectedByUser = selectedKeys.contains(optionKey);
 
   if (isCorrectOption && isSelectedByUser) return OptionCardState.correct;
   if (!isCorrectOption && isSelectedByUser) {
@@ -95,7 +105,7 @@ class QuizScreen extends ConsumerWidget {
         ref.watch(quizSessionControllerProvider(bankId, mode));
     final session = sessionAsync.value;
     final settings = ref.watch(quizSettingsProvider);
-    final selectedOption = ref.watch(_quizSelectedOptionProvider);
+    final selectedKeys = ref.watch(_quizSelectedOptionProvider);
 
     // Loading state
     if (session == null || session.status == QuizStatus.loading) {
@@ -229,14 +239,14 @@ class QuizScreen extends ConsumerWidget {
           return KeyEventResult.ignored;
         },
         child: CallbackShortcuts(
-          bindings: _buildKeyBindings(ref, settings, hasSubmitted),
+          bindings: _buildKeyBindings(ref, settings, hasSubmitted, correctKeys),
           child: _buildQuizBody(
             context,
             ref,
-            question.stem,
+            _stripInlineAnswer(question.stem),
             options,
             correctKeys,
-            selectedOption,
+            selectedKeys,
             hasSubmitted,
             currentNumber,
             totalQuestions,
@@ -253,16 +263,18 @@ class QuizScreen extends ConsumerWidget {
     WidgetRef ref,
     QuizSettings settings,
     bool hasSubmitted,
+    List<String> correctKeys,
   ) {
+    final isMultiChoice = correctKeys.length > 1;
     return <ShortcutActivator, VoidCallback>{
       const SingleActivator(LogicalKeyboardKey.keyA):
-          () => _onOptionTap(ref, 'A', settings, hasSubmitted),
+          () => _onOptionTap(ref, 'A', settings, hasSubmitted, isMultiChoice),
       const SingleActivator(LogicalKeyboardKey.keyB):
-          () => _onOptionTap(ref, 'B', settings, hasSubmitted),
+          () => _onOptionTap(ref, 'B', settings, hasSubmitted, isMultiChoice),
       const SingleActivator(LogicalKeyboardKey.keyC):
-          () => _onOptionTap(ref, 'C', settings, hasSubmitted),
+          () => _onOptionTap(ref, 'C', settings, hasSubmitted, isMultiChoice),
       const SingleActivator(LogicalKeyboardKey.keyD):
-          () => _onOptionTap(ref, 'D', settings, hasSubmitted),
+          () => _onOptionTap(ref, 'D', settings, hasSubmitted, isMultiChoice),
       const SingleActivator(LogicalKeyboardKey.space): () {
         if (settings.submitMode == QuizSubmitMode.confirm && !hasSubmitted) {
           _onSubmitConfirm(ref);
@@ -283,7 +295,7 @@ class QuizScreen extends ConsumerWidget {
     String stem,
     List<Map<String, dynamic>> options,
     List<String> correctKeys,
-    String? selectedOption,
+    Set<String> selectedKeys,
     bool hasSubmitted,
     int currentNumber,
     int totalQuestions,
@@ -291,6 +303,7 @@ class QuizScreen extends ConsumerWidget {
     QuizSessionState session,
   ) {
     final textTheme = Theme.of(context).textTheme;
+    final isMultiChoice = correctKeys.length > 1;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -333,9 +346,9 @@ class QuizScreen extends ConsumerWidget {
                     final state = computeOptionState(
                       optionKey: key,
                       correctKeys: correctKeys,
-                      selectedKey: hasSubmitted
-                          ? session.answers.last.givenAnswer.firstOrNull
-                          : selectedOption,
+                      selectedKeys: hasSubmitted
+                          ? session.answers.last.givenAnswer.toSet()
+                          : selectedKeys,
                       hasSubmitted: hasSubmitted,
                     );
                     return Padding(
@@ -344,16 +357,18 @@ class QuizScreen extends ConsumerWidget {
                         optionKey: key,
                         optionText: text,
                         state: state,
-                        onTap: () =>
-                            _onOptionTap(ref, key, settings, hasSubmitted),
+                        onTap: () => _onOptionTap(
+                            ref, key, settings, hasSubmitted, isMultiChoice),
                       ),
                     );
                   }),
 
-                  // Confirm submit button (confirm mode, pre-submit)
-                  if (settings.submitMode == QuizSubmitMode.confirm &&
-                      !hasSubmitted &&
-                      selectedOption != null) ...[
+                  // Confirm submit button
+                  // Shown when: confirm mode with selection, OR multi-choice
+                  if (!hasSubmitted &&
+                      selectedKeys.isNotEmpty &&
+                      (settings.submitMode == QuizSubmitMode.confirm ||
+                          isMultiChoice)) ...[
                     const SizedBox(height: 8),
                     FilledButton(
                       onPressed: () => _onSubmitConfirm(ref),
@@ -394,36 +409,52 @@ class QuizScreen extends ConsumerWidget {
 
   /// Handle an option tap or keyboard selection (D-02).
   ///
-  /// In instant mode, immediately submits the answer.
-  /// In confirm mode, sets the local selection state.
+  /// Single-choice: instant mode submits immediately, confirm mode sets selection.
+  /// Multi-choice: always toggles in the set, never auto-submits.
   void _onOptionTap(
     WidgetRef ref,
     String optionKey,
     QuizSettings settings,
     bool hasSubmitted,
+    bool isMultiChoice,
   ) {
     if (hasSubmitted) return; // T-04-11: guard against double-tap
 
-    if (settings.submitMode == QuizSubmitMode.instant) {
-      _submitAnswer(ref, optionKey);
+    final notifier = ref.read(_quizSelectedOptionProvider.notifier);
+    if (isMultiChoice) {
+      // Toggle this option in the set
+      final current = ref.read(_quizSelectedOptionProvider);
+      final updated = Set<String>.from(current);
+      if (updated.contains(optionKey)) {
+        updated.remove(optionKey);
+      } else {
+        updated.add(optionKey);
+      }
+      notifier.state = updated;
     } else {
-      ref.read(_quizSelectedOptionProvider.notifier).state = optionKey;
+      // Single choice: select or switch
+      if (settings.submitMode == QuizSubmitMode.instant) {
+        notifier.state = {optionKey};
+        _submitAnswer(ref, [optionKey]);
+      } else {
+        notifier.state = {optionKey};
+      }
     }
   }
 
   /// Submit the confirmed answer (confirm mode Space key or button).
   void _onSubmitConfirm(WidgetRef ref) {
     final selected = ref.read(_quizSelectedOptionProvider);
-    if (selected == null) return;
-    _submitAnswer(ref, selected);
+    if (selected.isEmpty) return;
+    _submitAnswer(ref, selected.toList());
   }
 
   /// Call the controller to submit the answer (D-04).
-  void _submitAnswer(WidgetRef ref, String optionKey) {
-    ref.read(_quizSelectedOptionProvider.notifier).state = null;
+  void _submitAnswer(WidgetRef ref, List<String> optionKeys) {
+    ref.read(_quizSelectedOptionProvider.notifier).state = {};
     ref
         .read(quizSessionControllerProvider(bankId, mode).notifier)
-        .submitAnswer(optionKey)
+        .submitAnswer(optionKeys)
         .then((_) {
       // After submission: start auto-advance if in auto mode
       final settings = ref.read(quizSettingsProvider);

@@ -129,8 +129,8 @@ class OptionCard extends StatelessWidget {
 
   Color _buildBackground(ColorScheme cs) {
     return switch (state) {
-      OptionCardState.correct => Colors.green.withOpacity(0.15),
-      OptionCardState.correctUnselected => Colors.green.withOpacity(0.10),
+      OptionCardState.correct => Colors.green.withOpacity(0.22),
+      OptionCardState.correctUnselected => Colors.green.withOpacity(0.14),
       OptionCardState.selected => cs.primaryContainer,
       _ => cs.surfaceContainerHighest,
     };
@@ -140,7 +140,7 @@ class OptionCard extends StatelessWidget {
     if (state == OptionCardState.selected) return cs.primary.withOpacity(0.15);
     if (state == OptionCardState.correct ||
         state == OptionCardState.correctUnselected) {
-      return Colors.green.withOpacity(0.2);
+      return Colors.green.withOpacity(0.28);
     }
     return cs.surfaceContainerHighest;
   }
@@ -149,7 +149,7 @@ class OptionCard extends StatelessWidget {
     if (state == OptionCardState.selected) return cs.primary;
     if (state == OptionCardState.correct ||
         state == OptionCardState.correctUnselected) {
-      return Colors.green.shade700;
+      return Colors.green.shade500;
     }
     return cs.onSurface;
   }
@@ -172,7 +172,7 @@ class OptionCard extends StatelessWidget {
     return switch (state) {
       OptionCardState.correct ||
       OptionCardState.correctUnselected =>
-        Colors.green.shade600,
+        Colors.green,
       OptionCardState.wrongSelected => const Color(0xFFD32F2F),
       _ => null,
     };

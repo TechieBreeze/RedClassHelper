@@ -129,11 +129,12 @@ class QuizSessionController extends _$QuizSessionController {
     return questions.take(10).toList();
   }
 
-  /// D-02, D-04: Submit the selected option and grade it.
+  /// D-02, D-04: Submit the selected option(s) and grade them.
   ///
-  /// In 'instant' mode, the UI calls this immediately on option tap.
-  /// In 'confirm' mode, the UI calls this on Space key or confirm button tap.
-  Future<void> submitAnswer(String optionKey) async {
+  /// In 'instant' mode, the UI calls this immediately on option tap for single
+  /// choice. In 'confirm' mode, the UI calls this on Space key or confirm
+  /// button tap. For multi-choice, always uses confirm-style flow.
+  Future<void> submitAnswer(List<String> optionKeys) async {
     final current = state.value;
     if (current == null || current.isComplete) return;
     if (current.status != QuizStatus.active) return;
@@ -143,17 +144,18 @@ class QuizSessionController extends _$QuizSessionController {
     final elapsedMs =
         submitStart.difference(current.startTime).inMilliseconds;
 
-    // Grade: single-choice canonical set comparison (RESEARCH Pattern 5)
     final correctKeys = List<String>.from(
       jsonDecode(question.correctJson) as List,
     );
-    final givenKeys = [optionKey];
-    final isCorrect = _gradeSingleChoice(correctKeys, givenKeys);
+    final isMultiChoice = correctKeys.length > 1;
+    final isCorrect = isMultiChoice
+        ? _gradeMultiChoice(correctKeys, optionKeys)
+        : _gradeSingleChoice(correctKeys, optionKeys);
 
     // Create answer record
     final record = AnswerRecord(
       questionId: question.id,
-      givenAnswer: givenKeys,
+      givenAnswer: optionKeys,
       isCorrect: isCorrect,
       elapsedMs: elapsedMs,
     );
@@ -169,7 +171,7 @@ class QuizSessionController extends _$QuizSessionController {
       // REV-04: Correct in review mode → mark as mastered
       await _ledgerRepo!.recordCorrectReview(
         questionId: question.id,
-        givenAnswer: givenKeys,
+        givenAnswer: optionKeys,
         mode: modeStr,
         elapsedMs: elapsedMs,
       );
@@ -177,7 +179,7 @@ class QuizSessionController extends _$QuizSessionController {
       // REV-02: Wrong in random/review → add to ledger
       await _ledgerRepo!.recordWrongAnswer(
         questionId: question.id,
-        givenAnswer: givenKeys,
+        givenAnswer: optionKeys,
         isCorrect: false,
         mode: modeStr,
         elapsedMs: elapsedMs,
@@ -189,7 +191,7 @@ class QuizSessionController extends _$QuizSessionController {
       await db.into(db.answerAttempts).insert(
         AnswerAttemptsCompanion.insert(
           questionId: question.id,
-          givenAnswerJson: jsonEncode(givenKeys),
+          givenAnswerJson: jsonEncode(optionKeys),
           isCorrect: isCorrect,
           mode: modeStr,
           elapsedMs: elapsedMs,
@@ -268,5 +270,15 @@ class QuizSessionController extends _$QuizSessionController {
     if (correctKeys.isEmpty || givenKeys.isEmpty) return false;
     if (correctKeys.length != 1 || givenKeys.length != 1) return false;
     return correctKeys.first == givenKeys.first;
+  }
+
+  /// Multi-choice grading: exact match required.
+  /// User must select ALL correct options and NO wrong options.
+  bool _gradeMultiChoice(List<String> correctKeys, List<String> givenKeys) {
+    if (correctKeys.isEmpty || givenKeys.isEmpty) return false;
+    final correctSet = correctKeys.toSet();
+    final givenSet = givenKeys.toSet();
+    return correctSet.length == givenSet.length &&
+        correctSet.containsAll(givenSet);
   }
 }

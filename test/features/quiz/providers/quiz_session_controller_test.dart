@@ -179,7 +179,7 @@ void main() {
     await container
         .read(quizSessionControllerProvider('b1', 'random').future);
 
-    await controller.submitAnswer('A');
+    await controller.submitAnswer(['A']);
 
     final state = container
         .read(quizSessionControllerProvider('b1', 'random'))
@@ -209,7 +209,7 @@ void main() {
     await container
         .read(quizSessionControllerProvider('b1', 'random').future);
 
-    await controller.submitAnswer('B');
+    await controller.submitAnswer(['B']);
 
     final state = container
         .read(quizSessionControllerProvider('b1', 'random'))
@@ -252,7 +252,7 @@ void main() {
     await container
         .read(quizSessionControllerProvider('b1', 'review').future);
 
-    await controller.submitAnswer('A');
+    await controller.submitAnswer(['A']);
 
     final state = container
         .read(quizSessionControllerProvider('b1', 'review'))
@@ -285,7 +285,7 @@ void main() {
         .read(quizSessionControllerProvider('b1', 'spotcheck').future);
 
     // Submit correct answer in spotcheck
-    await controller.submitAnswer('A');
+    await controller.submitAnswer(['A']);
 
     // The ledger entry should NOT be mastered (spotcheck doesn't modify)
     final entry = await (db.select(db.wrongLedgerEntries)
@@ -307,7 +307,7 @@ void main() {
     await container2
         .read(quizSessionControllerProvider('b1', 'spotcheck').future);
 
-    await controller2.submitAnswer('B');
+    await controller2.submitAnswer(['B']);
 
     // newWrongCount should be 0 for spotcheck
     final state2 = container2
@@ -438,7 +438,7 @@ void main() {
     controller.advanceToNext();
 
     // Try submitting after completion → should be no-op
-    await controller.submitAnswer('B');
+    await controller.submitAnswer(['B']);
     final state = container
         .read(quizSessionControllerProvider('b1', 'random'))
         .value!;

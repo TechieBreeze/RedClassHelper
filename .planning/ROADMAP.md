@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Desktop File Import Pipeline** - `.docx`/`.pdf` text extraction + heuristic parser + import preview screen (desktop-only entry points)
 - [x] **Phase 3: Desktop LLM Integration** - `LlmClient` abstraction (Stub + HTTP), model picker, GBNF-constrained JSON parsing — **desktop-only**, gated on `Platform.isWindows || Platform.isLinux` (completed 2026-06-19)
 - [x] **Phase 4: Quiz Core & Wrong-Question Ledger** - Quiz screen, single-choice grading, three review modes, shared ledger state machine (desktop) (completed 2026-06-20)
-- [ ] **Phase 5: JSON Export/Import + Multiple-Choice + Bookmarks + Statistics** - JSON export/import (desktop), multi-choice, bookmarks, stats
+- [ ] **Phase 5: JSON Export/Import + Multiple-Choice + Statistics** - JSON export/import (desktop), multi-choice exact-match grading, per-bank statistics (bookmarks moved out)
 - [ ] **Phase 6: UX Polish & Diagnostics** - UI alignment with ui-ux-pro-max, session state recovery, diagnostic-pack export (desktop)
 - [ ] **Phase 7: Desktop Packaging & Verification** - Windows + Linux builds, on-device LLM validation on real desktop hardware
 
@@ -100,20 +100,19 @@ Plans:
 **Pitfalls addressed**: PITFALL 2 (state machine non-atomic — single repo method per transition in DB transaction), PITFALL 5 (answer stringification — store as canonical sets from day 1), PITFALL 7 (lifecycle — commit on every answer)
 **Dependencies**: Phase 3 (LLM-parsed questions already in DB), Phase 1 (ledger table + migrations)
 
-### Phase 5: JSON Export/Import + Multiple-Choice + Bookmarks + Statistics
-**Goal**: Layer in JSON export and JSON import as the desktop-to-desktop transfer protocol. Add remaining table-stakes features: multiple-choice rendering/grading, bookmarks, statistics with per-bank aggregation.
+### Phase 5: JSON Export/Import + Multiple-Choice + Statistics
+**Goal**: Layer in JSON export and JSON import as the desktop-to-desktop transfer protocol. Add multiple-choice exact-match grading and per-bank statistics with per-mode breakdown. Fix home screen to show real bank list.
 **Depends on**: Phase 4
-**Requirements**: IMP-06, IMP-07, QST-02, BMK-01, BMK-02, STAT-02
+**Requirements**: IMP-06, IMP-07, QST-02, STAT-02
 **Success Criteria** (what must be TRUE):
-  1. Desktop user can right-click (or menu-action) any question bank and export it as a single `.json` file matching the public format spec in `doc/question-bank-json.md`
+  1. Desktop user can click "导出 JSON" in bank detail page and get a `.json` file matching the established format
   2. Desktop user can import a previously-exported `.json` and get a fully functional bank (questions + correct answers + metadata)
-  3. JSON round-trip preserves all question data: stem, options, correct-answer sets, question type, source bank name, version
-  4. User sees multiple-choice questions rendered as checkboxes; submitting requires exact-match to score (partial selection = wrong)
-  5. User can tap a star icon on any question to bookmark it; bookmarked questions appear in a dedicated list screen
-  6. Stats screen shows per-bank aggregation: total questions, attempts, correct rate, and ledger size
-  7. Per-mode breakdown is visible in stats (e.g., 乱序抽题: 78% / 错题复习: 92%)
-  8. Bookmark list can be re-entered as a study session (filter 乱序抽题 by bookmarked set)
-**Plans**: 7 plans
+  3. JSON round-trip preserves all question data: stem, options, correct-answer keys, question type, bank name, version
+  4. User sees multiple-choice questions rendered as checkboxes; submitting requires exact-match to score (all correct + no extras = correct)
+  5. Stats screen shows per-bank aggregation: total questions, attempts, correct rate, and ledger size
+  6. Per-mode breakdown is visible in stats (e.g., 乱序抽题: 78% / 错题复习: 92%)
+  7. Home screen shows real bank list (not placeholder); tapping a bank card opens bank detail page
+**Plans**: 6 plans
 
 **Research flag**: no (JSON spec design is internal; round-trip test pattern is standard)
 **Pitfalls addressed**: PITFALL 5 (answer stringification — multi-choice stored as canonical set from day 1)
@@ -158,13 +157,13 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. Desktop File Import Pipeline | 4/4 | Complete | ✅ R2 verified: 66/66 tests, 0e0w |
 | 3. Desktop LLM Integration | 8/8 | Complete | 2026-06-19 |
 | 4. Quiz Core & Wrong-Question Ledger | 5/5 | Complete | ✅ 2026-06-20 |
-| 5. JSON Export/Import + Multiple-Choice + Bookmarks + Statistics | 0/7 | Not started | - |
+| 5. JSON Export/Import + Multiple-Choice + Statistics | 0/6 | Context gathered | - |
 | 6. UX Polish & Diagnostics | 0/5 | Not started | - |
 | 7. Desktop Packaging & Verification | 0/5 | Not started | - |
 
 **Summary:**
 - Total phases: 7
-- Total estimated plans: 41 across all phases (was 53 before mobile scope cut)
+- Total estimated plans: 40 across all phases (was 53 before mobile scope cut; 1 dropped with bookmarks)
 - v1 platforms (distributable artifacts): 2 (Windows / Linux)
 - Platform scope cut: Android dropped from v1 (see PROJECT.md decision)
 - Phases with research flag: 2 (Phase 2 — docx samples; Phase 3 — LLM FFI spike)

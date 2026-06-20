@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 5 context gathered
-last_updated: "2026-06-20T07:57:32.183Z"
-last_activity: 2026-06-20 -- Phase 04 completed
+status: executing
+stopped_at: Phase 5 context gathered — ready for planning
+last_updated: "2026-06-20T08:00:00.000Z"
+last_activity: 2026-06-20 -- Phase 05 context gathered
 progress:
   total_phases: 7
   completed_phases: 4
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-20 after Android scope cut)
 
 **Core value:** 把"老师发的题库文件"零摩擦地变成"可立刻投入复习的结构化题库"，让本地刷题体验比任何在线刷题网站都更顺手——**离线可用、零配置、解析即用、桌面本地推理**。
-**Current focus:** Phase 04 — quiz-core-wrong-question-ledger
+**Current focus:** Phase 05 — JSON Export/Import + Multiple-Choice + Statistics
 
 ## Current Position
 
-Phase: 04 (quiz-core-wrong-question-ledger) — COMPLETE
-Plan: 5 of 5
-Plans: 24 of 24 executed (Phases 1-4: 100%)
-Status: Phase 04 completed — UAT approved 2026-06-20
-Last activity: 2026-06-20 -- Phase 04 completed
+Phase: 05 (json-export-import-multiple-choice-bookmarks-statistics) — CONTEXT GATHERED
+Plan: 0 of 7
+Plans: 24 of 24 executed (Phases 1-4: 100%), Phase 5: 0 of 7
+Status: Phase 05 context captured — ready for /gsd-plan-phase 5
+Last activity: 2026-06-20 -- Phase 05 context gathered
 Progress: [████████░░] 57% (4/7 phases completed)
 
 ## Performance Metrics
@@ -47,7 +47,7 @@ Progress: [████████░░] 57% (4/7 phases completed)
 | 2. Desktop File Import Pipeline | 4/4 | Complete |
 | 3. Desktop LLM Integration | 8/8 | Complete |
 | 4. Quiz Core & Wrong-Question Ledger | 5/5 | Complete |
-| 5. JSON Export/Import + Multiple-Choice + Bookmarks + Statistics | 0/7 | Not started |
+| 5. JSON Export/Import + Multiple-Choice + Statistics | 0/7 | Context gathered |
 | 6. UX Polish & Diagnostics | 0/5 | Not started |
 | 7. Desktop Packaging & Verification | 0/5 | Not started |
 
@@ -113,7 +113,7 @@ None yet.
 - **Phase 3 — LLM FFI**: No pub.dev wrapper covers Windows + Linux; ~1-2 weeks of FFI shim work expected. Mitigation: 1-week spike before locking plan; HTTP-only fallback documented. (PITFALL 4, MEDIUM confidence)
 - **Phase 3 — desktop OOM**: 1.5B Q4_K_M model needs ~2-2.5 GB peak RAM; low-end laptops are at risk. Mitigation: capability probe + lazy model load + n_ctx=1024 + "Fast/Recommended/Experimental" tier UI. (PITFALL 4)
 - **Phase 7 — Desktop packaging**: Builds behave differently per platform; real device smoke tests required before shipping. Windows SmartScreen, Linux distro compatibility are non-trivial.
-- **Phase 5 — JSON format design**: The public JSON schema must be stable across the app's lifetime; get it right in plan-phase or commit to a versioning strategy (semver inside the JSON, e.g., `{"version": "1.0.0", ...}`).
+- **Phase 5 — JSON format**: Format decided in discuss-phase — aligns with user-provided real question bank format (numbered objects, `answer` option map, `key` concatenated string, `answer_type` 0/1, `version: "1.0"`).
 
 ## Session Continuity
 

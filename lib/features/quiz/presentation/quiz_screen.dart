@@ -347,7 +347,7 @@ class QuizScreen extends ConsumerWidget {
                           // Type badge
                           Row(
                             children: [
-                              _buildTypeChip(context, question.type),
+                              _buildTypeChip(context, session.currentQuestion!.type),
                             ],
                           ),
                           const SizedBox(height: 8),

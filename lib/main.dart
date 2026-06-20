@@ -1,18 +1,23 @@
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:redclass/core/paths.dart';
 import 'package:redclass/core/theme.dart';
+import 'package:redclass/features/quiz/providers/quiz_settings_provider.dart';
 import 'package:redclass/routing/router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // RESEARCH.md Pitfall 4: 预解析 path_provider 路径,避免 ref.watch 时的 late-init 错误
+  // Phase 1: Pre-resolve path_provider paths to avoid late-init (Pitfall 4)
   final resolver = await PathResolver.create();
+  // Phase 4: Pre-initialize SharedPreferences to avoid async race (Pitfall 4)
+  final sharedPrefs = await SharedPreferences.getInstance();
   runApp(
     ProviderScope(
       overrides: [
         pathResolverProvider.overrideWith((ref) async => resolver),
+        sharedPreferencesProvider.overrideWith((ref) => sharedPrefs),
       ],
       child: const RedClassApp(),
     ),

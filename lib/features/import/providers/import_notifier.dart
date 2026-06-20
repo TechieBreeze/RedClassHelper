@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show File;
 
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -14,6 +15,7 @@ import '../../../data/db/database.dart';
 import '../../../data/llm_client/llm_client.dart';
 import '../../../data/llm_client/llm_error.dart';
 import '../../../data/llm_client/providers.dart';
+import '../../export/services/json_export_service.dart';
 import '../../import/extraction/text_extractor.dart';
 import '../../import/parsing/heuristic_parser.dart';
 import '../../import/parsing/llm/canonicalizer.dart';
@@ -61,6 +63,13 @@ class ImportNotifier extends _$ImportNotifier {
   /// 阶段 1 → 2 → 3: 提取文本并解析
   Future<void> extractAndParse() async {
     if (state.files.isEmpty) return;
+
+    // Branch: JSON files skip extraction/parsing and go directly to fast-track import
+    if (state.files.length == 1 &&
+        p.extension(state.files.first.path).toLowerCase() == '.json') {
+      await importJsonFile();
+      return;
+    }
 
     // 提取阶段
     state = state.copyWith(
@@ -414,6 +423,164 @@ class ImportNotifier extends _$ImportNotifier {
       parseSources: sources,
       progress: 1.0,
     );
+  }
+
+  /// JSON 导入快速通道（D-05, D-06）。
+  ///
+  /// 读取 `.json` 文件 → 验证 D-01 格式 → 转换为 DB 实体 → 直接提交入库。
+  /// 完全跳过提取/解析/编辑阶段。同名题库静默替换（DB 事务内）。
+  Future<void> importJsonFile() async {
+    if (state.files.isEmpty) return;
+
+    final filePath = state.files.first.path;
+
+    // Guard 1: File size check (reject >10MB before reading into memory)
+    final file = File(filePath);
+    final fileSize = await file.length();
+    if (fileSize > 10 * 1024 * 1024) {
+      state = state.copyWith(
+        phase: ImportPhase.idle,
+        error: 'JSON 文件过大（超过 10MB），请检查文件内容',
+      );
+      return;
+    }
+
+    // Guard 2: Read and parse JSON
+    state = state.copyWith(phase: ImportPhase.parsing, progress: 0.1);
+    final jsonString = await file.readAsString();
+
+    Map<String, dynamic> jsonData;
+    try {
+      jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
+    } on FormatException catch (e) {
+      state = state.copyWith(
+        phase: ImportPhase.idle,
+        error: 'JSON 格式错误：${e.message}',
+      );
+      return;
+    }
+
+    // Guard: provider may have been disposed during file I/O
+    if (!_mounted) return;
+
+    // Step 3: Validate top-level structure (before DB operations)
+    if (jsonData['name'] is! String || (jsonData['name'] as String).isEmpty) {
+      state = state.copyWith(
+        phase: ImportPhase.idle,
+        error: 'JSON 文件缺少有效的题库名称（name 字段）',
+      );
+      return;
+    }
+    if (jsonData['version'] is! String) {
+      state = state.copyWith(
+        phase: ImportPhase.idle,
+        error: 'JSON 文件缺少版本号（version 字段）',
+      );
+      return;
+    }
+    if (jsonData['questions'] is! Map ||
+        (jsonData['questions'] as Map).isEmpty) {
+      state = state.copyWith(
+        phase: ImportPhase.idle,
+        error: 'JSON 文件不包含题目数据（questions 字段为空或缺失）',
+      );
+      return;
+    }
+
+    state = state.copyWith(progress: 0.3);
+
+    // Step 4: Convert and commit in a DB transaction (D-06 atomic replacement)
+    final db = await ref.read(appDatabaseProvider.future);
+    if (!_mounted) return;
+
+    try {
+      final bankId = _uuid.v4();
+      final now = DateTime.now();
+      final jsonBankName = jsonData['name'] as String;
+
+      // 4a. Convert JSON to entities BEFORE transaction (validation can throw)
+      final converted = userJsonToEntities(jsonData, bankId);
+
+      await db.transaction(() async {
+        // 4b. Detect and replace duplicate bank (D-06: silent, no dialog)
+        final existingBank = await (db.select(db.questionBanks)
+              ..where((b) => b.name.equals(jsonBankName)))
+            .getSingleOrNull();
+
+        if (existingBank != null) {
+          // Cascade delete: removing bank deletes all its questions + ledger + attempts
+          await (db.delete(db.questionBanks)
+                ..where((b) => b.id.equals(existingBank.id)))
+              .go();
+        }
+
+        state = state.copyWith(progress: 0.5);
+
+        // 4c. Insert QuestionBank
+        await db.into(db.questionBanks).insert(
+              QuestionBanksCompanion.insert(
+                id: bankId,
+                name: converted.bankName,
+                source: filePath,
+                questionCount: converted.questions.length,
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+
+        state = state.copyWith(progress: 0.7);
+
+        // 4d. Create ParseJob for summary screen
+        final job = ParseJobsCompanion.insert(
+          id: _uuid.v4(),
+          sourcePath: filePath,
+          status: 'succeeded',
+          progress: 1.0,
+          resultCount: converted.questions.length,
+          createdAt: now,
+          updatedAt: now,
+        );
+        await db.into(db.parseJobs).insert(job);
+
+        // 4e. Insert questions one by one with progress
+        for (var i = 0; i < converted.questions.length; i++) {
+          final question = QuestionsCompanion.insert(
+            id: converted.questions[i].id.value,
+            bankId: converted.questions[i].bankId.value,
+            type: converted.questions[i].type.value,
+            stem: converted.questions[i].stem.value,
+            optionsJson: converted.questions[i].optionsJson.value,
+            correctJson: converted.questions[i].correctJson.value,
+            rawText: converted.questions[i].rawText.value,
+            createdAt: converted.questions[i].createdAt.value,
+          );
+          await db.into(db.questions).insert(question);
+          state = state.copyWith(
+            progress: 0.7 + 0.3 * ((i + 1) / converted.questions.length),
+          );
+        }
+      });
+
+      // Step 5: Transition to done state
+      state = state.copyWith(
+        phase: ImportPhase.done,
+        committedCount: converted.questions.length,
+        progress: 1.0,
+        bankId: bankId,
+        bankName: converted.bankName,
+      );
+    } on FormatException catch (e) {
+      // Validation errors from userJsonToEntities (bad key format, etc.)
+      state = state.copyWith(
+        phase: ImportPhase.idle,
+        error: '题库数据验证失败：${e.message}',
+      );
+    } on Exception catch (e) {
+      state = state.copyWith(
+        phase: ImportPhase.idle,
+        error: '导入失败：${e.toString()}',
+      );
+    }
   }
 
   /// 重置管道

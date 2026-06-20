@@ -13,6 +13,11 @@ import '../features/import/presentation/import_summary_screen.dart';
 import '../features/import/providers/import_notifier.dart';
 import '../features/models/presentation/model_management_screen.dart';
 import '../features/models/presentation/settings_screen.dart';
+import '../features/quiz/presentation/bank_pick_screen.dart';
+import '../features/quiz/presentation/quiz_summary_screen.dart';
+import '../features/quiz/models/review_mode.dart';
+import '../features/quiz/models/quiz_session_state.dart';
+import '../features/quiz/providers/quiz_session_controller.dart';
 import '../features/quiz/presentation/quiz_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
 
@@ -31,8 +36,44 @@ final GoRouter appRouter = GoRouter(
           BankDetailScreen(bankId: state.pathParameters['id']!),
     ),
     GoRoute(
+      path: '/quiz/pick/:mode',
+      builder: (BuildContext context, GoRouterState state) => BankPickerScreen(
+        mode: state.pathParameters['mode']!,
+      ),
+    ),
+    GoRoute(
       path: '/quiz/:bankId/:mode',
+      redirect: (BuildContext context, GoRouterState state) {
+        final mode = state.pathParameters['mode']!;
+        try {
+          reviewModeFromString(mode);
+        } on ArgumentError {
+          return '/'; // Invalid mode → redirect to home
+        }
+        return null;
+      },
       builder: (BuildContext context, GoRouterState state) => QuizScreen(
+        bankId: state.pathParameters['bankId']!,
+        mode: state.pathParameters['mode']!,
+      ),
+    ),
+    GoRoute(
+      path: '/quiz/:bankId/:mode/summary',
+      redirect: (BuildContext context, GoRouterState state) {
+        final bankId = state.pathParameters['bankId']!;
+        final mode = state.pathParameters['mode']!;
+        final container = ProviderScope.containerOf(context);
+        final sessionAsync = container.read(
+          quizSessionControllerProvider(bankId, mode),
+        );
+        final session = sessionAsync.value;
+        if (session == null || session.status != QuizStatus.complete) {
+          return '/';
+        }
+        return null;
+      },
+      builder: (BuildContext context, GoRouterState state) =>
+          QuizSummaryScreen(
         bankId: state.pathParameters['bankId']!,
         mode: state.pathParameters['mode']!,
       ),

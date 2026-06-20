@@ -188,7 +188,7 @@ class _ModeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: InkWell(
-        onTap: () => context.go('/quiz/new/$mode'),
+        onTap: () => context.go('/quiz/pick/$mode'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding:
@@ -215,7 +215,7 @@ class _ModeTile extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               FilledButton.tonal(
-                onPressed: enabled ? () => context.go('/quiz/new/$mode') : null,
+                onPressed: enabled ? () => context.go('/quiz/pick/$mode') : null,
                 child: const Text('开始'),
               ),
             ],

@@ -1,13 +1,13 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import '../../data/db/database.dart';
+import '../../../data/db/database.dart';
 import 'review_mode.dart';
 
 part 'quiz_session_state.freezed.dart';
 
 /// 答题会话状态 -- QuizSessionController 的 state 类型。
 @freezed
-class QuizSessionState with _$QuizSessionState {
+abstract class QuizSessionState with _$QuizSessionState {
   const factory QuizSessionState({
     required String bankId,
     required ReviewMode mode,
@@ -37,7 +37,7 @@ class QuizSessionState with _$QuizSessionState {
 
 /// 单次答题记录 -- 存储在 QuizSessionState.answers 中。
 @freezed
-class AnswerRecord with _$AnswerRecord {
+abstract class AnswerRecord with _$AnswerRecord {
   const factory AnswerRecord({
     required String questionId,
     required List<String> givenAnswer,

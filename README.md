@@ -1,27 +1,39 @@
 # RedClass · 红课复习
 
-本地化大学课程复习工具 — Flutter 跨端 App（Android / iOS / Windows / macOS / Linux）。
+本地化大学课程复习工具 — Flutter Windows 桌面 App。
 
-## 功能
+> **平台支持**：目前**仅 Windows** 平台经过实际测试与可用验证。
+> Android / iOS / macOS / Linux 仅完成基础编译通过，未做端到端测试。
 
-- **题库导入**：PDF / DOCX 文字题一键解析为结构化题目（单选 / 多选 / 判断 / 简答）
-- **刷题模式**：题目导航、进度条、错题重做、收藏、键盘快捷键
-- **错题本**：自动记录错题，支持专项重做
-- **统计**：正确率、模式分布等聚合视图
-- **LLM 辅助（可选）**：接入本地 GGUF 模型做题干规范化（默认 stub，无需模型）
-- **暗色模式**：完整支持 Material 3 暗色主题
-- **本地优先**：所有数据存 SQLite（drift），无需后端
+## 已实现功能
+
+- **题库导入**
+  - PDF 文字题提取（pdfrx / PDFium）
+  - DOCX 文字题提取
+  - 启发式解析器自动识别单选 / 多选 / 判断 / 简答
+  - 解析结果可手动调整后入库
+- **刷题**
+  - 题目导航、进度条、上一题 / 下一题
+  - 多选题多选与取消选择
+  - 键盘快捷键（A-H 选项、Space 确认、左右切题）
+  - 错题标记
+- **错题本**：自动收录错题，支持专项重做
+- **收藏**：题目收藏夹
+- **统计**：正确率、按题型 / 模式分布
+- **题库详情**：题库元信息、题目列表
+- **导出**：题库导出为 JSON
+- **主题**：Material 3 浅色 / 暗色完整支持
+- **本地优先**：所有数据存 SQLite（drift），无后端依赖
+- **LLM（可选）**：支持本地 GGUF 模型或 OpenAI 兼容 HTTP 端点做题干规范化；默认 stub，无需模型即可使用
 
 ## 技术栈
 
-- **Flutter** 3.35+ / **Dart** 3.12+
-- **状态管理**：Riverpod 3
-- **路由**：go_router 17
-- **数据库**：drift 2（SQLite）
-- **PDF 解析**：pdfrx（PDFium）
-- **DOCX 解析**：自定义 zip + XML
-- **LLM**（可选）：llama.cpp FFI / HTTP OpenAI 兼容
-- **字体**：Noto Sans SC（google_fonts）
+- Flutter 3.35+ / Dart 3.12+
+- Riverpod 3（状态管理）
+- go_router 17（路由）
+- drift 2 + sqlite3_flutter_libs（SQLite）
+- pdfrx（PDF 解析）
+- Noto Sans SC（google_fonts，中文）
 
 ## 项目结构
 
@@ -29,13 +41,13 @@
 lib/
 ├── core/              # 主题、路径
 ├── data/              # 数据库、LLM 客户端、仓储
-├── features/          # 按 feature 切分
+├── features/
+│   ├── home/          #   首页
 │   ├── import/        #   PDF/DOCX 导入 + 启发式解析
 │   ├── quiz/          #   刷题、答题、错题
 │   ├── bank_detail/   #   题库详情
 │   ├── bookmarks/     #   收藏
 │   ├── stats/         #   统计
-│   ├── home/          #   首页
 │   ├── models/        #   本地 LLM 模型管理
 │   └── export/        #   导出
 └── routing/           # 路由配置
@@ -46,7 +58,7 @@ lib/
 ```bash
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # 生成 .g.dart
-flutter run
+flutter run -d windows
 ```
 
 ## 测试
@@ -58,11 +70,11 @@ dart run tools/parse_real_bank.dart   # 真实题库端到端解析验证
 
 ## 数据隐私
 
-- 题目数据全部存储在本地 SQLite
-- LLM 调用（若启用）走本地模型或自托管 HTTP 端点
-- `doc/example/` 包含真实试卷，**已通过 .gitignore 排除**
-- 不收集任何遥测数据
+- 题目数据、错题、收藏等全部存储在本地 SQLite（用户目录下）
+- LLM 调用（若启用）走本地模型或自托管 HTTP 端点，不经过第三方
+- `doc/example/` 包含真实试卷，**已通过 .gitignore 排除，不会被推送到仓库**
+- 不收集任何遥测或使用数据
 
 ## 许可证
 
-私有项目。
+私有项目，保留所有权利。

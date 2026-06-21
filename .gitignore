@@ -35,3 +35,9 @@ doc/example/
 
 # Screenshots
 flutter_*.png
+
+# Logs / coverage / env
+*.log
+.env
+.env.*
+coverage/

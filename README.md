@@ -24,16 +24,6 @@
 - **导出**：题库导出为 JSON
 - **主题**：Material 3 浅色 / 暗色完整支持
 - **本地优先**：所有数据存 SQLite（drift），无后端依赖
-- **LLM（可选）**：支持本地 GGUF 模型或 OpenAI 兼容 HTTP 端点做题干规范化；默认 stub，无需模型即可使用
-
-## 技术栈
-
-- Flutter 3.35+ / Dart 3.12+
-- Riverpod 3（状态管理）
-- go_router 17（路由）
-- drift 2 + sqlite3_flutter_libs（SQLite）
-- pdfrx（PDF 解析）
-- Noto Sans SC（google_fonts，中文）
 
 ## 项目结构
 
@@ -48,7 +38,7 @@ lib/
 │   ├── bank_detail/   #   题库详情
 │   ├── bookmarks/     #   收藏
 │   ├── stats/         #   统计
-│   ├── models/        #   本地 LLM 模型管理
+│   ├── models/        #   本地 LLM 模型管理（实验性，未测试）
 │   └── export/        #   导出
 └── routing/           # 路由配置
 ```
@@ -71,7 +61,6 @@ dart run tools/parse_real_bank.dart   # 真实题库端到端解析验证
 ## 数据隐私
 
 - 题目数据、错题、收藏等全部存储在本地 SQLite（用户目录下）
-- LLM 调用（若启用）走本地模型或自托管 HTTP 端点，不经过第三方
 - `doc/example/` 包含真实试卷，**已通过 .gitignore 排除，不会被推送到仓库**
 - 不收集任何遥测或使用数据
 

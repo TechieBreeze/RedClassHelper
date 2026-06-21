@@ -369,5 +369,75 @@ D.
       final q = candidates.first;
       expect(q.options[0], contains('A. 选项1'));
     });
+
+    // ── 行末悬空选项标签 (4 种变体) ──
+    // 场景来源：doc/example/《纲要》选择题（2026年5月最新修订版）.json Q377 / Q5
+    // PDF 提取时 D. 之后无内容（点号后立即换行），文本被推到下一行。
+
+    test('Q377: D. inline empty + text on next line → 4 options', () {
+      // 复现 _gangyao_extracted.txt 第1843-1845行
+      const input = '''
+7、近代中国，列强对华文化渗透主要表现在 （ AB  ）
+A． 披着宗教 外衣， 进行侵略活动   B.为侵略中国制造舆论   C.实行商品倾销和资本输出   D.
+控制中国的内政外交
+8、近代中国反侵略战争失败的主要原因是 （  BD  ）
+A.中国当时的实力弱   B.社会制度的腐败   C.帝国主义过于强大   D.经济技术落后
+''';
+      final candidates = parser.parse(input);
+      expect(candidates.length, 2);
+      final q7 = candidates[0];
+      expect(q7.options.length, 4, reason: 'D 选项不应丢失');
+      expect(q7.options[2], 'C. 实行商品倾销和资本输出');
+      expect(q7.options[3], 'D. 控制中国的内政外交');
+      expect(q7.answer, 'AB');
+      expect(q7.candidateType, CandidateType.multiChoice,
+          reason: 'AB 答案应识别为多选题，即使 D 解析异常后只有 3 个选项也应能识别');
+    });
+
+    test('Q5: D. inline empty + text on next line (book-title variant)', () {
+      // Q5 真实 PDF 文本是空格分隔 D《中法新约》 (D 标签无点号 + 内容接《)，
+      // 那是另一种 bug（空格分隔路径）。这里改用与 Q377 同源的"点号+换行"变体：
+      // C. 有内容、D. 同行末尾空、内容《中法新约》在下一行。
+      const input = '''
+5、我国与列强签订的第一个不平等条约是 （  A  ）
+A.中英《南京条约》   B.中英《北京条约》   C.中日《马关条约》   D.
+《中法新约》
+''';
+      final candidates = parser.parse(input);
+      expect(candidates, isNotEmpty);
+      expect(candidates.first.options.length, 4,
+          reason: 'D. 同行末尾空 + 下一行《中法新约》 应识别为 D 内容');
+      expect(candidates.first.options[2], contains('中日《马关条约》'));
+      expect(candidates.first.options[3], contains('《中法新约》'));
+    });
+
+    test('D bare letter on prev line, dot+text on next line', () {
+      // 点号换行场景（用户边界情况 #1）
+      const input = '''
+1. 测试题
+A.xxx B.xxx C.xxx D
+.控制中国的内政外交
+答案：AB
+''';
+      final candidates = parser.parse(input);
+      expect(candidates, isNotEmpty);
+      expect(candidates.first.options.length, 4);
+      expect(candidates.first.options[3], contains('控制中国的内政外交'));
+    });
+
+    test('D bare letter, dot on its own line, text on third line', () {
+      // 标签+点号都换行（用户边界情况 #2）
+      const input = '''
+1. 测试题
+A.xxx B.xxx C.xxx D
+.
+控制中国的内政外交
+答案：AB
+''';
+      final candidates = parser.parse(input);
+      expect(candidates, isNotEmpty);
+      expect(candidates.first.options.length, 4);
+      expect(candidates.first.options[3], contains('控制中国的内政外交'));
+    });
   });
 }

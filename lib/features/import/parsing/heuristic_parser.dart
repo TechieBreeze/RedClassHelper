@@ -429,9 +429,33 @@ class HeuristicParser {
   /// 标准格式（A. / A、/ A．）：逐行提取，支持单行多选和多行延续
   List<String> _extractStandardOptions(List<String> lines) {
     final options = <String>[];
+    String? pendingLabel; // 上一行末尾未完成的选项标签（PDF 换行断标签）
     for (final rawLine in lines) {
       final line = rawLine.trim();
       if (line.isEmpty) continue;
+
+      // 如果有待补全的选项标签：当前行是它的内容
+      // （除非是答案/解析/题号行 — 那些应丢弃 pending 并按标准处理）
+      if (pendingLabel != null) {
+        final isStructuralLine = _answerLineRE.hasMatch(line) ||
+            _explanationLineRE.hasMatch(line) ||
+            RegExp(r'^\d').hasMatch(line);
+        if (!isStructuralLine) {
+          // 整行只有孤立点号（如 ".  \n"）→ 消耗点号但保持 pending
+          if (RegExp(r'^[.、．]\s*$').hasMatch(line)) {
+            continue;
+          }
+          // 剥离行首孤立点号（"D\n.xxx" 场景下的 ".xxx"）
+          var content = line;
+          if (RegExp(r'^[.、．]').hasMatch(content)) {
+            content = content.substring(1).trim();
+          }
+          options.add('$pendingLabel. $content');
+          pendingLabel = null;
+          continue;
+        }
+        pendingLabel = null; // 结构行 → 丢弃 pending，按标准处理
+      }
 
       // 先尝试单行多选格式：A.xxx  B.xxx  C.xxx  D.xxx
       final inlineMatches = _inlineChoiceRE.allMatches(line).toList();
@@ -441,6 +465,8 @@ class HeuristicParser {
           final text = (m.group(2) ?? '').trim();
           options.add('$label. $text');
         }
+        // 行末悬空标签检测：若行末是 "D." 或 "D"（裸字母，预期下一行有点号或内容）
+        pendingLabel = _detectUnfinishedLabel(line);
         continue;
       }
 
@@ -463,6 +489,19 @@ class HeuristicParser {
       }
     }
     return options;
+  }
+
+  /// 检测行末是否以未完成的选项标签结尾
+  /// - "...C.xxx D." → "D" (后续内容在下一行)
+  /// - "...C.xxx D、" → "D"
+  /// - "...C.xxx D"   → "D" (裸字母，预期下一行有点号或内容)
+  /// 返回规范化后的字母（A-H），否则 null
+  String? _detectUnfinishedLabel(String line) {
+    final m1 = RegExp(r'\s+([A-HＡ-Ｈ])\s*[.、．]\s*$').firstMatch(line);
+    if (m1 != null) return _normalizeOptionLabel(m1.group(1)!);
+    final m2 = RegExp(r'\s+([A-HＡ-Ｈ])\s*$').firstMatch(line);
+    if (m2 != null) return _normalizeOptionLabel(m2.group(1)!);
+    return null;
   }
 
   /// 空格分隔格式（A 选项文本  B 选项文本）：无点号，仅空格分隔

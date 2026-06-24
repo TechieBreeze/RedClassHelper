@@ -11,6 +11,11 @@
 build/
 pubspec.lock
 
+# Generated code (regenerate with: dart run build_runner build)
+*.g.dart
+*.freezed.dart
+*.drift.dart
+
 # IDE
 .idea/
 .vscode/
@@ -32,6 +37,9 @@ android/.kotlin/
 
 # Example documents (real exam papers)
 doc/example/
+
+# Build artifacts
+*.zip
 
 # Screenshots
 flutter_*.png

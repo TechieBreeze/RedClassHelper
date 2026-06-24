@@ -68,7 +68,7 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                   Icon(
                     Icons.check_circle_outline,
                     size: 64,
-                    color: Colors.green.shade600,
+                    color: Theme.of(context).colorScheme.tertiary,
                   ),
                   const SizedBox(height: 16),
 
@@ -456,7 +456,7 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                     if (showCheck) ...[
                       const SizedBox(width: 4),
                       Icon(Icons.check_circle,
-                          size: 16, color: Colors.green.shade600),
+                          size: 16, color: Theme.of(context).colorScheme.tertiary),
                     ],
                   ],
                 ),

@@ -24,14 +24,18 @@ ThemeData buildDynamicTheme(Brightness brightness, ColorScheme? dynamicScheme) {
 }
 
 ThemeData _buildThemeData(ColorScheme scheme, Brightness brightness) {
-  // Noto Sans SC — consistent CJK stroke weight across all sizes.
-  // google_fonts caches the font locally after first download.
-  final textTheme = GoogleFonts.notoSansScTextTheme();
+  // Noto Sans SC — 只应用字体，不设置颜色。
+  // GoogleFonts.notoSansScTextTheme() 返回固定黑色文字，会覆盖 M3 暗色模式颜色。
+  // 用 fontFamily 方式让 M3 的 onSurface/onPrimary 等颜色系统正常工作。
+  final base = brightness == Brightness.dark
+      ? Typography.whiteMountainView
+      : Typography.blackMountainView;
+  final notoSans = GoogleFonts.notoSansScTextTheme(base);
   return ThemeData(
-    useMaterial3: true, // M3 baseline (D-22)
+    useMaterial3: true,
     colorScheme: scheme,
     brightness: brightness,
-    textTheme: textTheme,
+    textTheme: notoSans,
     scaffoldBackgroundColor: scheme.surface,
     appBarTheme: AppBarTheme(
       backgroundColor: scheme.surface,
@@ -49,7 +53,6 @@ ThemeData _buildThemeData(ColorScheme scheme, Brightness brightness) {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size(64, 40),
-        foregroundColor: scheme.onPrimary,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(

@@ -433,12 +433,12 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
   Widget _buildAutoConfirmBanner(
       BuildContext context, int confirmedCount) {
     return Card(
-      color: Colors.green.shade50,
+      color: Theme.of(context).colorScheme.tertiaryContainer,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.green.shade600),
+            Icon(Icons.check_circle, color: Theme.of(context).colorScheme.tertiary),
             const SizedBox(width: 12),
             Expanded(
               child: Text(

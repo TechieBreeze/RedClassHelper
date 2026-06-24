@@ -12,12 +12,10 @@ import 'package:path/path.dart' as p;
 import '../../quiz/providers/bank_pick_provider.dart';
 import '../../quiz/providers/wrong_questions_provider.dart';
 
-/// 主页 (UI-SPEC §Layout — Home Screen)
-/// Phase 2 状态: 桌面端 FAB + 启用按钮；Android 端禁用
+/// 主页 — 大卡片 + 渐变 Hero + 视觉层次分明
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  /// 是否为桌面端（Windows 或 Linux）
   bool get _isDesktop => !kIsWeb && (Platform.isWindows || Platform.isLinux);
 
   @override
@@ -26,7 +24,6 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('红课复习'),
         actions: [
-          // 设置入口 — Phase 2 实现 SettingsScreen
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => context.push('/settings'),
@@ -34,7 +31,6 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      // Phase 2: 桌面端 FAB
       floatingActionButton: _isDesktop
           ? FloatingActionButton(
               onPressed: () => context.push('/import'),
@@ -45,110 +41,100 @@ class HomeScreen extends StatelessWidget {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
-          final EdgeInsets padding;
-          final double? maxWidth;
+          final double hPad;
+          final double? maxW;
           if (width < 600) {
-            // Compact (mobile portrait)
-            padding = const EdgeInsets.symmetric(horizontal: 16); // md
-            maxWidth = null;
+            hPad = 16;
+            maxW = null;
           } else if (width < 840) {
-            // Medium (small tablet / narrow desktop)
-            padding = const EdgeInsets.symmetric(horizontal: 24); // lg
-            maxWidth = null;
+            hPad = 24;
+            maxW = null;
           } else {
-            // Expanded (desktop / large tablet)
-            padding = const EdgeInsets.symmetric(horizontal: 32); // xl
-            maxWidth = 720;
+            hPad = 32;
+            maxW = 720;
           }
           return Center(
             child: ConstrainedBox(
-              constraints:
-                  BoxConstraints(maxWidth: maxWidth ?? double.infinity),
-              child: SingleChildScrollView(
-                padding:
-                    padding.add(const EdgeInsets.symmetric(vertical: 24)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    const _SectionHeader(title: '题库'),
-                    const SizedBox(height: 16), // md
-                    Consumer(
-                      builder: (context, ref, child) {
-                        final banksAsync = ref.watch(bankPickListProvider);
-                        return banksAsync.when(
-                          loading: () => const _BankListLoading(),
-                          error: (error, _) => _BankListError(
-                            message: error.toString(),
-                            onRetry: () =>
-                                ref.invalidate(bankPickListProvider),
-                          ),
-                          data: (banks) {
-                            if (banks.isEmpty) {
-                              return _BankEmptyStateCard(
-                                  isDesktop: _isDesktop);
-                            }
-                            return Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.stretch,
-                              children: [
-                                for (final item in banks) ...[
-                                  _BankCard(item: item),
-                                  const SizedBox(
-                                      height: 12), // md-sm card gap
-                                ],
-                              ],
+              constraints: BoxConstraints(maxWidth: maxW ?? double.infinity),
+              child: CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: hPad, vertical: 20),
+                    sliver: SliverList.list(
+                      children: [
+                        // ── Hero Banner ──
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final banks =
+                                ref.watch(bankPickListProvider).value ?? [];
+                            final wrong =
+                                ref.watch(wrongQuestionsProvider).value ?? 0;
+                            final totalQ = banks.fold<int>(
+                                0, (s, b) => s + b.totalQuestions);
+                            return _HeroBanner(
+                              bankCount: banks.length,
+                              questionCount: totalQ,
+                              wrongCount: wrong,
                             );
                           },
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 24), // lg (section gap)
-                    const _SectionHeader(title: '复习模式'),
-                    const SizedBox(height: 16), // md
-                    Consumer(
-                      builder: (context, ref, child) {
-                        final wrongCountAsync =
-                            ref.watch(wrongQuestionsProvider);
-                        final wrongCount = wrongCountAsync.value ?? 0;
+                        ),
+                        const SizedBox(height: 28),
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const _ModeTile(
-                              title: '乱序抽题',
-                              subtitle: '随机抽题，立刻判分',
-                              icon: Icons.shuffle,
-                              mode: 'random',
-                              enabled: true,
-                            ),
-                            const SizedBox(height: 12),
-                            _ModeTile(
-                              title: '错题复习',
-                              subtitle: '从错题本复习，答对即掌握',
-                              icon: Icons.replay_outlined,
-                              mode: 'review',
-                              enabled: true,
-                              badgeCount: wrongCount,
-                            ),
-                            const SizedBox(height: 12),
-                            _ModeTile(
-                              title: '错题抽查',
-                              subtitle: '从错题本随机抽 10 题自测',
-                              icon: Icons.bolt_outlined,
-                              mode: 'spotcheck',
-                              enabled: true,
-                              badgeCount: wrongCount,
-                            ),
-                          ],
-                        );
-                      },
+                        // ── 三个模式大卡 ──
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final wrong =
+                                ref.watch(wrongQuestionsProvider).value ?? 0;
+                            return _ActionCards(wrongCount: wrong);
+                          },
+                        ),
+                        const SizedBox(height: 28),
+
+                        // ── 题库 ──
+                        _SectionTitle(
+                          title: '我的题库',
+                          action: '导入',
+                          onAction: () => context.push('/import'),
+                        ),
+                        const SizedBox(height: 12),
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final banksAsync =
+                                ref.watch(bankPickListProvider);
+                            return banksAsync.when(
+                              loading: () => _LoadingBanks(),
+                              error: (e, _) => _ErrorBanks(
+                                msg: e.toString(),
+                                onRetry: () =>
+                                    ref.invalidate(bankPickListProvider),
+                              ),
+                              data: (banks) {
+                                if (banks.isEmpty) {
+                                  return _EmptyBank(
+                                      isDesktop: _isDesktop);
+                                }
+                                return Column(
+                                  children: [
+                                    for (final b in banks) ...[
+                                      _BankRow(item: b),
+                                      const SizedBox(height: 8),
+                                    ],
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 24),
+
+                        // ── 统计入口 ──
+                        _StatTile(onTap: () => context.push('/stats')),
+                        const SizedBox(height: 32),
+                      ],
                     ),
-                    const SizedBox(height: 24), // lg
-                    const _SectionHeader(title: '数据统计'),
-                    const SizedBox(height: 16),
-                    const _StatsEntryTile(),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );
@@ -158,291 +144,543 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
-  final String title;
+// ══════════════════════════════════════════════════════════════
+//  Hero Banner
+// ══════════════════════════════════════════════════════════════
 
-  @override
-  Widget build(BuildContext context) {
-    // 24px / Medium (500) per UI-SPEC §Typography Heading
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.headlineSmall,
-    );
-  }
-}
-
-class _BankEmptyStateCard extends StatelessWidget {
-  const _BankEmptyStateCard({required this.isDesktop});
-  final bool isDesktop;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: () => context.push('/import'),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16), // md
-          child: Row(
-            children: [
-              const Icon(Icons.library_books_outlined, size: 32),
-              const SizedBox(width: 16), // md
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '还没有题库',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4), // xs
-                    Text(
-                      '导入一份 .docx、.pdf 或 .json 题库，开始你的复习。',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              // CTA: 桌面端启用，Android 禁用
-              FilledButton.tonal(
-                onPressed: isDesktop ? () => context.push('/import') : null,
-                child: const Text('导入题库'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ModeTile extends StatelessWidget {
-  const _ModeTile({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.mode,
-    this.enabled = false,
-    this.badgeCount,
+class _HeroBanner extends StatelessWidget {
+  const _HeroBanner({
+    required this.bankCount,
+    required this.questionCount,
+    required this.wrongCount,
   });
 
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final String mode;
-  final bool enabled;
-  final int? badgeCount;
+  final int bankCount;
+  final int questionCount;
+  final int wrongCount;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final showBadge = badgeCount != null && badgeCount! > 0;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
 
-    return Card(
-      child: InkWell(
-        onTap: () => context.push('/quiz/pick/$mode'),
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-              child: Row(
-                children: [
-                  Icon(icon, size: 28),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  FilledButton.tonal(
-                    onPressed:
-                        enabled ? () => context.push('/quiz/pick/$mode') : null,
-                    child: const Text('开始'),
-                  ),
-                ],
-              ),
-            ),
-            if (showBadge)
-              Positioned(
-                top: -8,
-                right: -8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colorScheme.error,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    badgeCount.toString(),
-                    style: TextStyle(
-                      color: colorScheme.onError,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            cs.primary,
+            cs.tertiary,
           ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: cs.primary.withAlpha(60),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-    );
-  }
-}
-
-class _StatsEntryTile extends StatelessWidget {
-  const _StatsEntryTile();
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: () => context.push('/stats'),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '继续加油 💪',
+            style: tt.headlineSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '每天复习一点点，考试轻松过',
+            style: tt.bodyMedium?.copyWith(
+              color: Colors.white.withAlpha(200),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
             children: [
-              const Icon(Icons.insights_outlined, size: 28),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '数据统计',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '查看正确率与错题分布',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
+              _HeroStat(value: '$bankCount', label: '题库'),
+              const SizedBox(width: 24),
+              _HeroStat(value: '$questionCount', label: '总题'),
+              if (wrongCount > 0) ...[
+                const SizedBox(width: 24),
+                _HeroStat(
+                  value: '$wrongCount',
+                  label: '错题',
+                  valueColor: Colors.white,
+                  highlight: true,
                 ),
-              ),
-              const Icon(Icons.chevron_right),
+              ],
             ],
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
-class _BankListLoading extends StatelessWidget {
-  const _BankListLoading();
+class _HeroStat extends StatelessWidget {
+  const _HeroStat({
+    required this.value,
+    required this.label,
+    this.valueColor,
+    this.highlight = false,
+  });
+
+  final String value;
+  final String label;
+  final Color? valueColor;
+  final bool highlight;
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < 3; i++) ...[
-          Card(
-            elevation: 1,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 200,
-                          height: 16,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          width: 140,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+        Text(
+          value,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: valueColor ?? Colors.white,
+                fontWeight: FontWeight.w800,
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-        const Center(child: CircularProgressIndicator()),
+        ),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Colors.white.withAlpha(highlight ? 220 : 170),
+              ),
+        ),
       ],
     );
   }
 }
 
-class _BankListError extends StatelessWidget {
-  const _BankListError({required this.message, required this.onRetry});
-  final String message;
+// ══════════════════════════════════════════════════════════════
+//  三个模式动作卡
+// ══════════════════════════════════════════════════════════════
+
+class _ActionCards extends StatelessWidget {
+  const _ActionCards({required this.wrongCount});
+  final int wrongCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final cards = [
+      _ActionCardData(
+        title: '乱序抽题',
+        subtitle: '随机出题 · 即时判分',
+        icon: Icons.shuffle_rounded,
+        gradient: [cs.primary, cs.primary.withAlpha(200)],
+        mode: 'random',
+      ),
+      _ActionCardData(
+        title: '错题复习',
+        subtitle: wrongCount > 0 ? '$wrongCount 题待攻克' : '暂无错题',
+        icon: Icons.replay_rounded,
+        gradient: [cs.tertiary, cs.tertiary.withAlpha(200)],
+        mode: 'review',
+        badge: wrongCount,
+      ),
+      _ActionCardData(
+        title: '错题抽查',
+        subtitle: wrongCount > 0 ? '随机 10 题自测' : '暂无错题',
+        icon: Icons.bolt_rounded,
+        gradient: [cs.secondary, cs.secondary.withAlpha(200)],
+        mode: 'spotcheck',
+        badge: wrongCount,
+      ),
+    ];
+
+    return Column(
+      children: [
+        for (final c in cards) ...[
+          _ActionCard(data: c),
+          const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+}
+
+class _ActionCardData {
+  const _ActionCardData({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.gradient,
+    required this.mode,
+    this.badge,
+  });
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final List<Color> gradient;
+  final String mode;
+  final int? badge;
+}
+
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({required this.data});
+  final _ActionCardData data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push('/quiz/pick/${data.mode}'),
+        child: Container(
+          height: 80,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: data.gradient,
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+          ),
+          child: Stack(
+            children: [
+              // 半透明大图标背景
+              Positioned(
+                right: -8,
+                top: -8,
+                child: Icon(
+                  data.icon,
+                  size: 80,
+                  color: Colors.white.withAlpha(25),
+                ),
+              ),
+              // 内容
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(40),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(data.icon,
+                          color: Colors.white, size: 26),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            data.title,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            data.subtitle,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: Colors.white.withAlpha(200),
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (data.badge != null && data.badge! > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(40),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${data.badge}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    if (data.badge == null || data.badge == 0)
+                      const Icon(Icons.arrow_forward_ios_rounded,
+                          color: Colors.white70, size: 16),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Section Title
+// ══════════════════════════════════════════════════════════════
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({
+    required this.title,
+    this.action,
+    this.onAction,
+  });
+  final String title;
+  final String? action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const Spacer(),
+        if (action != null && onAction != null)
+          TextButton.icon(
+            onPressed: onAction,
+            icon: const Icon(Icons.add, size: 18),
+            label: Text(action!),
+          ),
+      ],
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  题库卡片
+// ══════════════════════════════════════════════════════════════
+
+class _BankRow extends StatelessWidget {
+  const _BankRow({required this.item});
+  final BankPickItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final bank = item.bank;
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      child: InkWell(
+        onTap: () => context.push('/bank/${bank.id}'),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [cs.primaryContainer, cs.primary.withAlpha(60)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.menu_book_rounded,
+                    size: 22, color: cs.onPrimaryContainer),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      bank.name,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${item.totalQuestions} 题 · ${p.basename(bank.source)}',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: cs.onSurface.withAlpha(150)),
+                    ),
+                  ],
+                ),
+              ),
+              if (item.activeWrongCount > 0)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: cs.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${item.activeWrongCount} 错',
+                    style: TextStyle(
+                      color: cs.onErrorContainer,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              Icon(Icons.chevron_right_rounded,
+                  color: cs.outline, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyBank extends StatelessWidget {
+  const _EmptyBank({required this.isDesktop});
+  final bool isDesktop;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      child: InkWell(
+        onTap: () => context.push('/import'),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          child: Column(
+            children: [
+              Icon(Icons.library_add_rounded,
+                  size: 44, color: cs.outline),
+              const SizedBox(height: 12),
+              Text('还没有题库',
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(
+                '导入 .docx / .pdf / .json 开始复习',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: cs.onSurface.withAlpha(150),
+                    ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.tonalIcon(
+                onPressed:
+                    isDesktop ? () => context.push('/import') : null,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('导入题库'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadingBanks extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        for (var i = 0; i < 2; i++) ...[
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                            width: 140,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: cs.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(4),
+                            )),
+                        const SizedBox(height: 8),
+                        Container(
+                            width: 100,
+                            height: 11,
+                            decoration: BoxDecoration(
+                              color: cs.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(4),
+                            )),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class _ErrorBanks extends StatelessWidget {
+  const _ErrorBanks({required this.msg, required this.onRetry});
+  final String msg;
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         child: Column(
           children: [
             Icon(Icons.error_outline,
                 size: 32, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 8),
-            Text('加载题库列表失败',
+            Text('加载失败',
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 4),
-            Text(message,
-                style: Theme.of(context).textTheme.bodyMedium,
+            Text(msg,
+                style: Theme.of(context).textTheme.bodySmall,
                 textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            OutlinedButton(
-                onPressed: onRetry, child: const Text('重试')),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('重试'),
+            ),
           ],
         ),
       ),
@@ -450,42 +688,70 @@ class _BankListError extends StatelessWidget {
   }
 }
 
-class _BankCard extends StatelessWidget {
-  const _BankCard({required this.item});
-  final BankPickItem item;
+// ══════════════════════════════════════════════════════════════
+//  统计入口
+// ══════════════════════════════════════════════════════════════
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.onTap});
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final bank = item.bank;
+    final cs = Theme.of(context).colorScheme;
     return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: () => context.push('/bank/${bank.id}'),
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              const Icon(Icons.library_books_outlined, size: 28),
-              const SizedBox(width: 16),
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      cs.secondaryContainer,
+                      cs.secondary.withAlpha(60),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.insights_rounded,
+                    size: 22, color: cs.onSecondaryContainer),
+              ),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(bank.name,
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 4),
                     Text(
-                      '${item.totalQuestions}题 · ${p.basename(bank.source)}',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      '数据统计',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '查看正确率与错题分布',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(
+                            color: cs.onSurface.withAlpha(150),
+                          ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
-              const Icon(Icons.chevron_right),
+              Icon(Icons.chevron_right_rounded,
+                  color: cs.outline, size: 20),
             ],
           ),
         ),

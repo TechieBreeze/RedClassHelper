@@ -29,13 +29,8 @@ enum OptionCardState {
 /// Renders one option in a Card with InkWell, showing the letter key,
 /// option text, and optional trailing icon for feedback states (D-04).
 ///
-/// Color contract per 04-UI-SPEC.md:
-/// - normal: surfaceContainerHighest, no border/icon
-/// - selected: primaryContainer, no trailing icon
-/// - correct: green tint 0.15 + check_circle icon
-/// - wrongSelected: red border 2px + cancel icon
-/// - correctUnselected: green tint 0.10 + check_circle_outline icon
-/// - dimmed: opacity 0.5, no icon
+/// Uses theme-aware colors (tertiary for correct, error for wrong) to
+/// ensure proper contrast in both light and dark modes.
 class OptionCard extends StatelessWidget {
   const OptionCard({
     super.key,
@@ -101,7 +96,7 @@ class OptionCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Icon(
                   _trailingIcon!,
-                  color: _trailingIconColor,
+                  color: _trailingIconColor(colorScheme),
                   size: 22,
                 ),
               ],
@@ -122,7 +117,7 @@ class OptionCard extends StatelessWidget {
     if (state == OptionCardState.wrongSelected) {
       return RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFD32F2F), width: 2),
+        side: BorderSide(color: cs.error, width: 2),
       );
     }
     return RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
@@ -130,18 +125,20 @@ class OptionCard extends StatelessWidget {
 
   Color _buildBackground(ColorScheme cs) {
     return switch (state) {
-      OptionCardState.correct => Colors.green.withOpacity(0.22),
-      OptionCardState.correctUnselected => Colors.green.withOpacity(0.14),
+      OptionCardState.correct => cs.tertiaryContainer,
+      OptionCardState.correctUnselected => cs.tertiaryContainer.withAlpha(180),
       OptionCardState.selected => cs.primaryContainer,
       _ => cs.surfaceContainerHighest,
     };
   }
 
   Color _letterBgColor(ColorScheme cs) {
-    if (state == OptionCardState.selected) return cs.primary.withOpacity(0.15);
+    if (state == OptionCardState.selected) {
+      return cs.primary.withAlpha(40);
+    }
     if (state == OptionCardState.correct ||
         state == OptionCardState.correctUnselected) {
-      return Colors.green.withOpacity(0.28);
+      return cs.tertiary.withAlpha(40);
     }
     return cs.surfaceContainerHighest;
   }
@@ -150,13 +147,13 @@ class OptionCard extends StatelessWidget {
     if (state == OptionCardState.selected) return cs.primary;
     if (state == OptionCardState.correct ||
         state == OptionCardState.correctUnselected) {
-      return Colors.green.shade500;
+      return cs.onTertiaryContainer;
     }
     return cs.onSurface;
   }
 
   Color _textColor(ColorScheme cs) {
-    if (state == OptionCardState.dimmed) return cs.onSurface.withOpacity(0.5);
+    if (state == OptionCardState.dimmed) return cs.onSurface.withAlpha(140);
     return cs.onSurface;
   }
 
@@ -169,13 +166,13 @@ class OptionCard extends StatelessWidget {
     };
   }
 
-  Color? get _trailingIconColor {
+  Color _trailingIconColor(ColorScheme cs) {
     return switch (state) {
       OptionCardState.correct ||
       OptionCardState.correctUnselected =>
-        Colors.green,
-      OptionCardState.wrongSelected => const Color(0xFFD32F2F),
-      _ => null,
+        cs.tertiary,
+      OptionCardState.wrongSelected => cs.error,
+      _ => cs.onSurface,
     };
   }
 }

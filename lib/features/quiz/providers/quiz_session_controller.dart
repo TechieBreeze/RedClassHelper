@@ -9,6 +9,8 @@ import '../../../data/db/database.dart';
 import '../../../data/repositories/ledger_repository.dart';
 import '../models/quiz_session_state.dart';
 import '../models/review_mode.dart';
+import 'quiz_session_persistence.dart';
+import 'quiz_settings_provider.dart';
 import 'wrong_questions_provider.dart';
 
 part 'quiz_session_controller.g.dart';
@@ -18,19 +20,40 @@ part 'quiz_session_controller.g.dart';
 /// 拥有题目队列、当前索引、已提交答案、耗时统计和自动翻题计时器。
 /// 所有 DB 写入委托给 [LedgerRepository] 以保证原子性 (D-16)。
 ///
-/// 使用 [reviewModeFromString] 校验 mode 路由参数 (Pitfall 3)。
-/// 空题库 / 无效模式在 build() 阶段立即返回结束状态。
+/// 支持会话持久化：答题过程中自动保存进度到 SharedPreferences，
+/// 退出后再次进入可恢复上次的答题状态。
 @riverpod
 class QuizSessionController extends _$QuizSessionController {
   Timer? _autoAdvanceTimer;
   LedgerRepository? _ledgerRepo;
+  QuizSessionPersistence? _persistence;
   final _random = Random();
+
+  /// 已保存但尚未使用的会话数据（用于触发恢复对话框）。
+  QuizSessionState? pendingResumeSession;
 
   @override
   Future<QuizSessionState> build(String bankId, String modeStr) async {
     final mode = reviewModeFromString(modeStr);
     final db = await ref.watch(appDatabaseProvider.future);
     _ledgerRepo = LedgerRepository(db);
+    final prefs = ref.read(sharedPreferencesProvider);
+    _persistence = QuizSessionPersistence(prefs);
+
+    // 尝试加载已保存的会话
+    final saved = await _persistence!.load(
+      db: db,
+      bankId: bankId,
+      modeStr: modeStr,
+    );
+
+    if (saved != null &&
+        saved.status == QuizStatus.active &&
+        saved.questions.isNotEmpty) {
+      // 有待恢复的会话 — 暂存到 pendingResumeSession，
+      // 由 QuizScreen 显示恢复对话框后再决定是否使用。
+      pendingResumeSession = saved;
+    }
 
     // Load bank name
     final bank = await (db.select(db.questionBanks)
@@ -63,6 +86,8 @@ class QuizSessionController extends _$QuizSessionController {
     questions.shuffle(_random);
 
     if (questions.isEmpty) {
+      // 空题库 — 清除可能存在的旧会话
+      await _persistence!.clear(bankId, mode.name);
       return QuizSessionState(
         bankId: bankId,
         mode: mode,
@@ -89,6 +114,23 @@ class QuizSessionController extends _$QuizSessionController {
       status: QuizStatus.active,
       bankName: bank.name,
     );
+  }
+
+  /// 使用已保存的会话恢复答题进度。
+  void resumeSavedSession() {
+    final saved = pendingResumeSession;
+    if (saved == null) return;
+    pendingResumeSession = null;
+    state = AsyncData(saved);
+  }
+
+  /// 丢弃已保存的会话，从头开始答题。
+  Future<void> discardSavedSession() async {
+    final current = state.value;
+    pendingResumeSession = null;
+    if (current != null && _persistence != null) {
+      await _persistence!.clear(current.bankId, current.mode.name);
+    }
   }
 
   Future<List<Question>> _loadRandomQuestions(
@@ -130,10 +172,6 @@ class QuizSessionController extends _$QuizSessionController {
   }
 
   /// D-02, D-04: Submit the selected option(s) and grade them.
-  ///
-  /// In 'instant' mode, the UI calls this immediately on option tap for single
-  /// choice. In 'confirm' mode, the UI calls this on Space key or confirm
-  /// button tap. For multi-choice, always uses confirm-style flow.
   Future<void> submitAnswer(List<String> optionKeys) async {
     final current = state.value;
     if (current == null || current.isComplete) return;
@@ -186,7 +224,6 @@ class QuizSessionController extends _$QuizSessionController {
       );
     } else {
       // STAT-01: Record attempt without ledger change
-      // (correct in random, any in spotcheck)
       final db = await ref.read(appDatabaseProvider.future);
       await db.into(db.answerAttempts).insert(
         AnswerAttemptsCompanion.insert(
@@ -219,14 +256,14 @@ class QuizSessionController extends _$QuizSessionController {
       status: QuizStatus.showingFeedback,
     ));
 
+    // 保存进度到持久化存储
+    await _saveSession();
+
     // Invalidate wrongQuestionsProvider so badge updates reactively
     ref.invalidate(wrongQuestionsProvider);
   }
 
   /// Go back to the previous question.
-  ///
-  /// Called by: left-arrow key. Shows the previously answered question
-  /// with its original feedback.
   void goToPrevious() {
     _autoAdvanceTimer?.cancel();
     _autoAdvanceTimer = null;
@@ -242,8 +279,6 @@ class QuizSessionController extends _$QuizSessionController {
   }
 
   /// D-03: Advance to the next question.
-  ///
-  /// Called by: auto-advance timer (2s), right-arrow key, or manual button.
   void advanceToNext() {
     _autoAdvanceTimer?.cancel();
     _autoAdvanceTimer = null;
@@ -261,6 +296,8 @@ class QuizSessionController extends _$QuizSessionController {
         elapsedSeconds: elapsed.inSeconds,
         totalQuestions: current.questions.length,
       ));
+      // 清除已保存的会话（已完成，无需恢复）
+      _persistence?.clear(current.bankId, current.mode.name);
     } else {
       final alreadyAnswered = nextIndex < current.answers.length;
       state = AsyncData(current.copyWith(
@@ -269,6 +306,8 @@ class QuizSessionController extends _$QuizSessionController {
             ? QuizStatus.showingFeedback
             : QuizStatus.active,
       ));
+      // 保存进度
+      _saveSession();
     }
   }
 
@@ -284,6 +323,23 @@ class QuizSessionController extends _$QuizSessionController {
   void cancelAutoAdvance() {
     _autoAdvanceTimer?.cancel();
     _autoAdvanceTimer = null;
+  }
+
+  /// 将当前会话状态保存到持久化存储。
+  Future<void> _saveSession() async {
+    final current = state.value;
+    if (current == null || _persistence == null) return;
+    if (current.isComplete) return;
+
+    await _persistence!.save(
+      bankId: current.bankId,
+      mode: current.mode,
+      questions: current.questions,
+      currentIndex: current.currentIndex,
+      answers: current.answers,
+      startTime: current.startTime,
+      bankName: current.bankName,
+    );
   }
 
   /// Single-choice grading (RESEARCH Pattern 5).

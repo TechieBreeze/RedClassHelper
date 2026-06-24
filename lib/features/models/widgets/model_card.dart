@@ -111,7 +111,10 @@ class ModelCard extends ConsumerWidget {
           Chip(
             avatar: const Icon(Icons.check_circle, size: 16),
             label: const Text('已安装'),
-            backgroundColor: Colors.green.shade100,
+            backgroundColor: Theme.of(context).colorScheme.tertiaryContainer,
+            labelStyle: TextStyle(
+              color: Theme.of(context).colorScheme.onTertiaryContainer,
+            ),
           ),
           const Spacer(),
           TextButton(
@@ -237,8 +240,8 @@ class _TierBadge extends StatelessWidget {
         ),
       ModelTier.fast => (
           '快速',
-          Colors.green.shade100,
-          Colors.green.shade700,
+          Theme.of(context).colorScheme.tertiaryContainer,
+          Theme.of(context).colorScheme.onTertiaryContainer,
         ),
       ModelTier.experimental => (
           '实验',

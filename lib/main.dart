@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:redclass/core/paths.dart';
 import 'package:redclass/core/theme.dart';
+import 'package:redclass/core/theme_mode_provider.dart';
 import 'package:redclass/features/quiz/providers/quiz_settings_provider.dart';
 import 'package:redclass/routing/router.dart';
 
@@ -28,11 +29,12 @@ Future<void> main() async {
 ///
 /// Plan 01-05: DynamicColorBuilder 包裹 MaterialApp.router,
 /// buildAppTheme 使用 dynamic_color 的 ColorScheme.harmonized() + fromSeed 兜底 (D-20/D-23)。
-class RedClassApp extends StatelessWidget {
+class RedClassApp extends ConsumerWidget {
   const RedClassApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
     // RESEARCH.md Pitfall 7: dynamic_color 在大多数桌面端返回 null; ThemeData 内部用 harmonized() 兜底
     return DynamicColorBuilder(
       builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
@@ -40,7 +42,7 @@ class RedClassApp extends StatelessWidget {
           title: '红课复习',
           theme: buildAppTheme(Brightness.light, lightDynamic),
           darkTheme: buildAppTheme(Brightness.dark, darkDynamic),
-          themeMode: ThemeMode.system, // D-21
+          themeMode: themeMode,
           routerConfig: appRouter, // Phase 1 routing
           locale: const Locale('zh', 'CN'),
         );

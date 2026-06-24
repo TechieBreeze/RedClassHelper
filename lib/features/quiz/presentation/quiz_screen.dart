@@ -138,6 +138,18 @@ class QuizScreen extends ConsumerWidget {
       );
     }
 
+    // Check for saved session — show resume dialog
+    final controller =
+        ref.read(quizSessionControllerProvider(bankId, mode).notifier);
+    final pendingResume = controller.pendingResumeSession;
+    if (pendingResume != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          _showResumeDialog(context, ref, pendingResume);
+        }
+      });
+    }
+
     // Error state
     if (session.status == QuizStatus.error) {
       return Scaffold(
@@ -503,6 +515,49 @@ class QuizScreen extends ConsumerWidget {
     ref
         .read(quizSessionControllerProvider(bankId, mode).notifier)
         .advanceToNext();
+  }
+
+  /// 显示恢复上次答题进度的对话框。
+  void _showResumeDialog(
+    BuildContext context,
+    WidgetRef ref,
+    QuizSessionState saved,
+  ) {
+    final answered = saved.answers.length;
+    final total = saved.questions.length;
+    final remaining = total - answered;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.history, size: 48),
+        title: const Text('发现上次未完成的答题'),
+        content: Text(
+          '上次已答 $answered/$total 题，还剩 $remaining 题未答。\n是否继续上次的进度？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ref
+                  .read(quizSessionControllerProvider(bankId, mode).notifier)
+                  .discardSavedSession();
+            },
+            child: const Text('重新开始'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ref
+                  .read(quizSessionControllerProvider(bankId, mode).notifier)
+                  .resumeSavedSession();
+            },
+            child: const Text('继续做题'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Build a small chip showing the question type (单选题/多选题/判断题).

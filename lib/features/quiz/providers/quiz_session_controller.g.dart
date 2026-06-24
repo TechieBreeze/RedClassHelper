@@ -13,8 +13,8 @@ part of 'quiz_session_controller.dart';
 /// 拥有题目队列、当前索引、已提交答案、耗时统计和自动翻题计时器。
 /// 所有 DB 写入委托给 [LedgerRepository] 以保证原子性 (D-16)。
 ///
-/// 使用 [reviewModeFromString] 校验 mode 路由参数 (Pitfall 3)。
-/// 空题库 / 无效模式在 build() 阶段立即返回结束状态。
+/// 支持会话持久化：答题过程中自动保存进度到 SharedPreferences，
+/// 退出后再次进入可恢复上次的答题状态。
 
 @ProviderFor(QuizSessionController)
 final quizSessionControllerProvider = QuizSessionControllerFamily._();
@@ -24,8 +24,8 @@ final quizSessionControllerProvider = QuizSessionControllerFamily._();
 /// 拥有题目队列、当前索引、已提交答案、耗时统计和自动翻题计时器。
 /// 所有 DB 写入委托给 [LedgerRepository] 以保证原子性 (D-16)。
 ///
-/// 使用 [reviewModeFromString] 校验 mode 路由参数 (Pitfall 3)。
-/// 空题库 / 无效模式在 build() 阶段立即返回结束状态。
+/// 支持会话持久化：答题过程中自动保存进度到 SharedPreferences，
+/// 退出后再次进入可恢复上次的答题状态。
 final class QuizSessionControllerProvider
     extends $AsyncNotifierProvider<QuizSessionController, QuizSessionState> {
   /// 答题会话控制器 — 管理整个答题生命周期 (D-01 ~ D-06, D-16, D-17)。
@@ -33,8 +33,8 @@ final class QuizSessionControllerProvider
   /// 拥有题目队列、当前索引、已提交答案、耗时统计和自动翻题计时器。
   /// 所有 DB 写入委托给 [LedgerRepository] 以保证原子性 (D-16)。
   ///
-  /// 使用 [reviewModeFromString] 校验 mode 路由参数 (Pitfall 3)。
-  /// 空题库 / 无效模式在 build() 阶段立即返回结束状态。
+  /// 支持会话持久化：答题过程中自动保存进度到 SharedPreferences，
+  /// 退出后再次进入可恢复上次的答题状态。
   QuizSessionControllerProvider._({
     required QuizSessionControllerFamily super.from,
     required (String, String) super.argument,
@@ -72,15 +72,15 @@ final class QuizSessionControllerProvider
 }
 
 String _$quizSessionControllerHash() =>
-    r'7664f3397a04efd124ffa91162e44454a649fb97';
+    r'15004f061ae6aac8adf24a8cee319a5a2d4e2495';
 
 /// 答题会话控制器 — 管理整个答题生命周期 (D-01 ~ D-06, D-16, D-17)。
 ///
 /// 拥有题目队列、当前索引、已提交答案、耗时统计和自动翻题计时器。
 /// 所有 DB 写入委托给 [LedgerRepository] 以保证原子性 (D-16)。
 ///
-/// 使用 [reviewModeFromString] 校验 mode 路由参数 (Pitfall 3)。
-/// 空题库 / 无效模式在 build() 阶段立即返回结束状态。
+/// 支持会话持久化：答题过程中自动保存进度到 SharedPreferences，
+/// 退出后再次进入可恢复上次的答题状态。
 
 final class QuizSessionControllerFamily extends $Family
     with
@@ -105,8 +105,8 @@ final class QuizSessionControllerFamily extends $Family
   /// 拥有题目队列、当前索引、已提交答案、耗时统计和自动翻题计时器。
   /// 所有 DB 写入委托给 [LedgerRepository] 以保证原子性 (D-16)。
   ///
-  /// 使用 [reviewModeFromString] 校验 mode 路由参数 (Pitfall 3)。
-  /// 空题库 / 无效模式在 build() 阶段立即返回结束状态。
+  /// 支持会话持久化：答题过程中自动保存进度到 SharedPreferences，
+  /// 退出后再次进入可恢复上次的答题状态。
 
   QuizSessionControllerProvider call(String bankId, String modeStr) =>
       QuizSessionControllerProvider._(argument: (bankId, modeStr), from: this);
@@ -120,8 +120,8 @@ final class QuizSessionControllerFamily extends $Family
 /// 拥有题目队列、当前索引、已提交答案、耗时统计和自动翻题计时器。
 /// 所有 DB 写入委托给 [LedgerRepository] 以保证原子性 (D-16)。
 ///
-/// 使用 [reviewModeFromString] 校验 mode 路由参数 (Pitfall 3)。
-/// 空题库 / 无效模式在 build() 阶段立即返回结束状态。
+/// 支持会话持久化：答题过程中自动保存进度到 SharedPreferences，
+/// 退出后再次进入可恢复上次的答题状态。
 
 abstract class _$QuizSessionController
     extends $AsyncNotifier<QuizSessionState> {

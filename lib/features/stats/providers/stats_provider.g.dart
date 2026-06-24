@@ -59,4 +59,4 @@ final class BankStatsListProvider
   }
 }
 
-String _$bankStatsListHash() => r'abeb598c9a98a302f16d1bdb0670bd7e1d45b5d2';
+String _$bankStatsListHash() => r'73345a971fbf9b66a57cda5fa3d617320acfbaf9';

@@ -3,10 +3,9 @@
 // 平台分支：桌面端显示 .docx/.pdf/.json 图块 + 拖放 + 解析方式选择；
 // Android 仅显示 .json（禁用）。
 
-import 'dart:io';
+import 'dart:io' show Platform;
 
 import 'package:desktop_drop/desktop_drop.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,9 +13,11 @@ import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../core/theme.dart';
+import '../../../data/file_picker/file_picker_models.dart';
+import '../../../data/file_picker/file_picker_providers.dart';
+import '../../../data/file_picker/file_picker_service.dart';
 import '../../models/widgets/parser_choice_dialog.dart';
 import '../providers/import_notifier.dart';
-import '../providers/import_state.dart';
 import '../widgets/file_format_tile.dart';
 
 /// 导入题库入口页。
@@ -78,11 +79,8 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       onDragDone: (details) {
         setState(() => _isDragOver = false);
         final filePath = details.files.firstOrNull?.path;
-        if (filePath != null && _isSupportedFile(filePath)) {
-          _onFileSelected(context, filePath);
-        } else if (filePath != null) {
-          _showUnsupportedError(context);
-        }
+        if (filePath == null) return;
+        _onDroppedFile(context, filePath);
       },
       child: Stack(
         children: [
@@ -321,7 +319,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           icon: Icons.description_outlined,
           iconBg: cs.primaryContainer,
           iconColor: cs.onPrimaryContainer,
-          onTap: () => _pickWordFile(context),
+          onTap: () => _pickFile(context, {'docx'}, '选择题库文件'),
         ),
         const SizedBox(height: 10),
         FileFormatTile(
@@ -330,7 +328,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           icon: Icons.picture_as_pdf_outlined,
           iconBg: cs.errorContainer,
           iconColor: cs.onErrorContainer,
-          onTap: () => _pickPdfFile(context),
+          onTap: () => _pickFile(context, {'pdf'}, '选择 PDF 题库'),
         ),
         const SizedBox(height: 10),
         FileFormatTile(
@@ -339,7 +337,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           icon: Icons.code_outlined,
           iconBg: cs.tertiaryContainer,
           iconColor: cs.onTertiaryContainer,
-          onTap: () => _pickJsonFile(context),
+          onTap: () => _pickFile(context, {'json'}, '选择 JSON 题库'),
         ),
       ];
     } else {
@@ -350,7 +348,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           icon: Icons.description_outlined,
           iconBg: cs.primaryContainer,
           iconColor: cs.onPrimaryContainer,
-          onTap: () => _pickWordFile(context),
+          onTap: () => _pickFile(context, {'docx'}, '选择题库文件'),
         ),
         const SizedBox(height: 10),
         FileFormatTile(
@@ -359,7 +357,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           icon: Icons.picture_as_pdf_outlined,
           iconBg: cs.errorContainer,
           iconColor: cs.onErrorContainer,
-          onTap: () => _pickPdfFile(context),
+          onTap: () => _pickFile(context, {'pdf'}, '选择 PDF 题库'),
         ),
         const SizedBox(height: 10),
         FileFormatTile(
@@ -368,7 +366,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           icon: Icons.code_outlined,
           iconBg: cs.tertiaryContainer,
           iconColor: cs.onTertiaryContainer,
-          onTap: () => _pickJsonFile(context),
+          onTap: () => _pickFile(context, {'json'}, '选择 JSON 题库'),
         ),
       ];
     }
@@ -376,61 +374,31 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
   // ── 文件选择器 ──
 
-  Future<void> _pickWordFile(BuildContext context) async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['docx'],
-      allowMultiple: false,
-    );
-
-    if (result != null && result.files.isNotEmpty) {
-      final filePath = result.files.first.path;
-      if (filePath != null) {
-        await _onFileSelected(context, filePath);
-      }
-    }
-  }
-
-  Future<void> _pickPdfFile(BuildContext context) async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-      allowMultiple: false,
-    );
-
-    if (result != null && result.files.isNotEmpty) {
-      final filePath = result.files.first.path;
-      if (filePath != null) {
-        await _onFileSelected(context, filePath);
-      }
-    }
-  }
-
-  Future<void> _pickJsonFile(BuildContext context) async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-      allowMultiple: false,
-    );
-
-    if (result != null && result.files.isNotEmpty) {
-      final filePath = result.files.first.path;
-      if (filePath != null) {
-        await _onFileSelected(context, filePath);
-      }
-    }
+  /// 通过 [FilePickerService] 弹出系统文件选择器并交给 [FilePickerService]
+  /// 包装为 [PickedFile] 后进入后续流程。
+  Future<void> _pickFile(
+    BuildContext context,
+    Set<String> extensions,
+    String dialogTitle,
+  ) async {
+    final picked = await ref.read(filePickerServiceProvider).pickFile(
+          allowedExtensions: extensions,
+          dialogTitle: dialogTitle,
+        );
+    if (picked == null) return; // 用户取消
+    await _onFileSelected(context, picked);
   }
 
   // ── 文件选择后处理 ──
 
   /// 文件选择完成后：桌面端展示解析方式选择对话框；
   /// Android 直接触发启发式解析。
-  Future<void> _onFileSelected(BuildContext context, String filePath) async {
+  Future<void> _onFileSelected(BuildContext context, PickedFile picked) async {
     final isDesktop = !kIsWeb && (Platform.isWindows || Platform.isLinux);
 
     if (!isDesktop) {
       // Android: 直接触发启发式解析（Phase 2 行为）
-      _startParseAndNavigate(context, filePath, ParseMethod.heuristic);
+      _startParseAndNavigate(context, picked, ParseMethod.heuristic);
       return;
     }
 
@@ -443,26 +411,35 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
     if (parseMethod == null || !mounted) return;
 
-    _startParseAndNavigate(context, filePath, parseMethod);
+    _startParseAndNavigate(context, picked, parseMethod);
+  }
+
+  /// 拖放回调：把路径交给 [FilePickerService.pickFromDroppedPath] 包装成
+  /// [PickedFile]，再走与按钮相同的 [_onFileSelected] 流程。
+  Future<void> _onDroppedFile(BuildContext context, String path) async {
+    if (!_isSupportedFile(path)) {
+      _showUnsupportedError(context);
+      return;
+    }
+    final picked = await ref
+        .read(filePickerServiceProvider)
+        .pickFromDroppedPath(path);
+    if (picked == null) {
+      _showUnsupportedError(context);
+      return;
+    }
+    await _onFileSelected(context, picked);
   }
 
   /// 启动解析并导航到进度页。
   void _startParseAndNavigate(
     BuildContext context,
-    String filePath,
+    PickedFile picked,
     ParseMethod method,
   ) {
-    final file = File(filePath);
-    final stat = file.statSync();
     final notifier = ref.read(importNotifierProvider.notifier);
 
-    notifier.pickFiles([
-      ImportFile.fromPath(
-        path: filePath,
-        name: p.basename(filePath),
-        sizeBytes: stat.size,
-      ),
-    ]);
+    notifier.receiveFiles([picked]);
 
     if (method == ParseMethod.llm) {
       notifier.llmParse();
@@ -470,7 +447,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       notifier.extractAndParse();
     }
 
-    context.push('/import/progress', extra: filePath);
+    context.push('/import/progress', extra: picked.name);
   }
 
   // ── 错误处理 ──

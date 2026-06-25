@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +8,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:redclass/data/db/database.dart';
 
+import '../../../core/platform/platform_info.dart';
+import '../../../core/platform/responsive.dart';
 import '../../../core/theme.dart';
 import '../models/quiz_session_state.dart';
 import '../models/quiz_settings.dart';
@@ -25,13 +25,10 @@ import 'widgets/wrong_question_chip.dart';
 /// Single-choice holds 0-1 keys; multi-choice holds 0-N keys.
 /// Uses [Set<String>] to support toggling for multi-choice.
 /// Resets on submission or question change.
-final _quizSelectedOptionProvider =
-    StateProvider<Set<String>>((ref) => {});
+final _quizSelectedOptionProvider = StateProvider<Set<String>>((ref) => {});
 
 /// Regex to strip inline answer markers like （A）, （ D ）, （AB）from stems.
-final _inlineAnswerStripRE = RegExp(
-  r'[（(]\s*[A-Ha-h\s]{1,24}\s*[）)]',
-);
+final _inlineAnswerStripRE = RegExp(r'[（(]\s*[A-Ha-h\s]{1,24}\s*[）)]');
 
 /// Strip inline answer from a question stem so the user doesn't see the answer.
 String _stripInlineAnswer(String stem) {
@@ -88,8 +85,9 @@ class QuizScreen extends ConsumerWidget {
   /// The review mode string from the route parameter (random/review/spotcheck).
   final String mode;
 
-  /// Whether this is a desktop platform (Windows or Linux).
-  bool get _isDesktop => !kIsWeb && (Platform.isWindows || Platform.isLinux);
+  /// Whether this is a desktop platform — sourced from [PlatformInfo].
+  bool _isDesktop(BuildContext context) =>
+      PlatformInfo.fromContext(context).isDesktop;
 
   /// Map from option letter to keyboard key, up to 8 options (A-H).
   static const _letterToKey = <String, LogicalKeyboardKey>{
@@ -105,18 +103,8 @@ class QuizScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!_isDesktop) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('答题')),
-        body: const Center(
-          child: Text('答题功能仅支持桌面端 (Windows/Linux)'),
-        ),
-      );
-    }
-
     final modeEnum = reviewModeFromString(mode);
-    final sessionAsync =
-        ref.watch(quizSessionControllerProvider(bankId, mode));
+    final sessionAsync = ref.watch(quizSessionControllerProvider(bankId, mode));
     final session = sessionAsync.value;
     final settings = ref.watch(quizSettingsProvider);
     final selectedKeys = ref.watch(_quizSelectedOptionProvider);
@@ -139,8 +127,9 @@ class QuizScreen extends ConsumerWidget {
     }
 
     // Check for saved session — show resume dialog
-    final controller =
-        ref.read(quizSessionControllerProvider(bankId, mode).notifier);
+    final controller = ref.read(
+      quizSessionControllerProvider(bankId, mode).notifier,
+    );
     final pendingResume = controller.pendingResumeSession;
     if (pendingResume != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -153,19 +142,14 @@ class QuizScreen extends ConsumerWidget {
     // Error state
     if (session.status == QuizStatus.error) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text('${reviewModeDisplayName(modeEnum)} · 错误'),
-        ),
+        appBar: AppBar(title: Text('${reviewModeDisplayName(modeEnum)} · 错误')),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.error_outline, size: 48, color: Colors.red),
               const SizedBox(height: 16),
-              const Text(
-                '加载题目失败，请重试',
-                style: TextStyle(fontSize: 16),
-              ),
+              const Text('加载题目失败，请重试', style: TextStyle(fontSize: 16)),
               const SizedBox(height: 24),
               OutlinedButton(
                 onPressed: () {
@@ -180,8 +164,7 @@ class QuizScreen extends ConsumerWidget {
     }
 
     // Empty bank state
-    if (session.status == QuizStatus.complete &&
-        session.totalQuestions == 0) {
+    if (session.status == QuizStatus.complete && session.totalQuestions == 0) {
       return Scaffold(
         appBar: AppBar(
           title: Text(
@@ -192,10 +175,7 @@ class QuizScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                '该题库暂无题目',
-                style: TextStyle(fontSize: 16),
-              ),
+              const Text('该题库暂无题目', style: TextStyle(fontSize: 16)),
               const SizedBox(height: 24),
               OutlinedButton(
                 onPressed: () {
@@ -234,16 +214,15 @@ class QuizScreen extends ConsumerWidget {
     // Active quiz — build the full quiz UI
     final question = session.currentQuestion;
     if (question == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final options = (jsonDecode(question.optionsJson) as List)
         .map((o) => Map<String, dynamic>.from(o as Map))
         .toList();
-    final correctKeys =
-        List<String>.from(jsonDecode(question.correctJson) as List);
+    final correctKeys = List<String>.from(
+      jsonDecode(question.correctJson) as List,
+    );
     final hasSubmitted = session.status == QuizStatus.showingFeedback;
     final totalQuestions = session.questions.length;
     final currentNumber = session.currentIndex + 1;
@@ -272,53 +251,77 @@ class QuizScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Focus(
-        autofocus: true,
-        onKeyEvent: (node, event) {
-          if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-            return KeyEventResult.ignored;
-          }
-          final isMultiChoice = correctKeys.length > 1;
-          for (final opt in options) {
-            final letter = opt['key'] as String;
-            final key = _letterToKey[letter];
-            if (key != null && event.logicalKey == key) {
-              _onOptionTap(ref, letter, settings, hasSubmitted, isMultiChoice);
-              return KeyEventResult.handled;
-            }
-          }
-          if (event.logicalKey == LogicalKeyboardKey.space && !hasSubmitted) {
-            _onSubmitConfirm(ref);
-            return KeyEventResult.handled;
-          }
-          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-            _onPrevious(ref);
-            return KeyEventResult.handled;
-          }
-          if (event.logicalKey == LogicalKeyboardKey.arrowRight && hasSubmitted) {
-            _onAdvance(ref);
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.handled;
-        },
-        child: _buildQuizBody(
-            context,
-            ref,
-            _stripInlineAnswer(question.stem),
-            options,
-            correctKeys,
-            selectedKeys,
-            hasSubmitted,
-            currentNumber,
-            totalQuestions,
-            settings,
-            session,
-          ),
-        ),
+      body: _isDesktop(context)
+          ? Focus(
+              autofocus: true,
+              onKeyEvent: (node, event) {
+                if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+                  return KeyEventResult.ignored;
+                }
+                final isMultiChoice = correctKeys.length > 1;
+                for (final opt in options) {
+                  final letter = opt['key'] as String;
+                  final key = _letterToKey[letter];
+                  if (key != null && event.logicalKey == key) {
+                    _onOptionTap(
+                      ref,
+                      letter,
+                      settings,
+                      hasSubmitted,
+                      isMultiChoice,
+                    );
+                    return KeyEventResult.handled;
+                  }
+                }
+                if (event.logicalKey == LogicalKeyboardKey.space &&
+                    !hasSubmitted) {
+                  _onSubmitConfirm(ref);
+                  return KeyEventResult.handled;
+                }
+                if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                  _onPrevious(ref);
+                  return KeyEventResult.handled;
+                }
+                if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+                    hasSubmitted) {
+                  _onAdvance(ref);
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.handled;
+              },
+              child: _buildQuizBody(
+                context,
+                ref,
+                _stripInlineAnswer(question.stem),
+                options,
+                correctKeys,
+                selectedKeys,
+                hasSubmitted,
+                currentNumber,
+                totalQuestions,
+                settings,
+                session,
+              ),
+            )
+          : _buildQuizBody(
+              context,
+              ref,
+              _stripInlineAnswer(question.stem),
+              options,
+              correctKeys,
+              selectedKeys,
+              hasSubmitted,
+              currentNumber,
+              totalQuestions,
+              settings,
+              session,
+            ),
     );
   }
 
-  /// Build the main quiz body with LayoutBuilder + ConstrainedBox pattern.
+  /// Build the main quiz body via [AdaptiveLayout] (compact / medium /
+  /// expanded). Each slot composes the same extracted pieces so the
+  /// widgets stay in sync across form factors.
   Widget _buildQuizBody(
     BuildContext context,
     WidgetRef ref,
@@ -332,180 +335,327 @@ class QuizScreen extends ConsumerWidget {
     QuizSettings settings,
     QuizSessionState session,
   ) {
-    final textTheme = Theme.of(context).textTheme;
-    final cs = Theme.of(context).colorScheme;
     final isMultiChoice = correctKeys.length > 1;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 20,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── 渐变进度条 ──
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: heroGradient(cs, Theme.of(context).brightness),
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(40),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '$currentNumber',
-                              style: textTheme.titleMedium?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: LinearProgressIndicator(
-                                  value: totalQuestions > 0
-                                      ? currentNumber / totalQuestions
-                                      : 0,
-                                  minHeight: 6,
-                                  backgroundColor:
-                                      Colors.white.withAlpha(40),
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '$currentNumber / $totalQuestions',
-                                style: textTheme.labelSmall?.copyWith(
-                                  color: Colors.white.withAlpha(200),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+    final progress = _buildProgressBar(context, currentNumber, totalQuestions);
+    final stemCard = _buildStemCard(context, session, stem);
+    final optionsList = _buildOptionList(
+      ref,
+      options,
+      correctKeys,
+      selectedKeys,
+      hasSubmitted,
+      settings,
+      isMultiChoice,
+      session,
+    );
+    final actions = _buildActionRow(
+      context,
+      ref,
+      hasSubmitted,
+      selectedKeys,
+      isMultiChoice,
+      settings,
+      currentNumber,
+      session,
+    );
 
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+    return AdaptiveLayout(
+      compact: (_) => KeyedSubtree(
+        key: const Key('quiz_vertical_layout'),
+        child: _buildVerticalLayout(
+          context,
+          progress,
+          stemCard,
+          optionsList,
+          actions,
+          maxWidth: null,
+        ),
+      ),
+      medium: (_) => KeyedSubtree(
+        key: const Key('quiz_vertical_layout'),
+        child: _buildVerticalLayout(
+          context,
+          progress,
+          stemCard,
+          optionsList,
+          actions,
+          maxWidth: 720,
+        ),
+      ),
+      expanded: (_) => KeyedSubtree(
+        key: const Key('quiz_horizontal_layout'),
+        child: _buildHorizontalLayout(
+          context,
+          progress,
+          stemCard,
+          optionsList,
+          actions,
+        ),
+      ),
+    );
+  }
 
-                  // ── 题干 ──
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: cs.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: cs.outlineVariant.withAlpha(80),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildTypeChip(context, session.currentQuestion!),
-                        const SizedBox(height: 10),
-                        Text(
-                          stem,
-                          style: textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+  /// Single-column layout used for compact and medium form factors.
+  Widget _buildVerticalLayout(
+    BuildContext context,
+    Widget progress,
+    Widget stemCard,
+    Widget optionsList,
+    Widget actions, {
+    double? maxWidth,
+  }) {
+    final body = SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          progress,
+          const SizedBox(height: 20),
+          stemCard,
+          const SizedBox(height: 16),
+          optionsList,
+          actions,
+        ],
+      ),
+    );
+    if (maxWidth == null) return body;
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: body,
+      ),
+    );
+  }
 
-                  // ── 选项 ──
-                  ...options.map((option) {
-                    final key = option['key'] as String;
-                    final text = option['text'] as String;
-                    final state = computeOptionState(
-                      optionKey: key,
-                      correctKeys: correctKeys,
-                      selectedKeys: hasSubmitted &&
-                              session.currentIndex < session.answers.length
-                          ? session.answers[session.currentIndex].givenAnswer.toSet()
-                          : selectedKeys,
-                      hasSubmitted: hasSubmitted,
-                    );
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: OptionCard(
-                        optionKey: key,
-                        optionText: text,
-                        state: state,
-                        onTap: () => _onOptionTap(
-                            ref, key, settings, hasSubmitted, isMultiChoice),
-                      ),
-                    );
-                  }),
-
-                  // Confirm submit button
-                  // Shown when: confirm mode with selection, OR multi-choice
-                  if (!hasSubmitted &&
-                      selectedKeys.isNotEmpty &&
-                      (settings.submitMode == QuizSubmitMode.confirm ||
-                          isMultiChoice)) ...[
-                    const SizedBox(height: 8),
-                    FilledButton(
-                      onPressed: () => _onSubmitConfirm(ref),
-                      child: const Text('确认提交'),
-                    ),
-                  ],
-
-                  // Wrong question chip (D-15)
-                  if (hasSubmitted) ...[
-                    const SizedBox(height: 8),
-                    WrongQuestionChip(
-                      key: ValueKey(currentNumber),
-                      show: _shouldShowWrongChip(session),
-                    ),
-                  ],
-
-                  // Next button (manual advance mode, post-submit)
-                  if (hasSubmitted &&
-                      settings.advanceMode == QuizAdvanceMode.manual) ...[
-                    const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      onPressed: () => _onAdvance(ref),
-                      icon: const Icon(Icons.arrow_forward, size: 18),
-                      label: const Text('下一题'),
-                    ),
-                  ],
-
-                  // Keyboard shortcut hint (D-06)
+  /// Two-column layout for expanded (desktop) form factors.
+  /// Left column: progress + stem. Right column: options + actions +
+  /// (desktop-only) keyboard shortcut hint.
+  Widget _buildHorizontalLayout(
+    BuildContext context,
+    Widget progress,
+    Widget stemCard,
+    Widget optionsList,
+    Widget actions,
+  ) {
+    final showShortcutHint = _isDesktop(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [progress, const SizedBox(height: 20), stemCard],
+            ),
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            flex: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                optionsList,
+                actions,
+                if (showShortcutHint) ...[
                   const SizedBox(height: 12),
                   const KeyboardShortcutHint(),
                 ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Progress bar widget (gradient with current/total indicator).
+  Widget _buildProgressBar(
+    BuildContext context,
+    int currentNumber,
+    int totalQuestions,
+  ) {
+    final textTheme = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: heroGradient(cs, Theme.of(context).brightness),
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(40),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Center(
+              child: Text(
+                '$currentNumber',
+                style: textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: totalQuestions > 0
+                        ? currentNumber / totalQuestions
+                        : 0,
+                    minHeight: 6,
+                    backgroundColor: Colors.white.withAlpha(40),
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$currentNumber / $totalQuestions',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: Colors.white.withAlpha(200),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Stem (question text) card widget.
+  Widget _buildStemCard(
+    BuildContext context,
+    QuizSessionState session,
+    String stem,
+  ) {
+    final textTheme = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant.withAlpha(80)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTypeChip(context, session.currentQuestion!),
+          const SizedBox(height: 10),
+          Text(
+            stem,
+            style: textTheme.bodyLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Option list widget (spread of [OptionCard]s).
+  Widget _buildOptionList(
+    WidgetRef ref,
+    List<Map<String, dynamic>> options,
+    List<String> correctKeys,
+    Set<String> selectedKeys,
+    bool hasSubmitted,
+    QuizSettings settings,
+    bool isMultiChoice,
+    QuizSessionState session,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: options.map((option) {
+        final key = option['key'] as String;
+        final text = option['text'] as String;
+        final state = computeOptionState(
+          optionKey: key,
+          correctKeys: correctKeys,
+          selectedKeys:
+              hasSubmitted && session.currentIndex < session.answers.length
+              ? session.answers[session.currentIndex].givenAnswer.toSet()
+              : selectedKeys,
+          hasSubmitted: hasSubmitted,
         );
-      },
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: OptionCard(
+            optionKey: key,
+            optionText: text,
+            state: state,
+            onTap: () =>
+                _onOptionTap(ref, key, settings, hasSubmitted, isMultiChoice),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// Action row widget: confirm-submit button, wrong-question chip,
+  /// next-question button.
+  Widget _buildActionRow(
+    BuildContext context,
+    WidgetRef ref,
+    bool hasSubmitted,
+    Set<String> selectedKeys,
+    bool isMultiChoice,
+    QuizSettings settings,
+    int currentNumber,
+    QuizSessionState session,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Confirm submit button
+        if (!hasSubmitted &&
+            selectedKeys.isNotEmpty &&
+            (settings.submitMode == QuizSubmitMode.confirm ||
+                isMultiChoice)) ...[
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: () => _onSubmitConfirm(ref),
+            child: const Text('确认提交'),
+          ),
+        ],
+
+        // Wrong question chip (D-15)
+        if (hasSubmitted) ...[
+          const SizedBox(height: 8),
+          WrongQuestionChip(
+            key: ValueKey(currentNumber),
+            show: _shouldShowWrongChip(session),
+          ),
+        ],
+
+        // Next button (manual advance mode, post-submit)
+        if (hasSubmitted && settings.advanceMode == QuizAdvanceMode.manual) ...[
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: () => _onAdvance(ref),
+            icon: const Icon(Icons.arrow_forward, size: 18),
+            label: const Text('下一题'),
+          ),
+        ],
+      ],
     );
   }
 
@@ -558,14 +708,14 @@ class QuizScreen extends ConsumerWidget {
         .read(quizSessionControllerProvider(bankId, mode).notifier)
         .submitAnswer(optionKeys)
         .then((_) {
-      // After submission: start auto-advance if in auto mode
-      final settings = ref.read(quizSettingsProvider);
-      if (settings.advanceMode == QuizAdvanceMode.auto) {
-        ref
-            .read(quizSessionControllerProvider(bankId, mode).notifier)
-            .startAutoAdvance();
-      }
-    });
+          // After submission: start auto-advance if in auto mode
+          final settings = ref.read(quizSettingsProvider);
+          if (settings.advanceMode == QuizAdvanceMode.auto) {
+            ref
+                .read(quizSessionControllerProvider(bankId, mode).notifier)
+                .startAutoAdvance();
+          }
+        });
   }
 
   /// Go back to the previous question (left-arrow shortcut).
@@ -598,9 +748,7 @@ class QuizScreen extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         icon: const Icon(Icons.history, size: 48),
         title: const Text('发现上次未完成的答题'),
-        content: Text(
-          '上次已答 $answered/$total 题，还剩 $remaining 题未答。\n是否继续上次的进度？',
-        ),
+        content: Text('上次已答 $answered/$total 题，还剩 $remaining 题未答。\n是否继续上次的进度？'),
         actions: [
           TextButton(
             onPressed: () {
@@ -629,9 +777,10 @@ class QuizScreen extends ConsumerWidget {
   Widget _buildTypeChip(BuildContext context, Question question) {
     final isTrueFalse = _isTrueFalseQuestion(question);
     final (label, icon) = switch (question.type) {
-      'single' => isTrueFalse
-          ? ('判断题', Icons.thumbs_up_down)
-          : ('单选题', Icons.radio_button_checked),
+      'single' =>
+        isTrueFalse
+            ? ('判断题', Icons.thumbs_up_down)
+            : ('单选题', Icons.radio_button_checked),
       'multiple' => ('多选题', Icons.checklist),
       _ => (question.type, Icons.help_outline),
     };

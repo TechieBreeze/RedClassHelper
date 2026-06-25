@@ -88,33 +88,45 @@ class SettingsScreen extends ConsumerWidget {
                     _SectionCard(
                       title: '答题设置',
                       icon: Icons.quiz_outlined,
-                      children: [
-                        SwitchListTile(
+                    children: [
+                        ListTile(
                           title: const Text('点击即提交'),
                           subtitle:
                               const Text('关闭后需点击按钮确认答案'),
-                          value: settings.submitMode == QuizSubmitMode.instant,
-                          onChanged: (v) => ref
-                              .read(quizSettingsProvider.notifier)
-                              .setSubmitMode(v
-                                  ? QuizSubmitMode.instant
-                                  : QuizSubmitMode.confirm),
+                          mouseCursor: MouseCursor.defer,
+                          trailing: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: Switch(
+                              value: settings.submitMode == QuizSubmitMode.instant,
+                              onChanged: (v) => ref
+                                  .read(quizSettingsProvider.notifier)
+                                  .setSubmitMode(v
+                                      ? QuizSubmitMode.instant
+                                      : QuizSubmitMode.confirm),
+                            ),
+                          ),
                           contentPadding: EdgeInsets.zero,
                         ),
-                        SwitchListTile(
+                        ListTile(
                           title: const Text('自动翻题'),
                           subtitle:
                               const Text('关闭后需手动点击或按键跳转'),
-                          value:
-                              settings.advanceMode == QuizAdvanceMode.auto,
-                          onChanged: (v) => ref
-                              .read(quizSettingsProvider.notifier)
-                              .setAdvanceMode(v
-                                  ? QuizAdvanceMode.auto
-                                  : QuizAdvanceMode.manual),
+                          mouseCursor: MouseCursor.defer,
+                          trailing: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: Switch(
+                              value:
+                                  settings.advanceMode == QuizAdvanceMode.auto,
+                              onChanged: (v) => ref
+                                  .read(quizSettingsProvider.notifier)
+                                  .setAdvanceMode(v
+                                      ? QuizAdvanceMode.auto
+                                      : QuizAdvanceMode.manual),
+                            ),
+                          ),
                           contentPadding: EdgeInsets.zero,
                         ),
-                      ],
+                    ],
                     ),
                   ],
 
@@ -124,7 +136,7 @@ class SettingsScreen extends ConsumerWidget {
                     title: '高级',
                     icon: Icons.tune,
                     children: [
-                      ListTile(
+                      _HoverableListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: Container(
                           width: 40,
@@ -197,7 +209,7 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class _ThemeTile extends StatelessWidget {
+class _ThemeTile extends StatefulWidget {
   const _ThemeTile({
     required this.title,
     required this.subtitle,
@@ -215,45 +227,199 @@ class _ThemeTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<_ThemeTile> createState() => _ThemeTileState();
+}
+
+class _ThemeTileState extends State<_ThemeTile>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  bool _hovering = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onHover(bool hovering) {
+    if (hovering == _hovering) return;
+    _hovering = hovering;
+    hovering ? _controller.forward() : _controller.reverse();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: selected ? cs.primaryContainer : cs.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => _onHover(true),
+      onExit: (_) => _onHover(false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final t = _controller.value;
+            return Transform.scale(
+              scale: 1.0 + t * 0.015,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: cs.shadow.withAlpha((t * 20).round()),
+                      blurRadius: t * 6,
+                      offset: Offset(0, t * 2),
+                    ),
+                  ],
+                ),
+                child: child,
               ),
-              child: Icon(
-                icon,
-                size: 20,
-                color: selected ? cs.onPrimaryContainer : cs.onSurface.withAlpha(150),
+            );
+          },
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: widget.selected
+                      ? cs.primaryContainer
+                      : cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  widget.icon,
+                  size: 20,
+                  color: widget.selected
+                      ? cs.onPrimaryContainer
+                      : cs.onSurface.withAlpha(150),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  )),
-                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: cs.onSurface.withAlpha(150),
-                  )),
-                ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.title,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: widget.selected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            )),
+                    Text(widget.subtitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: cs.onSurface.withAlpha(150),
+                            )),
+                  ],
+                ),
               ),
-            ),
-            if (selected)
-              Icon(Icons.check_circle_rounded, color: cs.primary, size: 20),
-          ],
+              if (widget.selected)
+                Icon(Icons.check_circle_rounded,
+                    color: cs.primary, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 带 hover 效果的 ListTile — 和 _ThemeTile 相同的 scale + shadow 动效。
+class _HoverableListTile extends StatefulWidget {
+  const _HoverableListTile({
+    this.leading,
+    this.title,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+    this.contentPadding,
+  });
+
+  final Widget? leading;
+  final Widget? title;
+  final Widget? subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+  final EdgeInsetsGeometry? contentPadding;
+
+  @override
+  State<_HoverableListTile> createState() => _HoverableListTileState();
+}
+
+class _HoverableListTileState extends State<_HoverableListTile>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onHover(bool hovering) {
+    hovering ? _controller.forward() : _controller.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => _onHover(true),
+      onExit: (_) => _onHover(false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final t = _controller.value;
+            return Transform.scale(
+              scale: 1.0 + t * 0.015,
+              child: Container(
+                padding: widget.contentPadding,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: cs.shadow.withAlpha((t * 20).round()),
+                      blurRadius: t * 6,
+                      offset: Offset(0, t * 2),
+                    ),
+                  ],
+                ),
+                child: child,
+              ),
+            );
+          },
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: widget.leading,
+            title: widget.title,
+            subtitle: widget.subtitle,
+            trailing: widget.trailing,
+            onTap: widget.onTap,
+          ),
         ),
       ),
     );

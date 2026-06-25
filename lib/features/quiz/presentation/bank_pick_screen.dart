@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme.dart';
+import '../../../core/widgets/hoverable_card.dart';
 import '../providers/bank_pick_provider.dart';
 import '../models/review_mode.dart';
 
@@ -31,7 +33,16 @@ class BankPickerScreen extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('选择题库')),
+      appBar: AppBar(
+        title: const Text('选择题库'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings'),
+            tooltip: '设置',
+          ),
+        ],
+      ),
       body: bankListAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
@@ -90,8 +101,8 @@ class BankPickerScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [cs.primary, cs.tertiary],
+                    gradient: LinearGradient(
+                      colors: heroGradient(cs, Theme.of(context).brightness),
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -184,13 +195,11 @@ class _PickBankCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final bank = item.bank;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: item.isEmpty
-            ? null
-            : () => context.go('/quiz/${bank.id}/$mode'),
-        child: Padding(
+    return HoverableCard(
+      onTap: item.isEmpty
+          ? null
+          : () => context.go('/quiz/${bank.id}/$mode'),
+      child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
@@ -246,7 +255,6 @@ class _PickBankCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
     );
   }
 }

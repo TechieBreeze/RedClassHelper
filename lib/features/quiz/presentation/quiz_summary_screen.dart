@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../models/quiz_session_state.dart';
 import '../models/review_mode.dart';
 import '../providers/quiz_session_controller.dart';
+import '../../../core/theme.dart';
 
 /// 答题统计摘要页 —— 一轮答题结束后显示
 class QuizSummaryScreen extends ConsumerWidget {
@@ -68,7 +69,7 @@ class QuizSummaryScreen extends ConsumerWidget {
                           gradient: LinearGradient(
                             colors: isAllMastered
                                 ? [Colors.amber.shade400, Colors.orange.shade400]
-                                : [cs.primary, cs.tertiary],
+                                : heroGradient(cs, Theme.of(context).brightness),
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),

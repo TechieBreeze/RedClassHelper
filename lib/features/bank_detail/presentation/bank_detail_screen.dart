@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../core/theme.dart';
+import '../../../core/widgets/hoverable_card.dart';
 import '../../../data/db/database.dart';
 import '../../export/services/json_export_service.dart';
 
@@ -89,7 +91,16 @@ class BankDetailScreen extends ConsumerWidget {
     final multiCount = questions.where((q) => q.type == 'multiple').length;
 
     return Scaffold(
-      appBar: AppBar(title: Text(bank.name)),
+      appBar: AppBar(
+        title: Text(bank.name),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings'),
+            tooltip: '设置',
+          ),
+        ],
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           return Center(
@@ -103,8 +114,8 @@ class BankDetailScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [cs.primary, cs.tertiary],
+                    gradient: LinearGradient(
+                      colors: heroGradient(cs, Theme.of(context).brightness),
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -190,12 +201,10 @@ class BankDetailScreen extends ConsumerWidget {
                         ),
                   ),
                   const SizedBox(height: 10),
-                  Card(
-                    child: InkWell(
-                      onTap: () =>
-                          context.go('/quiz/$bankId/random'),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
+                  HoverableCard(
+                    onTap: () =>
+                        context.go('/quiz/$bankId/random'),
+                    child: Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 14),
                         child: Row(
@@ -241,13 +250,10 @@ class BankDetailScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                  ),
                   const SizedBox(height: 8),
-                  Card(
-                    child: InkWell(
-                      onTap: () => _exportJson(context, ref, bank, questions),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
+                  HoverableCard(
+                    onTap: () => _exportJson(context, ref, bank, questions),
+                    child: Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 14),
                         child: Row(
@@ -289,7 +295,6 @@ class BankDetailScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),

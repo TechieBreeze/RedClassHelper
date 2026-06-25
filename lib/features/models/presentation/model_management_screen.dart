@@ -316,11 +316,13 @@ class _AddModelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Card(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
@@ -346,6 +348,7 @@ class _AddModelCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

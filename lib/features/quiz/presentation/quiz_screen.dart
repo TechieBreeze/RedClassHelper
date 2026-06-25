@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:redclass/data/db/database.dart';
 
+import '../../../core/theme.dart';
 import '../models/quiz_session_state.dart';
 import '../models/quiz_settings.dart';
 import '../models/review_mode.dart';
@@ -17,7 +18,6 @@ import '../providers/quiz_session_controller.dart';
 import '../providers/quiz_settings_provider.dart';
 import 'widgets/keyboard_shortcut_hint.dart';
 import 'widgets/option_card.dart';
-import 'widgets/quiz_progress_bar.dart';
 import 'widgets/wrong_question_chip.dart';
 
 /// Ephemeral UI-only state for selected options (single or multi-choice).
@@ -264,6 +264,13 @@ class QuizScreen extends ConsumerWidget {
             }
           },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings'),
+            tooltip: '设置',
+          ),
+        ],
       ),
       body: Focus(
         autofocus: true,
@@ -326,6 +333,7 @@ class QuizScreen extends ConsumerWidget {
     QuizSessionState session,
   ) {
     final textTheme = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
     final isMultiChoice = correctKeys.length > 1;
 
     return LayoutBuilder(
@@ -336,45 +344,118 @@ class QuizScreen extends ConsumerWidget {
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(
                 horizontal: 24,
-                vertical: 24,
+                vertical: 20,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Progress bar + counter (D-05)
-                  QuizProgressBar(
-                    current: currentNumber,
-                    total: totalQuestions,
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Question stem (D-01)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Type badge
-                          Row(
-                            children: [
-                              _buildTypeChip(context, session.currentQuestion!),
-                            ],
+                  // ── 渐变进度条 ──
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: heroGradient(cs, Theme.of(context).brightness),
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(40),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            stem,
-                            style: textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
+                          child: Center(
+                            child: Text(
+                              '$currentNumber',
+                              style: textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
-                        ],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: totalQuestions > 0
+                                      ? currentNumber / totalQuestions
+                                      : 0,
+                                  minHeight: 6,
+                                  backgroundColor:
+                                      Colors.white.withAlpha(40),
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$currentNumber / $totalQuestions',
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: Colors.white.withAlpha(200),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (isMultiChoice)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(40),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              '多选',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ── 题干 ──
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: cs.surface,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: cs.outlineVariant.withAlpha(80),
                       ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildTypeChip(context, session.currentQuestion!),
+                        const SizedBox(height: 10),
+                        Text(
+                          stem,
+                          style: textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Option cards (D-01, D-04)
+                  // ── 选项 ──
                   ...options.map((option) {
                     final key = option['key'] as String;
                     final text = option['text'] as String;
@@ -388,7 +469,7 @@ class QuizScreen extends ConsumerWidget {
                       hasSubmitted: hasSubmitted,
                     );
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.only(bottom: 10),
                       child: OptionCard(
                         optionKey: key,
                         optionText: text,

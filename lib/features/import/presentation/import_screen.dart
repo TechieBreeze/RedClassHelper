@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../core/theme.dart';
 import '../../models/widgets/parser_choice_dialog.dart';
 import '../providers/import_notifier.dart';
 import '../providers/import_state.dart';
@@ -190,26 +191,89 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   /// 构建格式图块列表
   List<Widget> _buildTileList(BuildContext context,
       {required bool isDesktop}) {
+    final cs = Theme.of(context).colorScheme;
     if (isDesktop) {
       return [
+        // ── 渐变 Hero ──
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: heroGradient(cs, Theme.of(context).brightness),
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: cs.primary.withAlpha(50),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(40),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.cloud_upload_rounded,
+                    color: Colors.white, size: 26),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '导入题库',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '选择文件格式或拖放到窗口',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.white.withAlpha(200),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
         FileFormatTile(
           title: 'Word 题库',
           subtitle: '导入 .docx 格式的题库文件',
           icon: Icons.description_outlined,
+          iconBg: cs.primaryContainer,
+          iconColor: cs.onPrimaryContainer,
           onTap: () => _pickWordFile(context),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         FileFormatTile(
           title: 'PDF 题库',
           subtitle: '导入文字型 PDF 题库（不含扫描件）',
           icon: Icons.picture_as_pdf_outlined,
+          iconBg: cs.errorContainer,
+          iconColor: cs.onErrorContainer,
           onTap: () => _pickPdfFile(context),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         FileFormatTile(
           title: 'JSON 题库',
           subtitle: '导入标准 JSON 格式题库文件',
           icon: Icons.code_outlined,
+          iconBg: cs.tertiaryContainer,
+          iconColor: cs.onTertiaryContainer,
           onTap: () => _pickJsonFile(context),
         ),
       ];
@@ -220,7 +284,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           subtitle: '从文件管理器中选取 .json 题库文件',
           icon: Icons.code_outlined,
           enabled: false,
-          onTap: () {}, // Phase 5 启用
+          onTap: () {},
         ),
       ];
     }

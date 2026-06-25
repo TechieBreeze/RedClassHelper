@@ -57,12 +57,14 @@ class _CandidateCardState extends State<CandidateCard> {
     final c = widget.candidate;
     final isLowConfidence = c.confidence < 0.5;
 
-    return Card(
-      elevation: widget.isConfirmed ? 1 : 0,
-      color: widget.isConfirmed
-          ? null
-          : theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
-      child: InkWell(
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Card(
+        elevation: widget.isConfirmed ? 1 : 0,
+        color: widget.isConfirmed
+            ? null
+            : theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        child: InkWell(
         onTap: () => setState(() => _expanded = !_expanded),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -181,6 +183,7 @@ class _CandidateCardState extends State<CandidateCard> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

@@ -141,9 +141,11 @@ class _OptionCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
+      child: MouseRegion(
+        cursor: effectiveEnabled ? SystemMouseCursors.click : MouseCursor.defer,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
           onTap: effectiveEnabled ? onTap : null,
           borderRadius: BorderRadius.circular(12),
           child: Opacity(
@@ -212,12 +214,13 @@ class _OptionCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+                 ],
+               ),
+             ),
+           ),
+         ),
+       ),
+       ),
     );
   }
 }

@@ -2,7 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/theme.dart';
+import '../../../core/widgets/hoverable_card.dart';
 import '../providers/stats_provider.dart';
 
 /// 数据统计 screen
@@ -15,7 +18,16 @@ class StatsScreen extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('数据统计')),
+      appBar: AppBar(
+        title: const Text('数据统计'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings'),
+            tooltip: '设置',
+          ),
+        ],
+      ),
       body: statsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
@@ -95,7 +107,7 @@ class _DataState extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [cs.primary, cs.tertiary],
+                      colors: heroGradient(cs, Theme.of(context).brightness),
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -209,11 +221,9 @@ class _StatsBankCardState extends State<_StatsBankCard> {
     final stat = widget.stat;
     final cs = Theme.of(context).colorScheme;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => setState(() => _expanded = !_expanded),
-        child: Padding(
+    return HoverableCard(
+      onTap: () => setState(() => _expanded = !_expanded),
+      child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
@@ -294,7 +304,6 @@ class _StatsBankCardState extends State<_StatsBankCard> {
             ],
           ),
         ),
-      ),
     );
   }
 }

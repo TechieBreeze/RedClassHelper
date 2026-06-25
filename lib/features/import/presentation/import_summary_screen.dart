@@ -12,6 +12,7 @@ import '../parsing/llm/canonicalizer.dart';
 import '../parsing/parse_candidate.dart';
 import '../providers/import_notifier.dart';
 import '../providers/import_state.dart';
+import '../../../core/theme.dart';
 
 /// 导入完成摘要页——展示导入结果后引导用户开始复习。
 ///
@@ -64,21 +65,46 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // ── 成功图标 ──
-                  Icon(
-                    Icons.check_circle_outline,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.tertiary,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── 主标题 ──
-                  Text(
-                    '成功导入 ${state.committedCount} 道题',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+                  // ── 渐变 Hero ──
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: heroGradient(
+                          theme.colorScheme,
+                          theme.brightness,
+                        ),
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withAlpha(50),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
-                    textAlign: TextAlign.center,
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          size: 56,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '成功导入 ${state.committedCount} 道题',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
 

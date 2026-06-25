@@ -14,6 +14,7 @@ import 'package:path/path.dart' as p;
 import '../parsing/llm/canonicalizer.dart';
 import '../providers/import_notifier.dart';
 import '../providers/import_state.dart';
+import '../../../core/theme.dart';
 
 /// 导入进度页——在后台 isolate 中执行提取+解析时显示进度。
 ///
@@ -170,21 +171,41 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 文件图标
-                  Icon(
-                    fileIcon,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: 24),
-
-                  // 文件名
-                  Text(
-                    fileName,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  // ── 渐变 Hero ──
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: heroGradient(
+                          Theme.of(context).colorScheme,
+                          Theme.of(context).brightness,
+                        ),
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          fileIcon,
+                          size: 48,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          fileName,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 32),
 

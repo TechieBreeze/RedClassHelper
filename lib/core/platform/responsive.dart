@@ -3,10 +3,17 @@ import 'package:flutter/material.dart';
 import 'platform_info.dart';
 
 class ResponsiveBuilder extends StatelessWidget {
-  const ResponsiveBuilder({super.key, required this.builder});
+  const ResponsiveBuilder({super.key, required this.builder, this.info});
   final Widget Function(BuildContext, PlatformInfo) builder;
+
+  /// Optional [PlatformInfo] override. When null, the builder reads from
+  /// [PlatformInfo.fromContext]. Tests pass an explicit value to avoid
+  /// depending on the host platform reported by `dart:io`.
+  final PlatformInfo? info;
+
   @override
-  Widget build(BuildContext context) => builder(context, PlatformInfo.fromContext(context));
+  Widget build(BuildContext context) =>
+      builder(context, info ?? PlatformInfo.fromContext(context));
 }
 
 class AdaptiveLayout extends StatelessWidget {

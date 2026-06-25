@@ -1,15 +1,13 @@
 // lib/features/home/presentation/home_screen.dart
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
 
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../core/theme.dart';
+import '../../../core/widgets/adaptive_scaffold.dart';
 import '../../../core/widgets/hoverable_card.dart';
 import '../../quiz/providers/bank_pick_provider.dart';
 import '../../quiz/providers/wrong_questions_provider.dart';
@@ -18,21 +16,18 @@ import '../../quiz/providers/wrong_questions_provider.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  bool get _isDesktop => !kIsWeb && (Platform.isWindows || Platform.isLinux);
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('红课复习'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.push('/settings'),
-            tooltip: '设置',
-          ),
-        ],
-      ),
+    return AdaptiveScaffold(
+      title: '红课复习',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.settings_outlined),
+          onPressed: () => context.push('/settings'),
+          tooltip: '设置',
+        ),
+      ],
+      drawer: const _HomeNavDrawer(),
       floatingActionButton: null,
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -106,8 +101,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                           data: (banks) {
                             if (banks.isEmpty) {
-                              return _EmptyBank(
-                                  isDesktop: _isDesktop);
+                              return const _EmptyBank();
                             }
                             return Column(
                               children: [
@@ -548,8 +542,7 @@ class _BankRow extends StatelessWidget {
 }
 
 class _EmptyBank extends StatelessWidget {
-  const _EmptyBank({required this.isDesktop});
-  final bool isDesktop;
+  const _EmptyBank();
 
   @override
   Widget build(BuildContext context) {
@@ -575,8 +568,7 @@ class _EmptyBank extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             FilledButton.tonalIcon(
-              onPressed:
-                  isDesktop ? () => context.push('/import') : null,
+              onPressed: () => context.push('/import'),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('导入题库'),
             ),
@@ -742,4 +734,62 @@ class _StatTile extends StatelessWidget {
       ),
     );
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Navigation drawer / side rail
+// ══════════════════════════════════════════════════════════════
+
+class _HomeNavDrawer extends StatelessWidget {
+  const _HomeNavDrawer();
+
+  static const _items = <_NavItem>[
+    _NavItem(route: '/', icon: Icons.home_outlined, label: '首页'),
+    _NavItem(route: '/import', icon: Icons.upload_file_outlined, label: '导入题库'),
+    _NavItem(route: '/stats', icon: Icons.insights_outlined, label: '数据统计'),
+    _NavItem(route: '/settings', icon: Icons.settings_outlined, label: '设置'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: cs.surfaceContainerLow,
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              child: Text(
+                '红课复习',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+            for (final item in _items)
+              ListTile(
+                leading: Icon(item.icon),
+                title: Text(item.label),
+                onTap: () {
+                  if (item.route == '/') {
+                    Navigator.of(context).maybePop();
+                  } else {
+                    context.push(item.route);
+                  }
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem {
+  const _NavItem({required this.route, required this.icon, required this.label});
+  final String route;
+  final IconData icon;
+  final String label;
 }

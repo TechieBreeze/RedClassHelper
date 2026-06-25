@@ -45,6 +45,15 @@ class _OptionCardState extends State<OptionCard>
   }
 
   @override
+  void didUpdateWidget(covariant OptionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.state != oldWidget.state) {
+      _hovering = false;
+      _controller.value = 0;
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -84,7 +93,12 @@ class _OptionCardState extends State<OptionCard>
                   color: _buildBackground(cs, t),
                   borderRadius: BorderRadius.circular(12),
                   border: widget.state == OptionCardState.wrongSelected
-                      ? Border.all(color: cs.error, width: 2)
+                      ? Border.all(
+                          color: cs.brightness == Brightness.dark
+                              ? const Color(0xFFEA8A8A).withAlpha(120)
+                              : cs.error.withAlpha(80),
+                          width: 1.5,
+                        )
                       : null,
                   boxShadow: [
                     BoxShadow(
@@ -156,6 +170,13 @@ class _OptionCardState extends State<OptionCard>
       OptionCardState.correctUnselected => isDark
           ? const Color(0xFF1B3A2A).withAlpha(160)
           : Colors.green.shade50.withAlpha(180),
+      OptionCardState.wrongSelected => isDark
+          ? const Color(0xFF3A2020).withAlpha(220)
+          : Color.lerp(
+              cs.errorContainer.withAlpha(80),
+              cs.errorContainer.withAlpha(120),
+              hoverT,
+            )!,
       OptionCardState.selected => cs.primaryContainer,
       _ => normalBg,
     };
@@ -171,6 +192,11 @@ class _OptionCardState extends State<OptionCard>
           ? const Color(0xFF2E6B4A).withAlpha(60)
           : Colors.green.withAlpha(30);
     }
+    if (widget.state == OptionCardState.wrongSelected) {
+      return cs.brightness == Brightness.dark
+          ? cs.error.withAlpha(30)
+          : cs.errorContainer;
+    }
     return cs.surfaceContainerHighest;
   }
 
@@ -181,6 +207,11 @@ class _OptionCardState extends State<OptionCard>
       return cs.brightness == Brightness.dark
           ? const Color(0xFF81C995)
           : Colors.green.shade700;
+    }
+    if (widget.state == OptionCardState.wrongSelected) {
+      return cs.brightness == Brightness.dark
+          ? const Color(0xFFEA8A8A)
+          : cs.onErrorContainer;
     }
     return cs.onSurface;
   }
@@ -208,7 +239,9 @@ class _OptionCardState extends State<OptionCard>
         cs.brightness == Brightness.dark
             ? const Color(0xFF81C995)
             : Colors.green.shade600,
-      OptionCardState.wrongSelected => cs.error,
+      OptionCardState.wrongSelected => cs.brightness == Brightness.dark
+          ? const Color(0xFFEA8A8A)
+          : cs.error,
       _ => cs.onSurface,
     };
   }

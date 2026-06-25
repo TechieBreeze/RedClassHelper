@@ -406,23 +406,7 @@ class QuizScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        if (isMultiChoice)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(40),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              '多选',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
+
                       ],
                     ),
                   ),

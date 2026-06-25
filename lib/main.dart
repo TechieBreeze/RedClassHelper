@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:redclass/core/paths.dart';
+import 'package:redclass/core/color_scheme_provider.dart';
 import 'package:redclass/core/theme.dart';
 import 'package:redclass/core/theme_mode_provider.dart';
 import 'package:redclass/features/quiz/providers/quiz_settings_provider.dart';
@@ -22,17 +23,18 @@ Future<void> main() async {
   );
 }
 
-/// RedClass 根 Widget — 统一青绿色系，亮暗模式共用同一色系。
+/// RedClass 根 Widget
 class RedClassApp extends ConsumerWidget {
   const RedClassApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final colorScheme = ref.watch(appColorSchemeProvider);
     return MaterialApp.router(
       title: '红课复习',
-      theme: buildAppTheme(Brightness.light, null),
-      darkTheme: buildAppTheme(Brightness.dark, null),
+      theme: buildAppTheme(Brightness.light, null, colorScheme: colorScheme),
+      darkTheme: buildAppTheme(Brightness.dark, null, colorScheme: colorScheme),
       themeMode: themeMode,
       routerConfig: appRouter,
       locale: const Locale('zh', 'CN'),

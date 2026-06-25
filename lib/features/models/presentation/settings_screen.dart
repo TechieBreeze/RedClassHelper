@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/color_scheme_provider.dart';
 import '../../../core/theme_mode_provider.dart';
 import '../../quiz/models/quiz_settings.dart';
 import '../../quiz/providers/quiz_settings_provider.dart';
@@ -19,6 +20,7 @@ class SettingsScreen extends ConsumerWidget {
     final isDesktop = Platform.isWindows || Platform.isLinux;
     final settings = ref.watch(quizSettingsProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final appColorScheme = ref.watch(appColorSchemeProvider);
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -78,6 +80,31 @@ class SettingsScreen extends ConsumerWidget {
                         onTap: () => ref
                             .read(themeModeProvider.notifier)
                             .setThemeMode(ThemeMode.dark),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+                  // ── 主题色 ──
+                  _SectionCard(
+                    title: '主题色',
+                    icon: Icons.brush_outlined,
+                    children: [
+                      _ColorSchemeTile(
+                        title: '青绿',
+                        colors: const [Color(0xFF00897B), Color(0xFF80CBC4)],
+                        selected: appColorScheme == AppColorScheme.teal,
+                        onTap: () => ref
+                            .read(appColorSchemeProvider.notifier)
+                            .setColorScheme(AppColorScheme.teal),
+                      ),
+                      _ColorSchemeTile(
+                        title: '蓝紫',
+                        colors: const [Color(0xFF5C6BC0), Color(0xFF9FA8DA)],
+                        selected: appColorScheme == AppColorScheme.bluePurple,
+                        onTap: () => ref
+                            .read(appColorSchemeProvider.notifier)
+                            .setColorScheme(AppColorScheme.bluePurple),
                       ),
                     ],
                   ),
@@ -419,6 +446,122 @@ class _HoverableListTileState extends State<_HoverableListTile>
             subtitle: widget.subtitle,
             trailing: widget.trailing,
             onTap: widget.onTap,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 主题色选择项 — 显示两个色点 + hover 动效。
+class _ColorSchemeTile extends StatefulWidget {
+  const _ColorSchemeTile({
+    required this.title,
+    required this.colors,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final List<Color> colors;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_ColorSchemeTile> createState() => _ColorSchemeTileState();
+}
+
+class _ColorSchemeTileState extends State<_ColorSchemeTile>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  bool _hovering = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onHover(bool hovering) {
+    if (hovering == _hovering) return;
+    _hovering = hovering;
+    hovering ? _controller.forward() : _controller.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => _onHover(true),
+      onExit: (_) => _onHover(false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final t = _controller.value;
+            return Transform.scale(
+              scale: 1.0 + t * 0.015,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: cs.shadow.withAlpha((t * 20).round()),
+                      blurRadius: t * 6,
+                      offset: Offset(0, t * 2),
+                    ),
+                  ],
+                ),
+                child: child,
+              ),
+            );
+          },
+          child: Row(
+            children: [
+              // 色点预览
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    colors: widget.colors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: widget.selected
+                    ? const Icon(Icons.check_rounded,
+                        color: Colors.white, size: 18)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  widget.title,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight:
+                            widget.selected ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                ),
+              ),
+              if (widget.selected)
+                Icon(Icons.check_circle_rounded,
+                    color: cs.primary, size: 20),
+            ],
           ),
         ),
       ),

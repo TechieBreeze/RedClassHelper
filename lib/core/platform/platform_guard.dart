@@ -8,17 +8,22 @@ class UnsupportedFeatureGuard extends StatelessWidget {
     required this.requiresDesktop,
     required this.child,
     required this.fallback,
+    this.info,
   });
   final bool requiresDesktop;
   final Widget child;
   final Widget fallback;
+
+  /// Optional [PlatformInfo] override. When null, the guard reads from
+  /// [PlatformInfo.fromContext]. Tests pass an explicit value to avoid
+  /// depending on the host platform reported by `dart:io`.
+  final PlatformInfo? info;
+
   @override
   Widget build(BuildContext context) {
-    final info = PlatformInfo.fromContext(context);
-    final matchesPlatform =
-        requiresDesktop ? info.isDesktop : !info.isDesktop;
-    final meetsFormFactor = requiresDesktop ? info.isExpanded : true;
-    final allowed = matchesPlatform && meetsFormFactor;
+    final effective = info ?? PlatformInfo.fromContext(context);
+    final allowed =
+        requiresDesktop ? effective.isDesktop : !effective.isDesktop;
     return allowed ? child : fallback;
   }
 }

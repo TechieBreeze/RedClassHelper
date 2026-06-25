@@ -56,6 +56,12 @@ class HeuristicParser {
     r'(?:简述|简答|论述|分析|说明|概述|什么是|如何|怎样|为什么)',
   );
 
+  /// 章节/题型标题：第X章 / 一、单项选择题 / 多选题 / 判断题 等
+  /// 用于块拆分时强制断块，防止标题被吞入题目块
+  static final RegExp _sectionHeaderRE = RegExp(
+    r'^\s*(?:第[一二三四五六七八九十百千]+章|[一二三四五六七八九十]+[、.．]\s*(?:单项|多项|多选|判断|选择|简答)|(?:单项|多项|多选|判断|选择|简答)题)',
+  );
+
   // ── 模式 B：内联格式的正则 ──
 
   /// 内联答案：题干中的（A）/（AB）/（C D E）/（ＣD）等
@@ -144,7 +150,9 @@ class HeuristicParser {
           for (var j = i + 1; j < lines.length; j++) {
             final next = lines[j].trim();
             if (next.isEmpty || _pageMarkerRE.hasMatch(next)) continue;
-            if (_choiceLabelRE.hasMatch(next) ||
+            if (_sectionHeaderRE.hasMatch(next)) {
+              splitHere = true;
+            } else if (_choiceLabelRE.hasMatch(next) ||
                 _choiceLabelSpaceRE.hasMatch(next)) {
               splitHere = false;
             }
@@ -158,7 +166,9 @@ class HeuristicParser {
         continue;
       }
 
-      if (_questionNumberRE.hasMatch(trimmed) && currentLines.isNotEmpty) {
+      if ((_questionNumberRE.hasMatch(trimmed) ||
+              _sectionHeaderRE.hasMatch(trimmed)) &&
+          currentLines.isNotEmpty) {
         blocks.add(_Block(currentLines, blockStartLine, i - 1));
         currentLines = [];
       }
@@ -393,9 +403,11 @@ class HeuristicParser {
     // e.g. "...以（ D ）为主线 A 马克思主义理论  B ..." → title ends before "A 马克思"
     final firstInlineSpace = _inlineChoiceSpaceRE.allMatches(afterNumber).toList();
     if (firstInlineSpace.length >= 2) {
-      // 以第一个空格分隔选项标签为界截断
-      final cutAt = firstInlineSpace.first.start;
-      afterNumber = afterNumber.substring(0, cutAt).trim();
+      // 检查第一个匹配是否在括号内（答案字母）—— 如果是则不截断
+      if (!_isInsideBrackets(afterNumber, firstInlineSpace.first.start)) {
+        final cutAt = firstInlineSpace.first.start;
+        afterNumber = afterNumber.substring(0, cutAt).trim();
+      }
     }
 
     if (afterNumber.isNotEmpty) titleLines.add(afterNumber);
@@ -404,9 +416,10 @@ class HeuristicParser {
       final line = lines[i].trim();
       if (line.isEmpty) continue;
       if (_choiceLabelRE.hasMatch(line)) break;
-      if (_choiceLabelSpaceRE.hasMatch(line)) break;
+      if (_choiceLabelSpaceRE.hasMatch(line) && !_isInsideBrackets(line)) break;
       if (_answerLineRE.hasMatch(line)) break;
       if (_explanationLineRE.hasMatch(line)) break;
+      if (_sectionHeaderRE.hasMatch(line)) break;
       // 空格分隔多选行：A xxx  B xxx  C xxx
       if (_inlineChoiceSpaceRE.allMatches(line).length >= 2) break;
       titleLines.add(line);
@@ -439,6 +452,7 @@ class HeuristicParser {
       if (pendingLabel != null) {
         final isStructuralLine = _answerLineRE.hasMatch(line) ||
             _explanationLineRE.hasMatch(line) ||
+            _sectionHeaderRE.hasMatch(line) ||
             RegExp(r'^\d').hasMatch(line);
         if (!isStructuralLine) {
           // 整行只有孤立点号（如 ".  \n"）→ 消耗点号但保持 pending
@@ -460,12 +474,30 @@ class HeuristicParser {
       // 先尝试单行多选格式：A.xxx  B.xxx  C.xxx  D.xxx
       final inlineMatches = _inlineChoiceRE.allMatches(line).toList();
       if (inlineMatches.length >= 2) {
-        for (final m in inlineMatches) {
-          final label = _normalizeOptionLabel(m.group(1) ?? '');
-          final text = (m.group(2) ?? '').trim();
-          options.add('$label. $text');
+        // 位置扫描兜底：如果正则漏掉了无分隔符的选项，用位置切分
+        final posOptions = _extractInlineOptionsByPosition(line);
+        if (posOptions.length > inlineMatches.length) {
+          for (final opt in posOptions) {
+            options.add(opt);
+          }
+        } else {
+          for (final m in inlineMatches) {
+            final label = _normalizeOptionLabel(m.group(1) ?? '');
+            final text = (m.group(2) ?? '').trim();
+            options.add('$label. $text');
+          }
         }
         // 行末悬空标签检测：若行末是 "D." 或 "D"（裸字母，预期下一行有点号或内容）
+        pendingLabel = _detectUnfinishedLabel(line);
+        continue;
+      }
+
+      // 位置扫描兜底：同行多选项（无分隔符或混合分隔符）
+      final posOptions = _extractInlineOptionsByPosition(line);
+      if (posOptions.length >= 2) {
+        for (final opt in posOptions) {
+          options.add(opt);
+        }
         pendingLabel = _detectUnfinishedLabel(line);
         continue;
       }
@@ -479,10 +511,26 @@ class HeuristicParser {
         continue;
       }
 
-      // 选项跨行延续
+      // 行首选项标签（无分隔符）：D改革开放... → 提取为单个选项
+      // 排除章节标题和括号内内容
+      if (!_sectionHeaderRE.hasMatch(line) && !_isInsideBrackets(line)) {
+        final bareLabel = RegExp(r'^([A-HA-Ｈ])\s*(.*)$').firstMatch(line);
+        if (bareLabel != null) {
+          final label = _normalizeOptionLabel(bareLabel.group(1) ?? '');
+          final text = (bareLabel.group(2) ?? '').trim();
+          if (text.isNotEmpty) {
+            options.add('$label. $text');
+          }
+          continue;
+        }
+      }
+
+      // 选项跨行延续（章节标题不延续，行首有选项标签不延续）
       if (options.isNotEmpty &&
           !_answerLineRE.hasMatch(line) &&
           !_explanationLineRE.hasMatch(line) &&
+          !_sectionHeaderRE.hasMatch(line) &&
+          !RegExp(r'^[A-HA-Ｈ]').hasMatch(line) &&
           !RegExp(r'^\d').hasMatch(line)) {
         options[options.length - 1] =
             '${options[options.length - 1]} $line';
@@ -504,23 +552,120 @@ class HeuristicParser {
     return null;
   }
 
+  /// 扫描行内所有选项标签（A-H）的位置，包括有分隔符和无分隔符的。
+  /// 跳过括号（答案区域）内的字母。返回 [(position, normalizedLabel)] 列表。
+  List<(int, String)> _findInlineLabelPositions(String line) {
+    final positions = <(int, String)>[];
+    var bracketDepth = 0;
+    for (var i = 0; i < line.length; i++) {
+      final ch = line[i];
+      // 跟踪括号深度，跳过括号内的字母
+      if (ch == '(' || ch == '（') {
+        bracketDepth++;
+        continue;
+      }
+      if (ch == ')' || ch == '）') {
+        bracketDepth = (bracketDepth > 0) ? bracketDepth - 1 : 0;
+        continue;
+      }
+      if (bracketDepth > 0) continue;
+
+      final code = ch.codeUnitAt(0);
+      String? label;
+      if (code >= 0x41 && code <= 0x48) {
+        label = ch;
+      } else if (code >= 0xFF21 && code <= 0xFF28) {
+        label = String.fromCharCode(0x41 + code - 0xFF21);
+      }
+      if (label == null) continue;
+      // 前一个字符必须是空白、标点或行首
+      if (i > 0) {
+        final prev = line[i - 1];
+        final prevCode = prev.codeUnitAt(0);
+        final isPrevWhitespace = prevCode == 0x20 ||
+            prevCode == 0x09 ||
+            (prevCode >= 0x2000 && prevCode <= 0x200A) ||
+            prevCode == 0x3000;
+        final isPrevPunct =
+            prev == '.' || prev == '、' || prev == '．' ||
+            prev == '。' || prev == '，' || prev == '；' ||
+            prev == '：' || prev == '！' || prev == '？' ||
+            prev == ')' || prev == '）';
+        if (!isPrevWhitespace && !isPrevPunct) continue;
+      }
+      // 后续字符：可选分隔符 + 非空白
+      var j = i + 1;
+      if (j < line.length) {
+        final next = line[j];
+        if (next == '.' || next == '、' || next == '．') j++;
+      }
+      // 跳过空白找到实际内容起始位置
+      while (j < line.length && line[j] == ' ') j++;
+      if (j < line.length && line[j].trim().isNotEmpty) {
+        positions.add((i, label));
+      }
+    }
+    return positions;
+  }
+
+  /// 从行内所有 label 位置切分选项文本。
+  /// 处理有分隔符（A.文本）和无分隔符（A文本）两种情况。
+  List<String> _extractInlineOptionsByPosition(String line) {
+    final positions = _findInlineLabelPositions(line);
+    if (positions.length < 2) return [];
+    // 找实际内容结束位置（排除尾部括号/空白）
+    var contentEnd = line.length;
+    while (contentEnd > 0) {
+      final ch = line[contentEnd - 1];
+      if (ch == ' ' || ch == '）' || ch == ')') {
+        contentEnd--;
+      } else {
+        break;
+      }
+    }
+    final options = <String>[];
+    for (var idx = 0; idx < positions.length; idx++) {
+      final (pos, label) = positions[idx];
+      var start = pos + 1;
+      // 跳过可选分隔符（.、．）和空白
+      while (start < contentEnd &&
+          (line[start] == '.' ||
+              line[start] == '、' ||
+              line[start] == '．' ||
+              line[start] == ' ')) {
+        start++;
+      }
+      // 文本结束于下一个 label 位置之前（不包含下一个 label 字符）
+      final end = idx + 1 < positions.length
+          ? positions[idx + 1].$1
+          : contentEnd;
+      if (start >= end) continue;
+      final text = line.substring(start, end).trim();
+      if (text.isNotEmpty) {
+        options.add('$label. $text');
+      }
+    }
+    return options;
+  }
+
   /// 空格分隔格式（A 选项文本  B 选项文本）：无点号，仅空格分隔
   ///
   /// 安全约束：块中必须出现 ≥2 个空格分隔的选项标签才采信，
   /// 避免将普通文本中出现的 "A xxx" 误识别为选项。
   List<String> _extractSpaceOptions(List<String> lines) {
-    // 先全局扫描，统计空格分隔的选项标签数量
+    // 先全局扫描，统计空格分隔的选项标签数量（跳过括号内的字母）
     var totalLabels = 0;
     for (final rawLine in lines) {
       final line = rawLine.trim();
       if (line.isEmpty || _answerLineRE.hasMatch(line) ||
           _explanationLineRE.hasMatch(line)) continue;
-      final matches = _inlineChoiceSpaceRE.allMatches(line).toList();
-      if (matches.length >= 2) {
-        totalLabels += matches.length;
+      // 使用位置扫描代替正则，自动跳过括号内字母
+      final positions = _findInlineLabelPositions(line);
+      if (positions.length >= 2) {
+        totalLabels += positions.length;
       } else {
         final single = _choiceLabelSpaceRE.firstMatch(line);
-        if (single != null) totalLabels++;
+        if (single != null && !_isInsideBrackets(line)) totalLabels++;
       }
     }
     // 安全约束：至少 2 个标签才采信
@@ -536,28 +681,30 @@ class HeuristicParser {
         continue;
       }
 
-      // 单行多选：A xxx  B xxx  C xxx  D xxx（≥2 个匹配才采信）
-      final inlineMatches = _inlineChoiceSpaceRE.allMatches(line).toList();
-      if (inlineMatches.length >= 2) {
-        for (final m in inlineMatches) {
-          final label = _normalizeOptionLabel(m.group(1) ?? '');
-          final text = (m.group(2) ?? '').trim();
-          options.add('$label. $text');
+      // 优先使用位置扫描（跳过括号内字母）
+      final posOptions = _extractInlineOptionsByPosition(line);
+      if (posOptions.length >= 2) {
+        for (final opt in posOptions) {
+          options.add(opt);
         }
         continue;
       }
 
-      // 单行单选：A xxx
+      // 单行单选：A xxx（仅当不在括号内时）
       final m = _choiceLabelSpaceRE.firstMatch(line);
-      if (m != null) {
+      if (m != null && !_isInsideBrackets(line)) {
         final label = _normalizeOptionLabel(m.group(1) ?? '');
         final text = (m.group(2) ?? '').trim();
         options.add('$label. $text');
         continue;
       }
 
-      // 选项跨行延续
+      // 选项跨行延续（章节标题不延续，行首有选项标签不延续）
       if (options.isNotEmpty &&
+          !_answerLineRE.hasMatch(line) &&
+          !_explanationLineRE.hasMatch(line) &&
+          !_sectionHeaderRE.hasMatch(line) &&
+          !RegExp(r'^[A-HA-Ｈ]').hasMatch(line) &&
           !RegExp(r'^\d').hasMatch(line)) {
         options[options.length - 1] =
             '${options[options.length - 1]} $line';
@@ -576,13 +723,45 @@ class HeuristicParser {
     return label;
   }
 
+  /// 检查字符串中某位置是否在括号（）/（）内
+  /// 用于区分答案括号内的字母和真正的选项标签
+  bool _isInsideBrackets(String text, [int? checkPosition]) {
+    var depth = 0;
+    for (var i = 0; i < text.length; i++) {
+      final ch = text[i];
+      if (ch == '(' || ch == '（') {
+        depth++;
+      } else if (ch == ')' || ch == '）') {
+        depth = (depth > 0) ? depth - 1 : 0;
+      }
+      if (checkPosition != null && i == checkPosition) {
+        return depth > 0;
+      }
+    }
+    // 无指定位置时，检查整行是否含括号答案模式
+    return RegExp(r'[（(]\s*[A-H]\s*[）)]').hasMatch(text);
+  }
+
   // ── 答案提取（模式 A） ──
+
+  /// 独立行括号答案：（ A B C ）/ (ABC) 等
+  /// 仅当整行只有括号内容时匹配，避免匹配题干中的括号
+  static final RegExp _standaloneBracketAnswerRE = RegExp(
+    r'^\s*[（(]\s*([A-Ha-hＡ-Ｈ\s]{1,24})\s*[）)]\s*$',
+  );
 
   String _extractAnswer(List<String> lines) {
     for (final line in lines) {
       final m = _answerLineRE.firstMatch(line.trim());
       if (m != null) {
         return (m.group(1) ?? '').trim().toUpperCase();
+      }
+    }
+    // 回退：独立行括号答案（如 "（ A B C ）"）
+    for (final line in lines) {
+      final m = _standaloneBracketAnswerRE.firstMatch(line.trim());
+      if (m != null) {
+        return _extractInlineAnswer('(${m.group(1)})');
       }
     }
     return '';

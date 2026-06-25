@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:redclass/core/platform/platform_info.dart';
+import 'package:redclass/core/platform/responsive.dart';
 import 'package:redclass/data/db/database.dart';
 import 'package:redclass/features/quiz/models/quiz_session_state.dart';
 import 'package:redclass/features/quiz/models/quiz_settings.dart';
@@ -69,11 +71,35 @@ class _StubSessionController extends QuizSessionController {
   void startAutoAdvance() {}
 }
 
+class _StubSettingsNotifier extends QuizSettingsNotifier {
+  _StubSettingsNotifier(this._initial);
+
+  final QuizSettings _initial;
+
+  @override
+  QuizSettings build() => _initial;
+}
+
+/// Wrap [QuizScreen] in a [ResponsiveBuilder] that injects a hermetic
+/// [PlatformInfo]. The form factor (compact/medium/expanded) selected by
+/// the inner [AdaptiveLayout] will follow [info], not the host platform.
+///
+/// NOTE: QuizScreen's own `_isDesktop(context)` reads
+/// `PlatformInfo.fromContext` directly, so this wrapper only controls the
+/// `AdaptiveLayout` branch. The desktop-only `Focus` keyboard wrapper will
+/// still activate on Windows/Linux/macOS test hosts. This is acceptable for
+/// these tests because they only assert on layout keys and the centering
+/// constraint, not on the Focus wrapper itself.
 Widget _harness({
   required Size size,
+  required AppPlatform platform,
   required QuizSessionState session,
   required QuizSettings settings,
 }) {
+  final info = PlatformInfo.forTesting(
+    platform: platform,
+    shortestSide: size.shortestSide,
+  );
   return ProviderScope(
     overrides: [
       quizSessionControllerProvider(
@@ -85,19 +111,35 @@ Widget _harness({
     child: MaterialApp(
       home: MediaQuery(
         data: MediaQueryData(size: size),
-        child: const QuizScreen(bankId: 'bank1', mode: 'random'),
+        child: ResponsiveBuilder(
+          info: info,
+          // Builder is unused — QuizScreen drives its own AdaptiveLayout.
+          // We only need this wrapper to advertise the override pattern
+          // for future tests that DO consume ResponsiveBuilder.
+          builder: (_, _) => const QuizScreen(bankId: 'bank1', mode: 'random'),
+        ),
       ),
     ),
   );
 }
 
-class _StubSettingsNotifier extends QuizSettingsNotifier {
-  _StubSettingsNotifier(this._initial);
-
-  final QuizSettings _initial;
-
-  @override
-  QuizSettings build() => _initial;
+/// True iff any [ConstrainedBox] DESCENDANT of the element matched by
+/// [startFinder] has `maxWidth` equal to [maxWidth]. QuizScreen's medium
+/// branch wraps the body in `Center > ConstrainedBox(maxWidth: 720) >
+/// SingleChildScrollView > Column`. The compact branch wraps it in
+/// nothing — its body is the bare `SingleChildScrollView > Column`.
+/// Searching descendants of the `quiz_vertical_layout` KeyedSubtree
+/// therefore distinguishes medium from compact.
+bool _hasDescendantConstrainedBoxMaxWidth(Finder startFinder, double maxWidth) {
+  final matches = find
+      .descendant(
+        of: startFinder,
+        matching: find.byWidgetPredicate(
+          (w) => w is ConstrainedBox && w.constraints.maxWidth == maxWidth,
+        ),
+      )
+      .evaluate();
+  return matches.isNotEmpty;
 }
 
 void main() {
@@ -110,6 +152,7 @@ void main() {
     await tester.pumpWidget(
       _harness(
         size: const Size(400, 800),
+        platform: AppPlatform.android,
         session: _makeActiveSession(),
         settings: const QuizSettings(),
       ),
@@ -120,6 +163,39 @@ void main() {
     expect(find.byKey(const Key('quiz_horizontal_layout')), findsNothing);
   });
 
+  testWidgets(
+    'medium width (700x900) renders vertical layout key with 720-centered ConstrainedBox ancestor',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(700, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _harness(
+          size: const Size(700, 900),
+          platform: AppPlatform.android,
+          session: _makeActiveSession(),
+          settings: const QuizSettings(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Medium shares the vertical layout key with compact (per the brief).
+      expect(find.byKey(const Key('quiz_vertical_layout')), findsOneWidget);
+      expect(find.byKey(const Key('quiz_horizontal_layout')), findsNothing);
+
+      // The medium branch wraps the body in Center + ConstrainedBox(720).
+      // Compact does NOT — its maxWidth is null. So this assertion
+      // distinguishes medium from compact.
+      expect(
+        _hasDescendantConstrainedBoxMaxWidth(
+          find.byKey(const Key('quiz_vertical_layout')),
+          720,
+        ),
+        isTrue,
+      );
+    },
+  );
+
   testWidgets('expanded width (1500x1000) renders horizontal layout key', (
     tester,
   ) async {
@@ -129,6 +205,7 @@ void main() {
     await tester.pumpWidget(
       _harness(
         size: const Size(1500, 1000),
+        platform: AppPlatform.windows,
         session: _makeActiveSession(),
         settings: const QuizSettings(),
       ),

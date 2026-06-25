@@ -80,7 +80,7 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
     final notifier = ref.read(importNotifierProvider.notifier);
 
     notifier.pickFiles([
-      ImportFile(
+      ImportFile.fromPath(
         path: _filePath!,
         name: p.basename(_filePath!),
         sizeBytes: stat.size,

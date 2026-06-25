@@ -47,7 +47,7 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
     // 统计题型分布
     final typeCounts = _countByType(state.candidates, state.confirmedIndices);
     final fileName = state.files.isNotEmpty
-        ? p.basename(state.files.first.path)
+        ? state.files.first.name
         : '未知文件';
 
     return PopScope(

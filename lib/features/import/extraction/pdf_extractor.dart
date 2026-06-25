@@ -4,6 +4,7 @@
 // 检测扫描件和加密 PDF，抛出明确异常。
 
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:pdfrx/pdfrx.dart';
 
@@ -60,7 +61,7 @@ Future<String> extractPdfText(String filePath) async {
 
     for (final page in pages) {
       final pageText = await page.loadText();
-      final text = pageText.fullText.trim();
+      final text = (pageText?.fullText ?? '').trim();
       if (text.isNotEmpty) {
         hasAnyText = true;
         allText.writeln(text);
@@ -79,5 +80,23 @@ Future<String> extractPdfText(String filePath) async {
     return result;
   } finally {
     await document.dispose();
+  }
+}
+
+/// 从字节缓冲区提取 PDF 文本（移动端 / 内存源）。
+///
+/// 通过临时文件桥接到 [extractPdfText]，提取完成后清理临时文件。
+Future<String> extractPdfTextFromBytes(
+  Uint8List bytes, {
+  required String fileName,
+}) async {
+  final tmpDir = Directory.systemTemp.createTempSync('redclass_pdf_');
+  final tmp = File('${tmpDir.path}/$fileName');
+  await tmp.writeAsBytes(bytes);
+  try {
+    return await extractPdfText(tmp.path);
+  } finally {
+    if (await tmp.exists()) await tmp.delete();
+    if (await tmpDir.exists()) await tmpDir.delete(recursive: true);
   }
 }

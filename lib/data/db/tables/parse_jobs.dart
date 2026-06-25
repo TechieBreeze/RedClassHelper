@@ -9,8 +9,10 @@ class ParseJobs extends Table {
   /// 任务 UUID（文本主键）
   TextColumn get id => text()();
 
-  /// 源文件路径
-  TextColumn get sourcePath => text().named('source_path')();
+  /// 源文件路径或名称。
+  ///
+  /// 移动端字节源无磁盘路径时为 null（DB 端使用 file name 兜底）。
+  TextColumn get sourcePath => text().named('source_path').nullable()();
 
   /// 状态：'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled'
   TextColumn get status => text()();

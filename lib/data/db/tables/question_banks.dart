@@ -12,8 +12,10 @@ class QuestionBanks extends Table {
   /// 题库名称（用户可见，如"2024秋-数据库原理"）
   TextColumn get name => text()();
 
-  /// 来源路径或描述（文件路径 / 手动输入）
-  TextColumn get source => text()();
+  /// 来源路径或描述（文件路径 / 手动输入）。
+  ///
+  /// 移动端字节源无磁盘路径时为 null（DB 端使用 file name 兜底）。
+  TextColumn get source => text().nullable()();
 
   /// 解析出的题目总数
   IntColumn get questionCount => integer().named('question_count')();

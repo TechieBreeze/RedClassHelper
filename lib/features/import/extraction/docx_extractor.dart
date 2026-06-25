@@ -6,6 +6,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:xml/xml.dart';
@@ -108,6 +109,22 @@ Future<String> extractDocxText(String filePath) async {
   }
 
   return paragraphs.join('\n');
+}
+
+/// 从字节缓冲区提取 .docx 文本（移动端 / 内存源）。
+Future<String> extractDocxTextFromBytes(
+  Uint8List bytes, {
+  required String fileName,
+}) async {
+  final tmpDir = Directory.systemTemp.createTempSync('redclass_docx_');
+  final tmp = File('${tmpDir.path}/$fileName');
+  await tmp.writeAsBytes(bytes);
+  try {
+    return await extractDocxText(tmp.path);
+  } finally {
+    if (await tmp.exists()) await tmp.delete();
+    if (await tmpDir.exists()) await tmpDir.delete(recursive: true);
+  }
 }
 
 // ── 编号解析 ──

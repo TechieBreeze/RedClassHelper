@@ -5,13 +5,16 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show File;
+import 'dart:typed_data';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/paths.dart';
 import '../../../data/db/database.dart';
+import '../../../data/file_picker/file_picker_models.dart';
 import '../../../data/llm_client/llm_client.dart';
 import '../../../data/llm_client/llm_error.dart';
 import '../../../data/llm_client/providers.dart';
@@ -60,13 +63,21 @@ class ImportNotifier extends _$ImportNotifier {
     );
   }
 
+  /// 接收 [PickedFile] 列表（来自 [FilePickerService]）。
+  ///
+  /// 内部转换为 [ImportFile] 后委托给 [pickFiles]。
+  void receiveFiles(List<PickedFile> files) {
+    if (files.isEmpty) return;
+    pickFiles(files.map(ImportFile.fromPicked).toList());
+  }
+
   /// 阶段 1 → 2 → 3: 提取文本并解析
   Future<void> extractAndParse() async {
     if (state.files.isEmpty) return;
 
     // Branch: JSON files skip extraction/parsing and go directly to fast-track import
     if (state.files.length == 1 &&
-        p.extension(state.files.first.path).toLowerCase() == '.json') {
+        p.extension(state.files.first.name).toLowerCase() == '.json') {
       await importJsonFile();
       return;
     }
@@ -92,13 +103,8 @@ class ImportNotifier extends _$ImportNotifier {
           progress: (i / totalFiles) * 0.5,
         );
 
-        final ext = p.extension(file.path);
-        final text = await extractText(
-          file.path,
-          fileExtension: ext,
-          pandocResolver: () => resolver.pandoc,
-          tempImportDirResolver: () => resolver.tempImportDir,
-        );
+        final ext = p.extension(file.name);
+        final text = await _extractSingleFile(file, ext, resolver);
 
         allText.writeln(text);
         allText.writeln(); // 文件分隔
@@ -211,7 +217,9 @@ class ImportNotifier extends _$ImportNotifier {
       // 创建 ParseJob
       final job = ParseJobsCompanion.insert(
         id: _uuid.v4(),
-        sourcePath: state.files.map((f) => f.path).join(';'),
+        sourcePath: Value(
+          state.files.map((f) => f.path ?? f.name).join(';'),
+        ),
         status: 'succeeded',
         progress: 1.0,
         resultCount: confirmedCandidates.length,
@@ -224,7 +232,9 @@ class ImportNotifier extends _$ImportNotifier {
       final bank = QuestionBanksCompanion.insert(
         id: bankId,
         name: state.bankName,
-        source: state.files.first.path,
+        source: Value(
+          state.files.first.path ?? state.files.first.name,
+        ),
         questionCount: confirmedCandidates.length,
         createdAt: now,
         updatedAt: now,
@@ -441,11 +451,29 @@ class ImportNotifier extends _$ImportNotifier {
   Future<void> importJsonFile() async {
     if (state.files.isEmpty) return;
 
-    final filePath = state.files.first.path;
+    final first = state.files.first;
+    final sourceLabel = first.path ?? first.name;
+
+    // 读取字节（支持 path 与 bytes 两种来源）
+    final Uint8List bytes;
+    if (first.path != null) {
+      final file = File(first.path!);
+      bytes = await file.readAsBytes();
+    } else {
+      final picked = first.source;
+      if (picked is PickedBytesFile) {
+        bytes = picked.bytes;
+      } else {
+        state = state.copyWith(
+          phase: ImportPhase.idle,
+          error: 'JSON 导入需要可访问的文件字节或路径',
+        );
+        return;
+      }
+    }
 
     // Guard 1: File size check (reject >10MB before reading into memory)
-    final file = File(filePath);
-    final fileSize = await file.length();
+    final fileSize = bytes.length;
     if (fileSize > 10 * 1024 * 1024) {
       state = state.copyWith(
         phase: ImportPhase.idle,
@@ -456,7 +484,7 @@ class ImportNotifier extends _$ImportNotifier {
 
     // Guard 2: Read and parse JSON
     state = state.copyWith(phase: ImportPhase.parsing, progress: 0.1);
-    final jsonString = await file.readAsString();
+    final jsonString = utf8.decode(bytes);
 
     Map<String, dynamic> jsonData;
     try {
@@ -530,7 +558,7 @@ class ImportNotifier extends _$ImportNotifier {
               QuestionBanksCompanion.insert(
                 id: bankId,
                 name: converted.bankName,
-                source: filePath,
+                source: Value(sourceLabel),
                 questionCount: converted.questions.length,
                 createdAt: now,
                 updatedAt: now,
@@ -542,7 +570,7 @@ class ImportNotifier extends _$ImportNotifier {
         // 4d. Create ParseJob for summary screen
         final job = ParseJobsCompanion.insert(
           id: _uuid.v4(),
-          sourcePath: filePath,
+          sourcePath: Value(sourceLabel),
           status: 'succeeded',
           progress: 1.0,
           resultCount: converted.questions.length,
@@ -645,6 +673,30 @@ class ImportNotifier extends _$ImportNotifier {
   }
 
   // ── 原有辅助方法 ──
+
+  /// 从单个 [ImportFile] 提取文本（按 path / bytes 分支）。
+  Future<String> _extractSingleFile(
+    ImportFile file,
+    String ext,
+    PathResolver resolver,
+  ) {
+    final path = file.path;
+    if (path != null) {
+      return extractText(
+        path,
+        fileExtension: ext,
+        pandocResolver: () => resolver.pandoc,
+        tempImportDirResolver: () => resolver.tempImportDir,
+      );
+    }
+    return extractTextFromStream(
+      file.source.openRead(),
+      fileName: file.name,
+      fileExtension: ext,
+      pandocResolver: () => resolver.pandoc,
+      tempImportDirResolver: () => resolver.tempImportDir,
+    );
+  }
 
   String _deriveBankName(String fileName) {
     final base = p.basenameWithoutExtension(fileName);

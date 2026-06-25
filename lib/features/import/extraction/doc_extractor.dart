@@ -4,6 +4,7 @@
 // 委托给 docx_extractor 提取纯文本。
 
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 
@@ -89,5 +90,29 @@ Future<String> extractDocText(
     } catch (_) {
       // 清理失败不阻塞流程
     }
+  }
+}
+
+/// 从字节缓冲区提取 .doc 文本（移动端 / 内存源）。
+///
+/// 工作流：写入临时 .doc → 委托给 pandoc 转 .docx → 委托给 [extractDocxText]。
+Future<String> extractDocTextFromBytes(
+  Uint8List bytes, {
+  required String fileName,
+  required Future<String> Function() pandocResolver,
+  required Future<String> Function() tempImportDirResolver,
+}) async {
+  final tmpDir = Directory.systemTemp.createTempSync('redclass_doc_');
+  final tmpDoc = File('${tmpDir.path}/$fileName');
+  await tmpDoc.writeAsBytes(bytes);
+  try {
+    return await extractDocText(
+      tmpDoc.path,
+      pandocResolver: pandocResolver,
+      tempImportDirResolver: tempImportDirResolver,
+    );
+  } finally {
+    if (await tmpDoc.exists()) await tmpDoc.delete();
+    if (await tmpDir.exists()) await tmpDir.delete(recursive: true);
   }
 }

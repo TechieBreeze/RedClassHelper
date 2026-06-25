@@ -2,6 +2,7 @@
 // ── 导入管道状态模型 ──
 // 表示导入管道从文件选择到持久化的完整生命周期。
 
+import '../../../data/file_picker/file_picker_models.dart';
 import '../../import/parsing/llm/canonicalizer.dart';
 import '../../import/parsing/parse_candidate.dart';
 
@@ -33,16 +34,48 @@ enum ImportPhase {
 }
 
 /// 单个导入文件信息
+///
+/// 内部包装 [PickedFile]（sealed 类型），支持：
+/// - 桌面端路径源（[PickedPathFile]）—— 通过 [fromPath] 工厂创建
+/// - 移动端内存字节源（[PickedBytesFile]）—— 通过 [fromPicked] 工厂创建
+///
+/// [path] 可为 null（移动端字节源没有磁盘路径）。
 class ImportFile {
-  final String path;
-  final String name;
-  final int sizeBytes;
+  final PickedFile _picked;
 
-  const ImportFile({
-    required this.path,
-    required this.name,
-    required this.sizeBytes,
-  });
+  const ImportFile._(this._picked);
+
+  /// 从任意 [PickedFile] 派生 [ImportFile]。
+  factory ImportFile.fromPicked(PickedFile picked) => ImportFile._(picked);
+
+  /// 从路径构造 [ImportFile]（桌面端兼容性入口）。
+  factory ImportFile.fromPath({
+    required String path,
+    required String name,
+    required int sizeBytes,
+  }) =>
+      ImportFile._(
+        PickedPathFile(path: path, name: name, length: sizeBytes),
+      );
+
+  /// 底层文件路径（移动端字节源时为 null）。
+  String? get path {
+    final self = _picked;
+    if (self is PickedPathFile) return self.path;
+    return null;
+  }
+
+  String get name => _picked.name;
+
+  int get sizeBytes {
+    final self = _picked;
+    if (self is PickedPathFile) return self.length;
+    if (self is PickedBytesFile) return self.bytes.length;
+    throw StateError('Unknown PickedFile subtype: ${self.runtimeType}');
+  }
+
+  /// 暴露底层 [PickedFile]，供流式读取与 JSON 字节访问。
+  PickedFile get source => _picked;
 }
 
 /// 导入管道状态

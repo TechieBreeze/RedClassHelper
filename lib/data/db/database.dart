@@ -33,10 +33,10 @@ class AppDatabase extends _$AppDatabase {
   /// 由 drift codegen 调用；传入底层数据库连接。
   AppDatabase(super.e);
 
-  // ── D-14: schemaVersion = 1 ──
+  // ── D-14: schemaVersion = 1 — v2: source/sourcePath nullable ──
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   // ── MigrationStrategy ──
 
@@ -47,13 +47,75 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
         },
         onUpgrade: (m, from, to) async {
-          // D-14: v1 留空 — 未来 schema 变更再补
+          // v2: source/sourcePath 改为 nullable（移动端字节源无磁盘路径）
+          if (from < 2) {
+            // SQLite 不支持 ALTER COLUMN — 通过 rename + recreate + copy 重建表
+            await _recreateTableNullable(
+              m,
+              oldName: 'question_banks',
+              newName: 'question_banks',
+              ddl: _questionBanksV2Ddl,
+            );
+            await _recreateTableNullable(
+              m,
+              oldName: 'parse_jobs',
+              newName: 'parse_jobs',
+              ddl: _parseJobsV2Ddl,
+            );
+          }
         },
         beforeOpen: (details) async {
           // PITFALL 3: SQLite 默认关闭外键; 每次连接必须显式开启
           await customStatement('PRAGMA foreign_keys = ON');
         },
       );
+
+  /// 将指定表重建为给定 DDL，并保留旧数据。
+  ///
+  /// SQLite 不支持 `ALTER COLUMN ... DROP NOT NULL`，因此采用
+  /// rename → create new → copy → drop old 的等价操作。
+  static Future<void> _recreateTableNullable(
+    Migrator m, {
+    required String oldName,
+    required String newName,
+    required String ddl,
+  }) async {
+    final old = '${oldName}_v1_old';
+    final db = m.database;
+    await db.customStatement('ALTER TABLE $oldName RENAME TO $old');
+    await db.customStatement(ddl);
+    await db.customStatement(
+      'INSERT INTO $newName (id, name, source, question_count, '
+      'created_at, updated_at) '
+      'SELECT id, name, source, question_count, created_at, updated_at '
+      'FROM $old',
+    );
+    await db.customStatement('DROP TABLE $old');
+  }
+
+  static const _questionBanksV2Ddl = '''
+    CREATE TABLE question_banks (
+      id TEXT NOT NULL PRIMARY KEY,
+      name TEXT NOT NULL,
+      source TEXT NULL,
+      question_count INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  ''';
+
+  static const _parseJobsV2Ddl = '''
+    CREATE TABLE parse_jobs (
+      id TEXT NOT NULL PRIMARY KEY,
+      source_path TEXT NULL,
+      status TEXT NOT NULL,
+      progress REAL NOT NULL,
+      result_count INTEGER NOT NULL,
+      error_message TEXT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  ''';
 
   // ── 工厂方法 ──
 

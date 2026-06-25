@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../core/platform/responsive.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/hoverable_card.dart';
 import '../../../data/db/database.dart';
@@ -31,11 +32,13 @@ class BankDetailScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline,
-                  size: 48, color: Theme.of(context).colorScheme.error),
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
               const SizedBox(height: 16),
-              Text('数据库加载失败',
-                  style: Theme.of(context).textTheme.titleLarge),
+              Text('数据库加载失败', style: Theme.of(context).textTheme.titleLarge),
             ],
           ),
         ),
@@ -69,12 +72,12 @@ class BankDetailScreen extends ConsumerWidget {
   Future<({QuestionBank bank, List<Question> questions})> _loadBankData(
     AppDatabase db,
   ) async {
-    final bank = await (db.select(db.questionBanks)
-      ..where((b) => b.id.equals(bankId))
-    ).getSingle();
-    final questions = await (db.select(db.questions)
-      ..where((q) => q.bankId.equals(bankId))
-    ).get();
+    final bank = await (db.select(
+      db.questionBanks,
+    )..where((b) => b.id.equals(bankId))).getSingle();
+    final questions = await (db.select(
+      db.questions,
+    )..where((q) => q.bankId.equals(bankId))).get();
     return (bank: bank, questions: questions);
   }
 
@@ -84,8 +87,6 @@ class BankDetailScreen extends ConsumerWidget {
     QuestionBank bank,
     List<Question> questions,
   ) {
-    final cs = Theme.of(context).colorScheme;
-
     // Count by type
     final singleCount = questions.where((q) => q.type == 'single').length;
     final multiCount = questions.where((q) => q.type == 'multiple').length;
@@ -101,205 +102,392 @@ class BankDetailScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 720),
-              child: ListView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      body: AdaptiveLayout(
+        compact: (ctx) => KeyedSubtree(
+          key: const Key('bank_detail_vertical_layout'),
+          child: _buildVerticalLayout(
+            ctx,
+            ref,
+            bank,
+            questions,
+            singleCount,
+            multiCount,
+          ),
+        ),
+        medium: (ctx) => KeyedSubtree(
+          key: const Key('bank_detail_vertical_layout'),
+          child: _buildVerticalLayout(
+            ctx,
+            ref,
+            bank,
+            questions,
+            singleCount,
+            multiCount,
+            maxWidth: 720,
+          ),
+        ),
+        expanded: (ctx) => KeyedSubtree(
+          key: const Key('bank_detail_horizontal_layout'),
+          child: _buildHorizontalLayout(
+            ctx,
+            ref,
+            bank,
+            questions,
+            singleCount,
+            multiCount,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Compact + medium layout: single column ListView.
+  ///
+  /// [maxWidth] is non-null for medium (Center + ConstrainedBox(720) wrapper
+  /// preserves the previous centered behavior on tablets / desktop windows);
+  /// null for compact (full-width on phones).
+  Widget _buildVerticalLayout(
+    BuildContext context,
+    WidgetRef ref,
+    QuestionBank bank,
+    List<Question> questions,
+    int singleCount,
+    int multiCount, {
+    double? maxWidth,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final listView = ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      children: [
+        // ── Hero banner ──
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: heroGradient(cs, Theme.of(context).brightness),
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: cs.primary.withAlpha(50),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                bank.name,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
                 children: [
-                  // ── Hero banner ──
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
+                  _DetailChip(
+                    icon: Icons.description_outlined,
+                    text: bank.source == null ? '' : p.basename(bank.source!),
+                  ),
+                  const SizedBox(width: 10),
+                  _DetailChip(
+                    icon: Icons.quiz_outlined,
+                    text: '${questions.length} 题',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // ── Type breakdown ──
+        Text(
+          '题目构成',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _TypeCard(
+                label: '单选题',
+                count: singleCount,
+                total: questions.length,
+                icon: Icons.radio_button_checked,
+                color: cs.primaryContainer,
+                iconColor: cs.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _TypeCard(
+                label: '多选题',
+                count: multiCount,
+                total: questions.length,
+                icon: Icons.checklist,
+                color: cs.secondaryContainer,
+                iconColor: cs.onSecondaryContainer,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+
+        // ── Actions ──
+        Text(
+          '操作',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 10),
+        _buildStartReviewCard(context, cs),
+        const SizedBox(height: 8),
+        _buildExportJsonCard(context, ref, cs, bank, questions),
+      ],
+    );
+    if (maxWidth == null) return listView;
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: listView,
+      ),
+    );
+  }
+
+  /// Expanded layout: 2 columns inside a scroll view.
+  ///
+  /// Left (3/5): hero + actions. Right (2/5): type breakdown sidebar.
+  Widget _buildHorizontalLayout(
+    BuildContext context,
+    WidgetRef ref,
+    QuestionBank bank,
+    List<Question> questions,
+    int singleCount,
+    int multiCount,
+  ) {
+    final cs = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Left: hero + actions (main read-then-act flow) ──
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: heroGradient(cs, Theme.of(context).brightness),
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: cs.primary.withAlpha(50),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          bank.name,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            _DetailChip(
-                                icon: Icons.description_outlined,
-                                text: p.basename(bank.source)),
-                            const SizedBox(width: 10),
-                            _DetailChip(
-                                icon: Icons.quiz_outlined,
-                                text: '${questions.length} 题'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ── Type breakdown ──
-                  Text(
-                    '题目构成',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _TypeCard(
-                          label: '单选题',
-                          count: singleCount,
-                          total: questions.length,
-                          icon: Icons.radio_button_checked,
-                          color: cs.primaryContainer,
-                          iconColor: cs.onPrimaryContainer,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _TypeCard(
-                          label: '多选题',
-                          count: multiCount,
-                          total: questions.length,
-                          icon: Icons.checklist,
-                          color: cs.secondaryContainer,
-                          iconColor: cs.onSecondaryContainer,
-                        ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: cs.primary.withAlpha(50),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-
-                  // ── Actions ──
-                  Text(
-                    '操作',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        bank.name,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _DetailChip(
+                            icon: Icons.description_outlined,
+                            text: bank.source == null
+                                ? ''
+                                : p.basename(bank.source!),
+                          ),
+                          const SizedBox(width: 10),
+                          _DetailChip(
+                            icon: Icons.quiz_outlined,
+                            text: '${questions.length} 题',
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  HoverableCard(
-                    onTap: () =>
-                        context.go('/quiz/$bankId/random'),
-                    child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [cs.primary, cs.primary.withAlpha(200)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(Icons.play_arrow_rounded,
-                                  color: Colors.white, size: 22),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('开始复习',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall
-                                          ?.copyWith(
-                                              fontWeight: FontWeight.w600)),
-                                  const SizedBox(height: 2),
-                                  Text('乱序抽题，即时判分',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                              color: cs.onSurface.withAlpha(150))),
-                                ],
-                              ),
-                            ),
-                            Icon(Icons.chevron_right_rounded,
-                                color: cs.outline, size: 20),
-                          ],
-                        ),
-                      ),
+                ),
+                const SizedBox(height: 28),
+                Text(
+                  '操作',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _buildStartReviewCard(context, cs),
+                const SizedBox(height: 8),
+                _buildExportJsonCard(context, ref, cs, bank, questions),
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
+          // ── Right: type breakdown sidebar ──
+          Expanded(
+            flex: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '题目构成',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _TypeCard(
+                  label: '单选题',
+                  count: singleCount,
+                  total: questions.length,
+                  icon: Icons.radio_button_checked,
+                  color: cs.primaryContainer,
+                  iconColor: cs.onPrimaryContainer,
+                ),
+                const SizedBox(height: 10),
+                _TypeCard(
+                  label: '多选题',
+                  count: multiCount,
+                  total: questions.length,
+                  icon: Icons.checklist,
+                  color: cs.secondaryContainer,
+                  iconColor: cs.onSecondaryContainer,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStartReviewCard(BuildContext context, ColorScheme cs) {
+    return HoverableCard(
+      onTap: () => context.go('/quiz/$bankId/random'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [cs.primary, cs.primary.withAlpha(200)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.play_arrow_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '开始复习',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
-                  const SizedBox(height: 8),
-                  HoverableCard(
-                    onTap: () => _exportJson(context, ref, bank, questions),
-                    child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: cs.secondaryContainer,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(Icons.upload_file_rounded,
-                                  color: cs.onSecondaryContainer, size: 22),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('导出 JSON',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall
-                                          ?.copyWith(
-                                              fontWeight: FontWeight.w600)),
-                                  const SizedBox(height: 2),
-                                  Text('分享给其他人导入使用',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                              color: cs.onSurface.withAlpha(150))),
-                                ],
-                              ),
-                            ),
-                            Icon(Icons.chevron_right_rounded,
-                                color: cs.outline, size: 20),
-                          ],
-                        ),
-                      ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '乱序抽题，即时判分',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: cs.onSurface.withAlpha(150),
                     ),
+                  ),
                 ],
               ),
             ),
-          );
-        },
+            Icon(Icons.chevron_right_rounded, color: cs.outline, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExportJsonCard(
+    BuildContext context,
+    WidgetRef ref,
+    ColorScheme cs,
+    QuestionBank bank,
+    List<Question> questions,
+  ) {
+    return HoverableCard(
+      onTap: () => _exportJson(context, ref, bank, questions),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: cs.secondaryContainer,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.upload_file_rounded,
+                color: cs.onSecondaryContainer,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '导出 JSON',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '分享给其他人导入使用',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: cs.onSurface.withAlpha(150),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: cs.outline, size: 20),
+          ],
+        ),
       ),
     );
   }
@@ -363,10 +551,7 @@ class _DetailChip extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             text,
-            style: TextStyle(
-              color: Colors.white.withAlpha(220),
-              fontSize: 12,
-            ),
+            style: TextStyle(color: Colors.white.withAlpha(220), fontSize: 12),
           ),
         ],
       ),
@@ -412,9 +597,9 @@ class _TypeCard extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               '$count',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 2),
             Text(label, style: Theme.of(context).textTheme.bodySmall),

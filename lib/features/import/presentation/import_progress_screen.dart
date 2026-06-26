@@ -14,6 +14,7 @@ import 'package:path/path.dart' as p;
 import '../parsing/llm/canonicalizer.dart';
 import '../providers/import_notifier.dart';
 import '../providers/import_state.dart';
+import '../../../core/platform/responsive.dart';
 import '../../../core/theme.dart';
 
 /// 导入进度页——在后台 isolate 中执行提取+解析时显示进度。
@@ -144,9 +145,8 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
 
     final fileName = _filePath != null ? p.basename(_filePath!) : '';
     final fileIcon = _getFileIcon(fileName);
-    final isActive = state.isExtracting ||
-        state.isParsing ||
-        state.isLlmParsing;
+    final isActive =
+        state.isExtracting || state.isParsing || state.isLlmParsing;
 
     return PopScope(
       canPop: !isActive,
@@ -157,141 +157,284 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
         appBar: AppBar(
           title: const Text('正在导入…'),
           leading: isActive
-              ? IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: _onWillPop,
-                )
+              ? IconButton(icon: const Icon(Icons.close), onPressed: _onWillPop)
               : null,
         ),
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // ── 渐变 Hero ──
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: heroGradient(
-                          Theme.of(context).colorScheme,
-                          Theme.of(context).brightness,
-                        ),
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          fileIcon,
-                          size: 48,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          fileName,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
+        body: AdaptiveLayout(
+          compact: (_) => KeyedSubtree(
+            key: const Key('import_progress_vertical_layout'),
+            child: _buildVerticalLayout(context, state, fileName, fileIcon),
+          ),
+          medium: (_) => KeyedSubtree(
+            key: const Key('import_progress_vertical_layout'),
+            child: _buildVerticalLayout(
+              context,
+              state,
+              fileName,
+              fileIcon,
+              maxWidth: 600,
+            ),
+          ),
+          expanded: (_) => KeyedSubtree(
+            key: const Key('import_progress_horizontal_layout'),
+            child: _buildHorizontalLayout(context, state, fileName, fileIcon),
+          ),
+        ),
+      ),
+    );
+  }
 
-                  // ── Phase 2: extracting / parsing phase ──
-                  if (state.isExtracting || state.isParsing) ...[
-                    LinearProgressIndicator(value: state.progress),
-                    const SizedBox(height: 16),
-                    Text(
-                      state.isExtracting
-                          ? '提取文本中…'
-                          : '解析中…',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    if (_showStuckMessage) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        '仍在处理…',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.6),
-                            ),
-                      ),
-                    ],
-                    const SizedBox(height: 32),
-                    // 取消按钮
-                    TextButton(
-                      onPressed: _onWillPop,
-                      child: const Text('取消'),
-                    ),
-                  ],
+  /// Vertical (single-column) layout for compact + medium form factors.
+  ///
+  /// When [maxWidth] is null (compact), the column fills available width.
+  /// When [maxWidth] is provided (medium), the column is constrained to that
+  /// maximum width and centered — gives tablets breathing room.
+  Widget _buildVerticalLayout(
+    BuildContext context,
+    ImportState state,
+    String fileName,
+    IconData fileIcon, {
+    double? maxWidth,
+  }) {
+    final column = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── 渐变 Hero ──
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: heroGradient(
+                Theme.of(context).colorScheme,
+                Theme.of(context).brightness,
+              ),
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
+              Icon(fileIcon, size: 48, color: Colors.white),
+              const SizedBox(height: 12),
+              Text(
+                fileName,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 32),
 
-                  // ── Phase 3: llmParsing sub-phase (D-07) ──
-                  if (state.isLlmParsing) ...[
-                    _buildLlmProgress(context, state),
-                    const SizedBox(height: 32),
-                    TextButton(
-                      onPressed: _onWillPop,
-                      child: const Text('取消'),
-                    ),
-                  ],
-
-                  // 错误状态
-                  if (state.hasError) ...[
-                    Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      state.error!,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 32),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            ref
-                                .read(importNotifierProvider.notifier)
-                                .reset();
-                            if (mounted) context.go('/');
-                          },
-                          child: const Text('返回首页'),
-                        ),
-                        const SizedBox(width: 16),
-                        FilledButton(
-                          onPressed: () {
-                            ref
-                                .read(importNotifierProvider.notifier)
-                                .reset();
-                            _isStarted = false;
-                            _startImport();
-                          },
-                          child: const Text('重试'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
+        // ── Phase 2: extracting / parsing phase ──
+        if (state.isExtracting || state.isParsing) ...[
+          LinearProgressIndicator(value: state.progress),
+          const SizedBox(height: 16),
+          Text(
+            state.isExtracting ? '提取文本中…' : '解析中…',
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          if (_showStuckMessage) ...[
+            const SizedBox(height: 8),
+            Text(
+              '仍在处理…',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               ),
             ),
+          ],
+          const SizedBox(height: 32),
+          TextButton(onPressed: _onWillPop, child: const Text('取消')),
+        ],
+
+        // ── Phase 3: llmParsing sub-phase (D-07) ──
+        if (state.isLlmParsing) ...[
+          _buildLlmProgress(context, state),
+          const SizedBox(height: 32),
+          TextButton(onPressed: _onWillPop, child: const Text('取消')),
+        ],
+
+        // 错误状态
+        if (state.hasError) ...[
+          Icon(
+            Icons.error_outline,
+            size: 48,
+            color: Theme.of(context).colorScheme.error,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            state.error!,
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton(
+                onPressed: () {
+                  ref.read(importNotifierProvider.notifier).reset();
+                  if (mounted) context.go('/');
+                },
+                child: const Text('返回首页'),
+              ),
+              const SizedBox(width: 16),
+              FilledButton(
+                onPressed: () {
+                  ref.read(importNotifierProvider.notifier).reset();
+                  _isStarted = false;
+                  _startImport();
+                },
+                child: const Text('重试'),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+
+    final padded = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: column,
+    );
+
+    if (maxWidth == null) {
+      return Center(child: padded);
+    }
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: padded,
+      ),
+    );
+  }
+
+  /// Horizontal (two-column) layout for expanded form factors.
+  ///
+  /// Left column: gradient hero card with fileIcon + fileName.
+  /// Right column: phase section (extracting/parsing/llmParsing) or error state.
+  Widget _buildHorizontalLayout(
+    BuildContext context,
+    ImportState state,
+    String fileName,
+    IconData fileIcon,
+  ) {
+    final theme = Theme.of(context);
+    final heroCard = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: heroGradient(theme.colorScheme, theme.brightness),
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(fileIcon, size: 48, color: Colors.white),
+          const SizedBox(height: 12),
+          Text(
+            fileName,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+
+    final phaseColumn = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (state.isExtracting || state.isParsing) ...[
+          LinearProgressIndicator(value: state.progress),
+          const SizedBox(height: 16),
+          Text(
+            state.isExtracting ? '提取文本中…' : '解析中…',
+            style: theme.textTheme.labelLarge,
+          ),
+          if (_showStuckMessage) ...[
+            const SizedBox(height: 8),
+            Text(
+              '仍在处理…',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+          ],
+          const SizedBox(height: 32),
+          TextButton(onPressed: _onWillPop, child: const Text('取消')),
+        ],
+        if (state.isLlmParsing) ...[
+          _buildLlmProgress(context, state),
+          const SizedBox(height: 32),
+          TextButton(onPressed: _onWillPop, child: const Text('取消')),
+        ],
+        if (state.hasError) ...[
+          Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
+          const SizedBox(height: 16),
+          Text(
+            state.error!,
+            style: theme.textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton(
+                onPressed: () {
+                  ref.read(importNotifierProvider.notifier).reset();
+                  if (mounted) context.go('/');
+                },
+                child: const Text('返回首页'),
+              ),
+              const SizedBox(width: 16),
+              FilledButton(
+                onPressed: () {
+                  ref.read(importNotifierProvider.notifier).reset();
+                  _isStarted = false;
+                  _startImport();
+                },
+                child: const Text('重试'),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 960),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 360),
+                  child: heroCard,
+                ),
+              ),
+              const SizedBox(width: 32),
+              Expanded(child: phaseColumn),
+            ],
           ),
         ),
       ),
@@ -312,10 +455,7 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
     return Column(
       children: [
         // "LLM 解析中…" label
-        Text(
-          'LLM 解析中… $completed/...',
-          style: theme.textTheme.labelLarge,
-        ),
+        Text('LLM 解析中… $completed/...', style: theme.textTheme.labelLarge),
         const SizedBox(height: 12),
 
         // Overall progress bar
@@ -348,9 +488,7 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
     final isRetry = status.contains('重试');
     final isFallback = status.contains('兜底');
     if (isRetry || isFallback) {
-      return theme.textTheme.bodyMedium!.copyWith(
-        color: Colors.amber.shade700,
-      );
+      return theme.textTheme.bodyMedium!.copyWith(color: Colors.amber.shade700);
     }
     return theme.textTheme.bodyMedium!;
   }

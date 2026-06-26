@@ -41,7 +41,7 @@ dependencies:
   # Phase 2: File import pipeline dependencies
   archive: ^4.0.9          # ZIP decode for .docx
   xml: ^6.5.0              # WordprocessingML traversal
-  pdfrx: ^1.1.8           # PDF text extraction + rendering via PDFium
+  pdfrx: ^2.4.4           # PDF text extraction + rendering via PDFium
   file_picker: ^11.0.2     # Native file dialog (desktop only)
   desktop_drop: ^0.7.1     # Drag-and-drop file import (desktop)
   uuid: ^4.5.1             # UUID generation for ParseJob IDs
@@ -67,6 +67,11 @@ dev_dependencies:
     sdk: flutter
   # Flutter 3.44.2 default; flutter_lints 5.x incompatible with analyzer 7.x shipped with Dart 3.12
   flutter_lints: ^6.0.0
+
+  # Phase 5: end-to-end mobile import flow — runs on Android device / emulator
+  # (CI cannot execute this in current Windows env; deferred to developer runs).
+  integration_test:
+    sdk: flutter
 
   # Single build_runner drives ALL codegen (D-06) — drift + freezed + json_serializable + riverpod_generator
   build_runner: ^2.4.13

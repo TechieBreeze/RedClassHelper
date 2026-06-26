@@ -6,10 +6,7 @@ import 'package:redclass/core/platform/platform_info.dart';
 import 'package:redclass/core/platform/responsive.dart';
 import 'package:redclass/features/bookmarks/presentation/bookmarks_screen.dart';
 
-Widget _harness({
-  required Size size,
-  required AppPlatform platform,
-}) {
+Widget _harness({required Size size, required AppPlatform platform}) {
   return MaterialApp(
     home: ResponsiveBuilder(
       info: PlatformInfo.forTesting(
@@ -48,14 +45,19 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(400, 800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(_harness(
-        size: const Size(400, 800),
-        platform: AppPlatform.android,
-      ));
+      await tester.pumpWidget(
+        _harness(size: const Size(400, 800), platform: AppPlatform.android),
+      );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('bookmarks_vertical_layout')), findsOneWidget);
-      expect(find.byKey(const Key('bookmarks_horizontal_layout')), findsNothing);
+      expect(
+        find.byKey(const Key('bookmarks_vertical_layout')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('bookmarks_horizontal_layout')),
+        findsNothing,
+      );
 
       expect(
         find.descendant(
@@ -73,14 +75,19 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(700, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(_harness(
-        size: const Size(700, 900),
-        platform: AppPlatform.android,
-      ));
+      await tester.pumpWidget(
+        _harness(size: const Size(700, 900), platform: AppPlatform.android),
+      );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('bookmarks_vertical_layout')), findsOneWidget);
-      expect(find.byKey(const Key('bookmarks_horizontal_layout')), findsNothing);
+      expect(
+        find.byKey(const Key('bookmarks_vertical_layout')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('bookmarks_horizontal_layout')),
+        findsNothing,
+      );
 
       expect(
         _hasDescendantConstrainedBoxMaxWidth(
@@ -99,13 +106,15 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1500, 1000));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(_harness(
-        size: const Size(1500, 1000),
-        platform: AppPlatform.windows,
-      ));
+      await tester.pumpWidget(
+        _harness(size: const Size(1500, 1000), platform: AppPlatform.windows),
+      );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('bookmarks_horizontal_layout')), findsOneWidget);
+      expect(
+        find.byKey(const Key('bookmarks_horizontal_layout')),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('bookmarks_vertical_layout')), findsNothing);
 
       expect(

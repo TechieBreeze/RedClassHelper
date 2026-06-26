@@ -12,9 +12,7 @@ class BookmarksScreen extends StatelessWidget {
       body: AdaptiveLayout(
         compact: (_) => const KeyedSubtree(
           key: Key('bookmarks_vertical_layout'),
-          child: Center(
-            child: Text('TODO — BookmarksScreen\n(完整实现见 Phase 5)'),
-          ),
+          child: Center(child: Text('TODO — BookmarksScreen\n(完整实现见 Phase 5)')),
         ),
         medium: (_) => KeyedSubtree(
           key: const Key('bookmarks_vertical_layout'),

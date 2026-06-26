@@ -77,7 +77,12 @@ OptionCardState computeOptionState({
 /// On non-desktop platforms, displays a fallback message since v1 is
 /// desktop-only (Windows/Linux).
 class QuizScreen extends ConsumerWidget {
-  const QuizScreen({super.key, required this.bankId, required this.mode});
+  const QuizScreen({
+    super.key,
+    required this.bankId,
+    required this.mode,
+    this.info,
+  });
 
   /// The question bank ID from the route parameter.
   final String bankId;
@@ -85,9 +90,14 @@ class QuizScreen extends ConsumerWidget {
   /// The review mode string from the route parameter (random/review/spotcheck).
   final String mode;
 
+  /// Optional [PlatformInfo] override. When null, the screen reads from
+  /// [PlatformInfo.fromContext]. Tests pass an explicit value to avoid
+  /// depending on the host platform reported by `dart:io`.
+  final PlatformInfo? info;
+
   /// Whether this is a desktop platform — sourced from [PlatformInfo].
   bool _isDesktop(BuildContext context) =>
-      PlatformInfo.fromContext(context).isDesktop;
+      (info ?? PlatformInfo.fromContext(context)).isDesktop;
 
   /// Map from option letter to keyboard key, up to 8 options (A-H).
   static const _letterToKey = <String, LogicalKeyboardKey>{

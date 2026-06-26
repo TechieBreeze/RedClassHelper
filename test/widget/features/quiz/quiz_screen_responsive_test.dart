@@ -84,12 +84,8 @@ class _StubSettingsNotifier extends QuizSettingsNotifier {
 /// [PlatformInfo]. The form factor (compact/medium/expanded) selected by
 /// the inner [AdaptiveLayout] will follow [info], not the host platform.
 ///
-/// NOTE: QuizScreen's own `_isDesktop(context)` reads
-/// `PlatformInfo.fromContext` directly, so this wrapper only controls the
-/// `AdaptiveLayout` branch. The desktop-only `Focus` keyboard wrapper will
-/// still activate on Windows/Linux/macOS test hosts. This is acceptable for
-/// these tests because they only assert on layout keys and the centering
-/// constraint, not on the Focus wrapper itself.
+/// QuizScreen receives [info] directly via its constructor, so `_isDesktop`
+/// is hermetic across CI hosts (Windows/Linux/macOS).
 Widget _harness({
   required Size size,
   required AppPlatform platform,
@@ -116,7 +112,8 @@ Widget _harness({
           // Builder is unused — QuizScreen drives its own AdaptiveLayout.
           // We only need this wrapper to advertise the override pattern
           // for future tests that DO consume ResponsiveBuilder.
-          builder: (_, _) => const QuizScreen(bankId: 'bank1', mode: 'random'),
+          builder: (_, _) =>
+              QuizScreen(bankId: 'bank1', mode: 'random', info: info),
         ),
       ),
     ),

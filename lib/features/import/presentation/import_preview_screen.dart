@@ -140,7 +140,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                     candidates,
                     confirmedIndices,
                     filteredCandidates,
-                    maxWidth: 720,
+                    maxWidth: kMediumReadingWidth,
                   ),
                 ),
                 expanded: (_) => KeyedSubtree(
@@ -150,6 +150,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                     state,
                     candidates,
                     confirmedIndices,
+                    filteredCandidates,
                   ),
                 ),
               ),
@@ -173,7 +174,10 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
           bottom: BorderSide(color: theme.dividerColor),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: kPageHorizontalPadding,
+        vertical: kPageVerticalPadding,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -234,7 +238,9 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
           Icon(
             Icons.inbox_outlined,
             size: 64,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text('未解析到题目', style: Theme.of(context).textTheme.titleMedium),
@@ -249,6 +255,47 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
   }
 
   // ── Phase 4 响应式布局 (Task 15) ──
+
+  /// 共享的 hero 段：LLM 横幅 → 题库名称编辑器 → 工具栏 → 解析来源摘要。
+  ///
+  /// 纵向与横向两个 layout 都用同一棵树（Task 15 I1 refactor）。
+  /// `_isLlmImport` 来自 State，候选筛选结果 [filteredCandidates] 由
+  /// `build()` 一次性预算（Task 15 I2 refactor），这里只接收。
+  List<Widget> _buildHeaderSections(
+    BuildContext context,
+    ImportState state,
+    Set<int> confirmedIndices,
+    List<ParseCandidate> candidates,
+  ) => [
+    // ── Phase 3: LLM 自动确认横幅（D-08）──
+    if (_isLlmImport) _buildAutoConfirmBanner(context, confirmedIndices.length),
+
+    // ── 题库名称编辑区（D-18 CJK 感知）──
+    Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: TextField(
+        controller: _bankNameController,
+        decoration: InputDecoration(
+          labelText: '题库名称',
+          hintText: '输入题库名称',
+          errorText: _bankNameError,
+          helperText: '中文/全角=2字符，ASCII=1字符，上限100',
+          border: const OutlineInputBorder(),
+          isDense: true,
+        ),
+        onChanged: (value) {
+          setState(() => _bankNameError = _validateBankName(value));
+          if (_bankNameError == null) {
+            ref.read(importNotifierProvider.notifier).setBankName(value.trim());
+          }
+        },
+      ),
+    ),
+    // ── 底部 Sheet：批量操作 + 题型筛选 ──
+    _buildToolbar(context, confirmedIndices, candidates),
+    // ── Phase 3: 解析来源摘要行 ──
+    if (state.parseSources.isNotEmpty) _buildSourceSummary(context, state),
+  ];
 
   /// Compact / medium 共用的纵向布局。
   ///
@@ -265,41 +312,14 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
   }) {
     final content = Column(
       children: [
-        // ── Phase 3: LLM 自动确认横幅（D-08）──
-        if (_isLlmImport)
-          _buildAutoConfirmBanner(context, confirmedIndices.length),
-
-        // ── 题库名称编辑区（D-18 CJK 感知）──
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: TextField(
-            controller: _bankNameController,
-            decoration: InputDecoration(
-              labelText: '题库名称',
-              hintText: '输入题库名称',
-              errorText: _bankNameError,
-              helperText: '中文/全角=2字符，ASCII=1字符，上限100',
-              border: const OutlineInputBorder(),
-              isDense: true,
-            ),
-            onChanged: (value) {
-              setState(() => _bankNameError = _validateBankName(value));
-              if (_bankNameError == null) {
-                ref
-                    .read(importNotifierProvider.notifier)
-                    .setBankName(value.trim());
-              }
-            },
-          ),
-        ),
-        // ── 底部 Sheet：批量操作 + 题型筛选 ──
-        _buildToolbar(context, confirmedIndices, candidates),
-        // ── Phase 3: 解析来源摘要行 ──
-        if (state.parseSources.isNotEmpty) _buildSourceSummary(context, state),
+        ..._buildHeaderSections(context, state, confirmedIndices, candidates),
         // ── 候选列表（移动端纵向滚动）──
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: kPageHorizontalPadding,
+              vertical: kPageVerticalPadding,
+            ),
             itemCount: filteredCandidates.length,
             itemBuilder: (context, index) {
               final entry = filteredCandidates[index];
@@ -335,68 +355,35 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     ImportState state,
     List<ParseCandidate> candidates,
     Set<int> confirmedIndices,
+    List<MapEntry<int, ParseCandidate>> filteredCandidates,
   ) {
-    final filtered = _filterType == null
-        ? candidates.asMap().entries.toList()
-        : candidates
-              .asMap()
-              .entries
-              .where((e) => e.value.candidateType == _filterType)
-              .toList();
-
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 960),
+        constraints: const BoxConstraints(maxWidth: kExpandedReadingWidth),
         child: Column(
           children: [
-            // ── Phase 3: LLM 自动确认横幅（D-08）──
-            if (_isLlmImport)
-              _buildAutoConfirmBanner(context, confirmedIndices.length),
-
-            // ── 题库名称编辑区（D-18 CJK 感知）──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: TextField(
-                controller: _bankNameController,
-                decoration: InputDecoration(
-                  labelText: '题库名称',
-                  hintText: '输入题库名称',
-                  errorText: _bankNameError,
-                  helperText: '中文/全角=2字符，ASCII=1字符，上限100',
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                ),
-                onChanged: (value) {
-                  setState(() => _bankNameError = _validateBankName(value));
-                  if (_bankNameError == null) {
-                    ref
-                        .read(importNotifierProvider.notifier)
-                        .setBankName(value.trim());
-                  }
-                },
-              ),
+            ..._buildHeaderSections(
+              context,
+              state,
+              confirmedIndices,
+              candidates,
             ),
-            // ── 底部 Sheet：批量操作 + 题型筛选 ──
-            _buildToolbar(context, confirmedIndices, candidates),
-            // ── Phase 3: 解析来源摘要行 ──
-            if (state.parseSources.isNotEmpty)
-              _buildSourceSummary(context, state),
             // ── 候选列表（桌面端 2 列 Wrap 网格）──
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   return SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+                      horizontal: kPageHorizontalPadding,
+                      vertical: kPageVerticalPadding,
                     ),
                     child: Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
+                      spacing: kWrapGutter,
+                      runSpacing: kWrapGutter,
                       children: [
-                        for (final entry in filtered)
+                        for (final entry in filteredCandidates)
                           SizedBox(
-                            width: (constraints.maxWidth - 12) / 2,
+                            width: (constraints.maxWidth - kWrapGutter) / 2,
                             child: _buildCandidateColumn(
                               context,
                               state,
@@ -616,11 +603,14 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
         .length;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: kPageHorizontalPadding,
+        vertical: kPageVerticalPadding,
+      ),
       child: Text(
         '解析来源：LLM $llmCount 题 / 启发式 $heuristicCount 题 / 兜底 $fallbackCount 题',
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
         ),
       ),
     );
@@ -647,7 +637,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
       child: ActionChip(
         avatar: Icon(icon, size: 14),
         label: Text(label, style: const TextStyle(fontSize: 12)),
-        backgroundColor: color.withOpacity(0.15),
+        backgroundColor: color.withValues(alpha: 0.15),
         side: BorderSide.none,
         visualDensity: VisualDensity.compact,
         padding: EdgeInsets.zero,

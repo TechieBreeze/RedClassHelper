@@ -17,6 +17,13 @@ import '../providers/import_state.dart';
 import '../../../core/platform/responsive.dart';
 import '../../../core/theme.dart';
 
+// ── File-private layout constants ──
+// Screen-specific spacing that does not belong in the shared design tokens.
+const double _kHeroPadding = 24.0;
+const double _kSectionGap = 16.0;
+const double _kSmallGap = 12.0;
+const double _kStuckMessageGap = 8.0;
+
 /// 导入进度页——在后台 isolate 中执行提取+解析时显示进度。
 ///
 /// Phase 2 行为：extracting → parsing → editing
@@ -172,7 +179,7 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
               state,
               fileName,
               fileIcon,
-              maxWidth: 600,
+              maxWidth: kImportProgressMediumWidth,
             ),
           ),
           expanded: (_) => KeyedSubtree(
@@ -196,117 +203,29 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
     IconData fileIcon, {
     double? maxWidth,
   }) {
+    final theme = Theme.of(context);
     final column = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ── 渐变 Hero ──
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: heroGradient(
-                Theme.of(context).colorScheme,
-                Theme.of(context).brightness,
-              ),
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: [
-              Icon(fileIcon, size: 48, color: Colors.white),
-              const SizedBox(height: 12),
-              Text(
-                fileName,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 32),
-
-        // ── Phase 2: extracting / parsing phase ──
-        if (state.isExtracting || state.isParsing) ...[
-          LinearProgressIndicator(value: state.progress),
-          const SizedBox(height: 16),
-          Text(
-            state.isExtracting ? '提取文本中…' : '解析中…',
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-          if (_showStuckMessage) ...[
-            const SizedBox(height: 8),
-            Text(
-              '仍在处理…',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-          ],
-          const SizedBox(height: 32),
-          TextButton(onPressed: _onWillPop, child: const Text('取消')),
-        ],
-
-        // ── Phase 3: llmParsing sub-phase (D-07) ──
-        if (state.isLlmParsing) ...[
-          _buildLlmProgress(context, state),
-          const SizedBox(height: 32),
-          TextButton(onPressed: _onWillPop, child: const Text('取消')),
-        ],
-
-        // 错误状态
-        if (state.hasError) ...[
-          Icon(
-            Icons.error_outline,
-            size: 48,
-            color: Theme.of(context).colorScheme.error,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            state.error!,
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton(
-                onPressed: () {
-                  ref.read(importNotifierProvider.notifier).reset();
-                  if (mounted) context.go('/');
-                },
-                child: const Text('返回首页'),
-              ),
-              const SizedBox(width: 16),
-              FilledButton(
-                onPressed: () {
-                  ref.read(importNotifierProvider.notifier).reset();
-                  _isStarted = false;
-                  _startImport();
-                },
-                child: const Text('重试'),
-              ),
-            ],
-          ),
-        ],
+        _buildHeroCard(theme, fileName, fileIcon),
+        const SizedBox(height: kImportProgressPagePadding),
+        _buildPhaseSection(context, theme, state),
+        _buildErrorSection(context, theme, state),
       ],
     );
 
     final padded = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+      padding: const EdgeInsets.symmetric(
+        horizontal: kImportProgressPagePadding,
+      ),
       child: column,
     );
 
     if (maxWidth == null) {
-      return Center(child: padded);
+      // Compact: Scaffold body fills available space, so the padded column
+      // already expands to width. No Center wrapper needed — it would only
+      // center vertically and the column uses MainAxisSize.min anyway.
+      return padded;
     }
     return Center(
       child: ConstrainedBox(
@@ -327,9 +246,47 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
     IconData fileIcon,
   ) {
     final theme = Theme.of(context);
-    final heroCard = Container(
+    final phaseColumn = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildPhaseSection(context, theme, state),
+        _buildErrorSection(context, theme, state),
+      ],
+    );
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: kExpandedReadingWidth),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: kImportProgressPagePadding,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: kImportProgressHeroCardWidth,
+                  ),
+                  child: _buildHeroCard(theme, fileName, fileIcon),
+                ),
+              ),
+              const SizedBox(width: kImportProgressPagePadding),
+              Expanded(child: phaseColumn),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Gradient hero card showing the file icon and file name.
+  Widget _buildHeroCard(ThemeData theme, String fileName, IconData fileIcon) {
+    return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(_kHeroPadding),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: heroGradient(theme.colorScheme, theme.brightness),
@@ -341,7 +298,7 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
       child: Column(
         children: [
           Icon(fileIcon, size: 48, color: Colors.white),
-          const SizedBox(height: 12),
+          const SizedBox(height: _kSmallGap),
           Text(
             fileName,
             style: theme.textTheme.bodyLarge?.copyWith(
@@ -355,90 +312,90 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
         ],
       ),
     );
+  }
 
-    final phaseColumn = Column(
-      mainAxisSize: MainAxisSize.min,
+  /// Phase section: extracting/parsing (Phase 2) + llmParsing (Phase 3 D-07).
+  Widget _buildPhaseSection(
+    BuildContext context,
+    ThemeData theme,
+    ImportState state,
+  ) {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (state.isExtracting || state.isParsing) ...[
           LinearProgressIndicator(value: state.progress),
-          const SizedBox(height: 16),
+          const SizedBox(height: _kSectionGap),
           Text(
             state.isExtracting ? '提取文本中…' : '解析中…',
             style: theme.textTheme.labelLarge,
           ),
           if (_showStuckMessage) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: _kStuckMessageGap),
             Text(
               '仍在处理…',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
-          const SizedBox(height: 32),
-          TextButton(onPressed: _onWillPop, child: const Text('取消')),
+          const SizedBox(height: kImportProgressPagePadding),
+          _buildCancelButton(),
         ],
         if (state.isLlmParsing) ...[
           _buildLlmProgress(context, state),
-          const SizedBox(height: 32),
-          TextButton(onPressed: _onWillPop, child: const Text('取消')),
-        ],
-        if (state.hasError) ...[
-          Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
-          const SizedBox(height: 16),
-          Text(
-            state.error!,
-            style: theme.textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton(
-                onPressed: () {
-                  ref.read(importNotifierProvider.notifier).reset();
-                  if (mounted) context.go('/');
-                },
-                child: const Text('返回首页'),
-              ),
-              const SizedBox(width: 16),
-              FilledButton(
-                onPressed: () {
-                  ref.read(importNotifierProvider.notifier).reset();
-                  _isStarted = false;
-                  _startImport();
-                },
-                child: const Text('重试'),
-              ),
-            ],
-          ),
+          const SizedBox(height: kImportProgressPagePadding),
+          _buildCancelButton(),
         ],
       ],
     );
+  }
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 960),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 360),
-                  child: heroCard,
-                ),
-              ),
-              const SizedBox(width: 32),
-              Expanded(child: phaseColumn),
-            ],
-          ),
+  /// Error section: error icon, message, and retry/home actions.
+  Widget _buildErrorSection(
+    BuildContext context,
+    ThemeData theme,
+    ImportState state,
+  ) {
+    if (!state.hasError) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
+        const SizedBox(height: _kSectionGap),
+        Text(
+          state.error!,
+          style: theme.textTheme.bodyMedium,
+          textAlign: TextAlign.center,
         ),
-      ),
+        const SizedBox(height: kImportProgressPagePadding),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextButton(onPressed: _onGoHome, child: const Text('返回首页')),
+            const SizedBox(width: _kSectionGap),
+            FilledButton(onPressed: _onRetry, child: const Text('重试')),
+          ],
+        ),
+      ],
     );
+  }
+
+  /// Cancel-import button shared by both phase rows.
+  Widget _buildCancelButton() =>
+      TextButton(onPressed: _onWillPop, child: const Text('取消'));
+
+  /// Reset state and navigate to home (used by the error section).
+  void _onGoHome() {
+    ref.read(importNotifierProvider.notifier).reset();
+    if (mounted) context.go('/');
+  }
+
+  /// Reset state and restart the import (used by the error section).
+  void _onRetry() {
+    ref.read(importNotifierProvider.notifier).reset();
+    _isStarted = false;
+    _startImport();
   }
 
   /// LLM 解析子阶段进度 UI（D-07）。

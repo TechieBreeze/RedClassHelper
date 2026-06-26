@@ -18,6 +18,18 @@ const double kExpandedReadingWidth = 960.0;
 /// Spacing between items in a `Wrap` (both `spacing` and `runSpacing`).
 const double kWrapGutter = 12.0;
 
+/// Maximum content width for the medium form factor slot of the import
+/// progress screen (narrows the reading column on tablets).
+const double kImportProgressMediumWidth = 600.0;
+
+/// Maximum width for the hero card in the expanded/horizontal layout of
+/// the import progress screen.
+const double kImportProgressHeroCardWidth = 360.0;
+
+/// Standard horizontal page padding for the import progress screen
+/// (left/right gutters around the vertical column and horizontal row).
+const double kImportProgressPagePadding = 32.0;
+
 /// Standard horizontal page padding (left/right gutters for `ListView` /
 /// `SingleChildScrollView` content).
 const double kPageHorizontalPadding = 16.0;

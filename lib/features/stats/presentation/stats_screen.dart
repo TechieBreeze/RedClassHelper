@@ -7,7 +7,35 @@ import 'package:go_router/go_router.dart';
 import '../../../core/platform/responsive.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/hoverable_card.dart';
+import '../domain/stats_summary.dart';
 import '../providers/stats_provider.dart';
+
+// ── Layout constants ──────────────────────────────────────────────────────
+// Centralised here so padding/spacing changes happen in one place. These were
+// previously inline magic numbers logged in the Task 13 quality review.
+
+// Outer ListView padding (horizontal + vertical)
+const double _kListPaddingHorizontal = 16;
+const double _kListPaddingVertical = 20;
+
+// Hero card inner padding (sits inside the ListView)
+const double _kHeroPadding = 20;
+
+// Medium-form-factor cap for vertical-layout centering
+const double _kMediumMaxWidth = 720;
+
+// Vertical spacing between major sections (hero -> bank stats header)
+const double _kHeroToSectionSpacing = 24;
+
+// Spacing between the "各题库统计" header and the first bank card
+const double _kSectionHeaderSpacing = 12;
+
+// Spacing between sibling bank cards in the vertical slot
+const double _kBetweenBankSpacing = 10;
+
+// Wrap spacing/runSpacing for the expanded-slot 2-column grid. Also used by
+// the SizedBox width formula below — keep both in sync via this single source.
+const double _kWrapSpacing = 12;
 
 /// 数据统计 screen
 class StatsScreen extends ConsumerWidget {
@@ -80,112 +108,60 @@ class _DataState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate totals
-    final totalQuestions = stats.fold<int>(0, (s, b) => s + b.totalQuestions);
-    final totalAttempts = stats.fold<int>(0, (s, b) => s + b.totalAttempts);
-    final totalCorrect = stats.fold<int>(0, (s, b) => s + b.correctCount);
-    final overallRate = totalAttempts > 0
-        ? (totalCorrect / totalAttempts)
-        : 0.0;
+    final summary = _summarize(stats);
 
     return AdaptiveLayout(
       compact: (_) => KeyedSubtree(
         key: const Key('stats_vertical_layout'),
-        child: _buildVerticalLayout(
-          context,
-          stats,
-          totalQuestions,
-          totalAttempts,
-          totalCorrect,
-          overallRate,
-        ),
+        child: _buildVerticalLayout(context, stats, summary),
       ),
       medium: (_) => KeyedSubtree(
         key: const Key('stats_vertical_layout'),
         child: _buildVerticalLayout(
           context,
           stats,
-          totalQuestions,
-          totalAttempts,
-          totalCorrect,
-          overallRate,
-          maxWidth: 720,
+          summary,
+          maxWidth: _kMediumMaxWidth,
         ),
       ),
       expanded: (_) => KeyedSubtree(
         key: const Key('stats_horizontal_layout'),
-        child: _buildHorizontalLayout(
-          context,
-          stats,
-          totalQuestions,
-          totalAttempts,
-          totalCorrect,
-          overallRate,
-        ),
+        child: _buildHorizontalLayout(context, stats, summary),
       ),
+    );
+  }
+
+  /// Aggregate totals into a [StatsSummary] value object so layout helpers
+  /// don't fan out 5+ positional parameters.
+  StatsSummary _summarize(List<BankStats> data) {
+    final totalQuestions = data.fold<int>(0, (s, b) => s + b.totalQuestions);
+    final totalAttempts = data.fold<int>(0, (s, b) => s + b.totalAttempts);
+    final totalCorrect = data.fold<int>(0, (s, b) => s + b.correctCount);
+    final overallRate = totalAttempts > 0
+        ? (totalCorrect / totalAttempts)
+        : 0.0;
+    return StatsSummary(
+      totalQuestions: totalQuestions,
+      totalAttempts: totalAttempts,
+      totalCorrect: totalCorrect,
+      overallRate: overallRate,
     );
   }
 
   Widget _buildVerticalLayout(
     BuildContext context,
     List<BankStats> stats,
-    int totalQuestions,
-    int totalAttempts,
-    int totalCorrect,
-    double overallRate, {
+    StatsSummary summary, {
     double? maxWidth,
   }) {
-    final cs = Theme.of(context).colorScheme;
     final listView = ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _kListPaddingHorizontal,
+        vertical: _kListPaddingVertical,
+      ),
       children: [
-        // ── Overall hero ──
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: heroGradient(cs, Theme.of(context).brightness),
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: cs.primary.withAlpha(50),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Text(
-                '${(overallRate * 100).round()}%',
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '总正确率',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withAlpha(200),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _HeroMiniStat(label: '总题数', value: '$totalQuestions'),
-                  _HeroMiniStat(label: '答题次数', value: '$totalAttempts'),
-                  _HeroMiniStat(label: '答对', value: '$totalCorrect'),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
+        _buildHero(context, summary),
+        const SizedBox(height: _kHeroToSectionSpacing),
 
         // ── Per-bank cards ──
         Text(
@@ -194,10 +170,10 @@ class _DataState extends StatelessWidget {
             context,
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: _kSectionHeaderSpacing),
         for (final stat in stats) ...[
           _StatsBankCard(stat: stat),
-          const SizedBox(height: 10),
+          const SizedBox(height: _kBetweenBankSpacing),
         ],
       ],
     );
@@ -214,62 +190,16 @@ class _DataState extends StatelessWidget {
   Widget _buildHorizontalLayout(
     BuildContext context,
     List<BankStats> stats,
-    int totalQuestions,
-    int totalAttempts,
-    int totalCorrect,
-    double overallRate,
+    StatsSummary summary,
   ) {
-    final cs = Theme.of(context).colorScheme;
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _kListPaddingHorizontal,
+        vertical: _kListPaddingVertical,
+      ),
       children: [
-        // ── Overall hero (full-width on top) ──
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: heroGradient(cs, Theme.of(context).brightness),
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: cs.primary.withAlpha(50),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Text(
-                '${(overallRate * 100).round()}%',
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '总正确率',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withAlpha(200),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _HeroMiniStat(label: '总题数', value: '$totalQuestions'),
-                  _HeroMiniStat(label: '答题次数', value: '$totalAttempts'),
-                  _HeroMiniStat(label: '答对', value: '$totalCorrect'),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
+        _buildHero(context, summary),
+        const SizedBox(height: _kHeroToSectionSpacing),
 
         // ── Per-bank cards: 2-column grid ──
         Text(
@@ -278,16 +208,16 @@ class _DataState extends StatelessWidget {
             context,
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: _kSectionHeaderSpacing),
         LayoutBuilder(
           builder: (context, constraints) {
             return Wrap(
-              spacing: 12,
-              runSpacing: 12,
+              spacing: _kWrapSpacing,
+              runSpacing: _kWrapSpacing,
               children: [
                 for (final stat in stats)
                   SizedBox(
-                    width: (constraints.maxWidth - 12) / 2,
+                    width: (constraints.maxWidth - _kWrapSpacing) / 2,
                     child: _StatsBankCard(stat: stat),
                   ),
               ],
@@ -295,6 +225,58 @@ class _DataState extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+
+  /// Shared hero card — gradient + 总正确率 + 3 mini stats. Was duplicated
+  /// between vertical and horizontal layouts (~45 lines each); extracted as
+  /// part of Task 13 quality review follow-up (Important #1).
+  Widget _buildHero(BuildContext context, StatsSummary summary) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(_kHeroPadding),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: heroGradient(cs, Theme.of(context).brightness),
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: cs.primary.withAlpha(50),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            '${(summary.overallRate * 100).round()}%',
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '总正确率',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withAlpha(200),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _HeroMiniStat(label: '总题数', value: '${summary.totalQuestions}'),
+              _HeroMiniStat(label: '答题次数', value: '${summary.totalAttempts}'),
+              _HeroMiniStat(label: '答对', value: '${summary.totalCorrect}'),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

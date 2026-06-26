@@ -13,6 +13,20 @@ import '../../../core/widgets/hoverable_card.dart';
 import '../../../data/db/database.dart';
 import '../../export/services/json_export_service.dart';
 
+/// Max content width on medium form-factor (tablets / narrow desktop windows).
+///
+/// Used by the vertical-layout `Center > ConstrainedBox` wrapper to cap
+/// readability on tablet widths (matches the breakpoints' 600..839 band).
+const double kMediumMaxWidth = 720.0;
+
+/// Flex weights for the two columns in the expanded (horizontal) layout.
+///
+/// `kExpandedMainFlex : kExpandedSidebarFlex` — the left column carries the
+/// hero + actions (read-then-act flow); the right column is the ambient
+/// type-breakdown sidebar.
+const int kExpandedMainFlex = 3;
+const int kExpandedSidebarFlex = 2;
+
 /// 题库详情页
 class BankDetailScreen extends ConsumerWidget {
   const BankDetailScreen({super.key, required this.bankId});
@@ -123,7 +137,7 @@ class BankDetailScreen extends ConsumerWidget {
             questions,
             singleCount,
             multiCount,
-            maxWidth: 720,
+            maxWidth: kMediumMaxWidth,
           ),
         ),
         expanded: (ctx) => KeyedSubtree(
@@ -155,103 +169,19 @@ class BankDetailScreen extends ConsumerWidget {
     int multiCount, {
     double? maxWidth,
   }) {
-    final cs = Theme.of(context).colorScheme;
     final listView = ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       children: [
-        // ── Hero banner ──
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: heroGradient(cs, Theme.of(context).brightness),
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: cs.primary.withAlpha(50),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                bank.name,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _DetailChip(
-                    icon: Icons.description_outlined,
-                    text: bank.source == null ? '' : p.basename(bank.source!),
-                  ),
-                  const SizedBox(width: 10),
-                  _DetailChip(
-                    icon: Icons.quiz_outlined,
-                    text: '${questions.length} 题',
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+        _buildHeroBanner(context, bank, questions, contentPadding: 20),
         const SizedBox(height: 20),
-
-        // ── Type breakdown ──
-        Text(
-          '题目构成',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _TypeCard(
-                label: '单选题',
-                count: singleCount,
-                total: questions.length,
-                icon: Icons.radio_button_checked,
-                color: cs.primaryContainer,
-                iconColor: cs.onPrimaryContainer,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _TypeCard(
-                label: '多选题',
-                count: multiCount,
-                total: questions.length,
-                icon: Icons.checklist,
-                color: cs.secondaryContainer,
-                iconColor: cs.onSecondaryContainer,
-              ),
-            ),
-          ],
+        _buildTypeBreakdownRow(
+          context,
+          questions.length,
+          singleCount,
+          multiCount,
         ),
         const SizedBox(height: 24),
-
-        // ── Actions ──
-        Text(
-          '操作',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 10),
-        _buildStartReviewCard(context, cs),
-        const SizedBox(height: 8),
-        _buildExportJsonCard(context, ref, cs, bank, questions),
+        _buildActionsSection(context, ref, bank, questions),
       ],
     );
     if (maxWidth == null) return listView;
@@ -265,7 +195,7 @@ class BankDetailScreen extends ConsumerWidget {
 
   /// Expanded layout: 2 columns inside a scroll view.
   ///
-  /// Left (3/5): hero + actions. Right (2/5): type breakdown sidebar.
+  /// Left (main flex): hero + actions. Right (sidebar flex): type breakdown.
   Widget _buildHorizontalLayout(
     BuildContext context,
     WidgetRef ref,
@@ -274,7 +204,6 @@ class BankDetailScreen extends ConsumerWidget {
     int singleCount,
     int multiCount,
   ) {
-    final cs = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Row(
@@ -282,107 +211,198 @@ class BankDetailScreen extends ConsumerWidget {
         children: [
           // ── Left: hero + actions (main read-then-act flow) ──
           Expanded(
-            flex: 3,
+            flex: kExpandedMainFlex,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: heroGradient(cs, Theme.of(context).brightness),
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: cs.primary.withAlpha(50),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        bank.name,
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          _DetailChip(
-                            icon: Icons.description_outlined,
-                            text: bank.source == null
-                                ? ''
-                                : p.basename(bank.source!),
-                          ),
-                          const SizedBox(width: 10),
-                          _DetailChip(
-                            icon: Icons.quiz_outlined,
-                            text: '${questions.length} 题',
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                _buildHeroBanner(context, bank, questions, contentPadding: 24),
                 const SizedBox(height: 28),
-                Text(
-                  '操作',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _buildStartReviewCard(context, cs),
-                const SizedBox(height: 8),
-                _buildExportJsonCard(context, ref, cs, bank, questions),
+                _buildActionsSection(context, ref, bank, questions),
               ],
             ),
           ),
           const SizedBox(width: 24),
           // ── Right: type breakdown sidebar ──
           Expanded(
-            flex: 2,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  '题目构成',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _TypeCard(
-                  label: '单选题',
-                  count: singleCount,
-                  total: questions.length,
-                  icon: Icons.radio_button_checked,
-                  color: cs.primaryContainer,
-                  iconColor: cs.onPrimaryContainer,
-                ),
-                const SizedBox(height: 10),
-                _TypeCard(
-                  label: '多选题',
-                  count: multiCount,
-                  total: questions.length,
-                  icon: Icons.checklist,
-                  color: cs.secondaryContainer,
-                  iconColor: cs.onSecondaryContainer,
-                ),
-              ],
+            flex: kExpandedSidebarFlex,
+            child: _buildTypeBreakdownColumn(
+              context,
+              questions.length,
+              singleCount,
+              multiCount,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Hero gradient banner with bank name + detail chips.
+  ///
+  /// Shared by vertical (compact/medium) and horizontal (expanded) layouts.
+  /// [contentPadding] is 20 in the vertical layout, 24 in horizontal to match
+  /// the wider left column on desktop.
+  Widget _buildHeroBanner(
+    BuildContext context,
+    QuestionBank bank,
+    List<Question> questions, {
+    required double contentPadding,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final sourceText = bank.source == null ? '' : p.basename(bank.source!);
+    return Container(
+      padding: EdgeInsets.all(contentPadding),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: heroGradient(cs, Theme.of(context).brightness),
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: cs.primary.withAlpha(50),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            bank.name,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _DetailChip(icon: Icons.description_outlined, text: sourceText),
+              const SizedBox(width: 10),
+              _DetailChip(
+                icon: Icons.quiz_outlined,
+                text: '${questions.length} 题',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Two-up row of single/multi type cards. Used by the vertical layout.
+  Widget _buildTypeBreakdownRow(
+    BuildContext context,
+    int total,
+    int singleCount,
+    int multiCount,
+  ) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '题目构成',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _TypeCard(
+                label: '单选题',
+                count: singleCount,
+                total: total,
+                icon: Icons.radio_button_checked,
+                color: cs.primaryContainer,
+                iconColor: cs.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _TypeCard(
+                label: '多选题',
+                count: multiCount,
+                total: total,
+                icon: Icons.checklist,
+                color: cs.secondaryContainer,
+                iconColor: cs.onSecondaryContainer,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Stacked type cards as a sidebar. Used by the horizontal layout's right
+  /// column.
+  Widget _buildTypeBreakdownColumn(
+    BuildContext context,
+    int total,
+    int singleCount,
+    int multiCount,
+  ) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          '题目构成',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 10),
+        _TypeCard(
+          label: '单选题',
+          count: singleCount,
+          total: total,
+          icon: Icons.radio_button_checked,
+          color: cs.primaryContainer,
+          iconColor: cs.onPrimaryContainer,
+        ),
+        const SizedBox(height: 10),
+        _TypeCard(
+          label: '多选题',
+          count: multiCount,
+          total: total,
+          icon: Icons.checklist,
+          color: cs.secondaryContainer,
+          iconColor: cs.onSecondaryContainer,
+        ),
+      ],
+    );
+  }
+
+  /// "操作" section header + start-review + export-json cards. Shared by
+  /// both layouts.
+  Widget _buildActionsSection(
+    BuildContext context,
+    WidgetRef ref,
+    QuestionBank bank,
+    List<Question> questions,
+  ) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '操作',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 10),
+        _buildStartReviewCard(context, cs),
+        const SizedBox(height: 8),
+        _buildExportJsonCard(context, ref, cs, bank, questions),
+      ],
     );
   }
 

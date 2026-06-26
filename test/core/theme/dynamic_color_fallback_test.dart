@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:redclass/core/color_scheme_provider.dart';
 import 'package:redclass/core/theme.dart';
 
 void main() {
@@ -30,12 +31,12 @@ void main() {
       }
     });
 
-    test('kSeedColor is Color(0xFF6750A4)', () {
-      expect(kSeedColor, const Color(0xFF6750A4));
+    test('seedColorForScheme teal returns Color(0xFF00897B)', () {
+      expect(seedColorForScheme(AppColorScheme.teal), const Color(0xFF00897B));
     });
 
-    test('buildDynamicTheme also handles null dynamicScheme', () {
-      final theme = buildDynamicTheme(Brightness.light, null);
+    test('buildAppTheme also handles null dynamicScheme', () {
+      final theme = buildAppTheme(Brightness.light, null);
       expect(theme, isA<ThemeData>());
       expect(theme.colorScheme, isNotNull);
       expect(theme.useMaterial3, true);

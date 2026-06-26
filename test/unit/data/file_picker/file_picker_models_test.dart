@@ -4,7 +4,10 @@ import 'package:redclass/data/file_picker/file_picker_models.dart';
 
 void main() {
   test('PickedBytesFile openRead returns single-chunk stream', () async {
-    final file = PickedBytesFile(name: 'a.pdf', bytes: Uint8List.fromList([1, 2, 3]));
+    final file = PickedBytesFile(
+      name: 'a.pdf',
+      bytes: Uint8List.fromList([1, 2, 3]),
+    );
     final chunks = await file.openRead().toList();
     expect(chunks, hasLength(1));
     expect(chunks.first, [1, 2, 3]);

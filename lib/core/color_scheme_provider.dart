@@ -6,10 +6,7 @@ import '../features/quiz/providers/quiz_settings_provider.dart';
 part 'color_scheme_provider.g.dart';
 
 /// 预设主题色系
-enum AppColorScheme {
-  teal,
-  bluePurple,
-}
+enum AppColorScheme { teal, bluePurple }
 
 /// 主题色系选择 — 持久化在 SharedPreferences 中。
 @riverpod

@@ -93,36 +93,31 @@ void main() {
       },
     );
 
-    test(
-      'Concurrent download throws StateError',
-      () {
-        final container = ProviderContainer(
-          overrides: [
-            pathResolverProvider.overrideWith(
-              (ref) async => _FakePathResolver(tempDir.path),
-            ),
-          ],
-        );
-        addTearDown(container.dispose);
+    test('Concurrent download throws StateError', () {
+      final container = ProviderContainer(
+        overrides: [
+          pathResolverProvider.overrideWith(
+            (ref) async => _FakePathResolver(tempDir.path),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
 
-        final notifier = container.read(modelDownloadProvider.notifier);
-        final modelInfo = container.read(modelCatalogProvider).first;
+      final notifier = container.read(modelDownloadProvider.notifier);
+      final modelInfo = container.read(modelCatalogProvider).first;
 
-        // Set state to "downloading" manually to simulate active download
-        container
-            .read(modelDownloadProvider.notifier)
-            .state = ActiveDownload(
-          modelId: modelInfo.id,
-          status: DownloadProviderStatus.downloading,
-        );
+      // Set state to "downloading" manually to simulate active download
+      container.read(modelDownloadProvider.notifier).state = ActiveDownload(
+        modelId: modelInfo.id,
+        status: DownloadProviderStatus.downloading,
+      );
 
-        // Now startDownload should throw StateError
-        expect(
-          () => notifier.startDownload(modelInfo),
-          throwsA(isA<StateError>()),
-        );
-      },
-    );
+      // Now startDownload should throw StateError
+      expect(
+        () => notifier.startDownload(modelInfo),
+        throwsA(isA<StateError>()),
+      );
+    });
 
     test('cancelDownload() sets state to cancelled', () {
       final container = ProviderContainer(
@@ -138,9 +133,7 @@ void main() {
       final modelInfo = container.read(modelCatalogProvider).first;
 
       // Set state to "downloading" manually
-      container
-          .read(modelDownloadProvider.notifier)
-          .state = ActiveDownload(
+      container.read(modelDownloadProvider.notifier).state = ActiveDownload(
         modelId: modelInfo.id,
         status: DownloadProviderStatus.downloading,
       );
@@ -151,12 +144,7 @@ void main() {
       final state = container.read(modelDownloadProvider);
       expect(state, isNotNull);
       if (state != null) {
-        expect(
-          state.status,
-          anyOf(
-            equals(DownloadProviderStatus.cancelled),
-          ),
-        );
+        expect(state.status, anyOf(equals(DownloadProviderStatus.cancelled)));
       }
     });
 
@@ -230,10 +218,12 @@ void main() {
       await modelsDir.create(recursive: true);
 
       // Create some .gguf files and one non-.gguf file
-      await File('${modelsDir.path}/model1.gguf')
-          .writeAsBytes([0x47, 0x47, 0x55, 0x46, 0x01]);
-      await File('${modelsDir.path}/model2.gguf')
-          .writeAsBytes([0x47, 0x47, 0x55, 0x46, 0x01, 0x02]);
+      await File(
+        '${modelsDir.path}/model1.gguf',
+      ).writeAsBytes([0x47, 0x47, 0x55, 0x46, 0x01]);
+      await File(
+        '${modelsDir.path}/model2.gguf',
+      ).writeAsBytes([0x47, 0x47, 0x55, 0x46, 0x01, 0x02]);
       await File('${modelsDir.path}/readme.txt').writeAsBytes([0x01, 0x02]);
 
       final container = ProviderContainer(

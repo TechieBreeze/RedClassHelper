@@ -168,9 +168,11 @@ class SettingsScreen extends ConsumerWidget {
                         value: settings.submitMode == QuizSubmitMode.instant,
                         onChanged: (v) => ref
                             .read(quizSettingsProvider.notifier)
-                            .setSubmitMode(v
-                                ? QuizSubmitMode.instant
-                                : QuizSubmitMode.confirm),
+                            .setSubmitMode(
+                              v
+                                  ? QuizSubmitMode.instant
+                                  : QuizSubmitMode.confirm,
+                            ),
                       ),
                     ),
                     contentPadding: EdgeInsets.zero,
@@ -182,13 +184,12 @@ class SettingsScreen extends ConsumerWidget {
                     trailing: MouseRegion(
                       cursor: SystemMouseCursors.click,
                       child: Switch(
-                        value:
-                            settings.advanceMode == QuizAdvanceMode.auto,
+                        value: settings.advanceMode == QuizAdvanceMode.auto,
                         onChanged: (v) => ref
                             .read(quizSettingsProvider.notifier)
-                            .setAdvanceMode(v
-                                ? QuizAdvanceMode.auto
-                                : QuizAdvanceMode.manual),
+                            .setAdvanceMode(
+                              v ? QuizAdvanceMode.auto : QuizAdvanceMode.manual,
+                            ),
                       ),
                     ),
                     contentPadding: EdgeInsets.zero,
@@ -212,13 +213,18 @@ class SettingsScreen extends ConsumerWidget {
                       color: cs.tertiaryContainer,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.psychology_rounded,
-                        color: cs.onTertiaryContainer, size: 22),
+                    child: Icon(
+                      Icons.psychology_rounded,
+                      color: cs.onTertiaryContainer,
+                      size: 22,
+                    ),
                   ),
                   title: const Text('模型管理'),
                   subtitle: const Text('查看已安装模型、下载推荐模型'),
-                  trailing:
-                      Icon(Icons.chevron_right_rounded, color: cs.outline),
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    color: cs.outline,
+                  ),
                   onTap: () => context.push('/settings/models'),
                 ),
               ],
@@ -334,13 +340,16 @@ class SettingsScreen extends ConsumerWidget {
                             trailing: MouseRegion(
                               cursor: SystemMouseCursors.click,
                               child: Switch(
-                                value: settings.submitMode ==
+                                value:
+                                    settings.submitMode ==
                                     QuizSubmitMode.instant,
                                 onChanged: (v) => ref
                                     .read(quizSettingsProvider.notifier)
-                                    .setSubmitMode(v
-                                        ? QuizSubmitMode.instant
-                                        : QuizSubmitMode.confirm),
+                                    .setSubmitMode(
+                                      v
+                                          ? QuizSubmitMode.instant
+                                          : QuizSubmitMode.confirm,
+                                    ),
                               ),
                             ),
                             contentPadding: EdgeInsets.zero,
@@ -352,13 +361,16 @@ class SettingsScreen extends ConsumerWidget {
                             trailing: MouseRegion(
                               cursor: SystemMouseCursors.click,
                               child: Switch(
-                                value: settings.advanceMode ==
+                                value:
+                                    settings.advanceMode ==
                                     QuizAdvanceMode.auto,
                                 onChanged: (v) => ref
                                     .read(quizSettingsProvider.notifier)
-                                    .setAdvanceMode(v
-                                        ? QuizAdvanceMode.auto
-                                        : QuizAdvanceMode.manual),
+                                    .setAdvanceMode(
+                                      v
+                                          ? QuizAdvanceMode.auto
+                                          : QuizAdvanceMode.manual,
+                                    ),
                               ),
                             ),
                             contentPadding: EdgeInsets.zero,
@@ -380,13 +392,18 @@ class SettingsScreen extends ConsumerWidget {
                               color: cs.tertiaryContainer,
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: Icon(Icons.psychology_rounded,
-                                color: cs.onTertiaryContainer, size: 22),
+                            child: Icon(
+                              Icons.psychology_rounded,
+                              color: cs.onTertiaryContainer,
+                              size: 22,
+                            ),
                           ),
                           title: const Text('模型管理'),
                           subtitle: const Text('查看已安装模型、下载推荐模型'),
-                          trailing: Icon(Icons.chevron_right_rounded,
-                              color: cs.outline),
+                          trailing: Icon(
+                            Icons.chevron_right_rounded,
+                            color: cs.outline,
+                          ),
                           onTap: () => context.push('/settings/models'),
                         ),
                       ],
@@ -430,8 +447,8 @@ class _SectionCard extends StatelessWidget {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -507,8 +524,10 @@ class _ThemeTileState extends State<_ThemeTile>
             return Transform.scale(
               scale: 1.0 + t * 0.015,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 4,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
@@ -547,22 +566,25 @@ class _ThemeTileState extends State<_ThemeTile>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(widget.title,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: widget.selected
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                            )),
-                    Text(widget.subtitle,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: cs.onSurface.withAlpha(150),
-                            )),
+                    Text(
+                      widget.title,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: widget.selected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
+                    ),
+                    Text(
+                      widget.subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: cs.onSurface.withAlpha(150),
+                      ),
+                    ),
                   ],
                 ),
               ),
               if (widget.selected)
-                Icon(Icons.check_circle_rounded,
-                    color: cs.primary, size: 20),
+                Icon(Icons.check_circle_rounded, color: cs.primary, size: 20),
             ],
           ),
         ),
@@ -721,8 +743,10 @@ class _ColorSchemeTileState extends State<_ColorSchemeTile>
             return Transform.scale(
               scale: 1.0 + t * 0.015,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 4,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
@@ -752,8 +776,11 @@ class _ColorSchemeTileState extends State<_ColorSchemeTile>
                   ),
                 ),
                 child: widget.selected
-                    ? const Icon(Icons.check_rounded,
-                        color: Colors.white, size: 18)
+                    ? const Icon(
+                        Icons.check_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      )
                     : null,
               ),
               const SizedBox(width: 12),
@@ -761,14 +788,14 @@ class _ColorSchemeTileState extends State<_ColorSchemeTile>
                 child: Text(
                   widget.title,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight:
-                            widget.selected ? FontWeight.w600 : FontWeight.w400,
-                      ),
+                    fontWeight: widget.selected
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                  ),
                 ),
               ),
               if (widget.selected)
-                Icon(Icons.check_circle_rounded,
-                    color: cs.primary, size: 20),
+                Icon(Icons.check_circle_rounded, color: cs.primary, size: 20),
             ],
           ),
         ),

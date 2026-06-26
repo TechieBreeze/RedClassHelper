@@ -56,8 +56,7 @@ class _FileFormatTileState extends State<FileFormatTile>
     final cs = Theme.of(context).colorScheme;
 
     return MouseRegion(
-      cursor:
-          widget.enabled ? SystemMouseCursors.click : MouseCursor.defer,
+      cursor: widget.enabled ? SystemMouseCursors.click : MouseCursor.defer,
       onEnter: widget.enabled ? (_) => _onHover(true) : null,
       onExit: widget.enabled ? (_) => _onHover(false) : null,
       child: GestureDetector(
@@ -69,14 +68,12 @@ class _FileFormatTileState extends State<FileFormatTile>
             return Transform.scale(
               scale: 1.0 + t * 0.015,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
-                  color: Color.lerp(
-                    cs.surface,
-                    cs.surfaceContainerHigh,
-                    t,
-                  ),
+                  color: Color.lerp(cs.surface, cs.surfaceContainerHigh, t),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: Color.lerp(
@@ -115,9 +112,11 @@ class _FileFormatTileState extends State<FileFormatTile>
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(widget.icon,
-                      size: 24,
-                      color: widget.iconColor ?? cs.onPrimaryContainer),
+                  child: Icon(
+                    widget.icon,
+                    size: 24,
+                    color: widget.iconColor ?? cs.onPrimaryContainer,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -126,23 +125,20 @@ class _FileFormatTileState extends State<FileFormatTile>
                     children: [
                       Text(
                         widget.title,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
+                        style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         widget.subtitle,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: cs.onSurface.withAlpha(150),
-                            ),
+                          color: cs.onSurface.withAlpha(150),
+                        ),
                       ),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded,
-                    color: cs.outline, size: 20),
+                Icon(Icons.chevron_right_rounded, color: cs.outline, size: 20),
               ],
             ),
           ),

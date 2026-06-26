@@ -53,10 +53,7 @@ class ImportFile {
     required String path,
     required String name,
     required int sizeBytes,
-  }) =>
-      ImportFile._(
-        PickedPathFile(path: path, name: name, length: sizeBytes),
-      );
+  }) => ImportFile._(PickedPathFile(path: path, name: name, length: sizeBytes));
 
   /// 底层文件路径（移动端字节源时为 null）。
   String? get path {
@@ -152,8 +149,10 @@ class ImportState {
 
   /// 未被用户确认的候选题目（即跳过项），带跳过原因。
   List<({int index, ParseCandidate candidate, String reason})>
-      get skippedCandidates {
-    return candidates.asMap().entries
+  get skippedCandidates {
+    return candidates
+        .asMap()
+        .entries
         .where((e) => !confirmedIndices.contains(e.key))
         .map((e) {
           final c = e.value;
@@ -202,8 +201,7 @@ class ImportState {
       committedCount: committedCount ?? this.committedCount,
       bankName: bankName ?? this.bankName,
       parseSources: parseSources ?? this.parseSources,
-      parseStatus:
-          clearParseStatus ? null : (parseStatus ?? this.parseStatus),
+      parseStatus: clearParseStatus ? null : (parseStatus ?? this.parseStatus),
       bankId: bankId ?? this.bankId,
     );
   }

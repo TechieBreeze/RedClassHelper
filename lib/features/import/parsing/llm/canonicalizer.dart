@@ -53,12 +53,13 @@ List<String> canonicalizeAnswer(String rawAnswer) {
   }
 
   // 提取所有单个大写或小写字母 A-H
-  final letters = _letterRE
-      .allMatches(rawAnswer)
-      .map((m) => m.group(0)!.toUpperCase())
-      .toSet()
-      .toList()
-    ..sort();
+  final letters =
+      _letterRE
+          .allMatches(rawAnswer)
+          .map((m) => m.group(0)!.toUpperCase())
+          .toSet()
+          .toList()
+        ..sort();
 
   return letters;
 }

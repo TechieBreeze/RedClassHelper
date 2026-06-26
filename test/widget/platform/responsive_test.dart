@@ -13,22 +13,47 @@ Widget _wrap(Widget child, {required double width, required double height}) {
 }
 
 void main() {
-  testWidgets('AdaptiveLayout renders compact branch on small screen', (t) async {
-    await t.pumpWidget(_wrap(
-      AdaptiveLayout(compact: (_) => const Text('C'), medium: (_) => const Text('M'), expanded: (_) => const Text('E')),
-      width: 400, height: 800,
-    ));
+  testWidgets('AdaptiveLayout renders compact branch on small screen', (
+    t,
+  ) async {
+    await t.pumpWidget(
+      _wrap(
+        AdaptiveLayout(
+          compact: (_) => const Text('C'),
+          medium: (_) => const Text('M'),
+          expanded: (_) => const Text('E'),
+        ),
+        width: 400,
+        height: 800,
+      ),
+    );
     expect(find.text('C'), findsOneWidget);
   });
   testWidgets('AdaptiveLayout renders medium branch on tablet', (t) async {
-    await t.pumpWidget(_wrap(
-      AdaptiveLayout(compact: (_) => const Text('C'), medium: (_) => const Text('M'), expanded: (_) => const Text('E')),
-      width: 720, height: 1024,
-    ));
+    await t.pumpWidget(
+      _wrap(
+        AdaptiveLayout(
+          compact: (_) => const Text('C'),
+          medium: (_) => const Text('M'),
+          expanded: (_) => const Text('E'),
+        ),
+        width: 720,
+        height: 1024,
+      ),
+    );
     expect(find.text('M'), findsOneWidget);
   });
-  testWidgets('AdaptiveLayout falls back to compact when medium/expanded missing', (t) async {
-    await t.pumpWidget(_wrap(AdaptiveLayout(compact: (_) => const Text('C')), width: 720, height: 1024));
-    expect(find.text('C'), findsOneWidget);
-  });
+  testWidgets(
+    'AdaptiveLayout falls back to compact when medium/expanded missing',
+    (t) async {
+      await t.pumpWidget(
+        _wrap(
+          AdaptiveLayout(compact: (_) => const Text('C')),
+          width: 720,
+          height: 1024,
+        ),
+      );
+      expect(find.text('C'), findsOneWidget);
+    },
+  );
 }

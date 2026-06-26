@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:redclass/data/db/database.dart';
 import 'package:redclass/data/repositories/ledger_repository.dart';
@@ -23,28 +24,32 @@ void main() {
   // ── Helper: Insert a Question so FK constraints pass ──
   Future<void> _insertQuestion(String questionId, String bankId) async {
     final now = DateTime.now();
-    await db.into(db.questionBanks).insertOnConflictUpdate(
-      QuestionBanksCompanion.insert(
-        id: bankId,
-        name: 'Test Bank',
-        source: 'test',
-        questionCount: 1,
-        createdAt: now,
-        updatedAt: now,
-      ),
-    );
-    await db.into(db.questions).insert(
-      QuestionsCompanion.insert(
-        id: questionId,
-        bankId: bankId,
-        type: 'single',
-        stem: 'Test question?',
-        optionsJson: '[{"key":"A","text":"Option A"}]',
-        correctJson: '["A"]',
-        rawText: 'Test question?',
-        createdAt: now,
-      ),
-    );
+    await db
+        .into(db.questionBanks)
+        .insertOnConflictUpdate(
+          QuestionBanksCompanion.insert(
+            id: bankId,
+            name: 'Test Bank',
+            source: const Value('test'),
+            questionCount: 1,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await db
+        .into(db.questions)
+        .insert(
+          QuestionsCompanion.insert(
+            id: questionId,
+            bankId: bankId,
+            type: 'single',
+            stem: 'Test question?',
+            optionsJson: '[{"key":"A","text":"Option A"}]',
+            correctJson: '["A"]',
+            rawText: 'Test question?',
+            createdAt: now,
+          ),
+        );
   }
 
   // ═════════════════════════════════════════════════════════════
@@ -72,24 +77,25 @@ void main() {
 
     // First wrong mark
     await repo.markWrong('q2');
-    var entry = await (db.select(db.wrongLedgerEntries)
-      ..where((e) => e.questionId.equals('q2'))
-    ).getSingle();
+    var entry = await (db.select(
+      db.wrongLedgerEntries,
+    )..where((e) => e.questionId.equals('q2'))).getSingle();
     expect(entry.timesWrong, 1);
     final firstWrongAt = entry.firstWrongAt;
 
     // Ensure time advances between marks (DateTime.now() may have ms precision)
     await Future<void>.delayed(const Duration(milliseconds: 50));
     await repo.markWrong('q2');
-    entry = await (db.select(db.wrongLedgerEntries)
-      ..where((e) => e.questionId.equals('q2'))
-    ).getSingle();
+    entry = await (db.select(
+      db.wrongLedgerEntries,
+    )..where((e) => e.questionId.equals('q2'))).getSingle();
     expect(entry.timesWrong, 2);
     // firstWrongAt should NOT change on subsequent marks
     expect(entry.firstWrongAt, firstWrongAt);
     // lastWrongAt should be at or after firstWrongAt (not before)
     expect(
-      entry.lastWrongAt.microsecondsSinceEpoch >= firstWrongAt!.microsecondsSinceEpoch,
+      entry.lastWrongAt.microsecondsSinceEpoch >=
+          firstWrongAt!.microsecondsSinceEpoch,
       isTrue,
     );
     expect(entry.masteredAt, isNull);
@@ -107,41 +113,44 @@ void main() {
     // Now mark as mastered
     await repo.markMastered('q3');
 
-    final entry = await (db.select(db.wrongLedgerEntries)
-      ..where((e) => e.questionId.equals('q3'))
-    ).getSingle();
+    final entry = await (db.select(
+      db.wrongLedgerEntries,
+    )..where((e) => e.questionId.equals('q3'))).getSingle();
     expect(entry.masteredAt, isNotNull);
   });
 
   // ═════════════════════════════════════════════════════════════
   // Test 4: recordWrongAnswer inserts attempt + ledger atomically
   // ═════════════════════════════════════════════════════════════
-  test('recordWrongAnswer inserts attempt and marks wrong atomically', () async {
-    await _insertQuestion('q4', 'b4');
+  test(
+    'recordWrongAnswer inserts attempt and marks wrong atomically',
+    () async {
+      await _insertQuestion('q4', 'b4');
 
-    await repo.recordWrongAnswer(
-      questionId: 'q4',
-      givenAnswer: ['B'],
-      isCorrect: false,
-      mode: 'random',
-      elapsedMs: 1500,
-    );
+      await repo.recordWrongAnswer(
+        questionId: 'q4',
+        givenAnswer: ['B'],
+        isCorrect: false,
+        mode: 'random',
+        elapsedMs: 1500,
+      );
 
-    // Verify answer attempt was inserted
-    final attempts = await db.select(db.answerAttempts).get();
-    expect(attempts.length, 1);
-    expect(attempts.first.questionId, 'q4');
-    expect(attempts.first.givenAnswerJson, '["B"]');
-    expect(attempts.first.isCorrect, false);
-    expect(attempts.first.mode, 'random');
-    expect(attempts.first.elapsedMs, 1500);
+      // Verify answer attempt was inserted
+      final attempts = await db.select(db.answerAttempts).get();
+      expect(attempts.length, 1);
+      expect(attempts.first.questionId, 'q4');
+      expect(attempts.first.givenAnswerJson, '["B"]');
+      expect(attempts.first.isCorrect, false);
+      expect(attempts.first.mode, 'random');
+      expect(attempts.first.elapsedMs, 1500);
 
-    // Verify ledger entry was created
-    final entries = await db.select(db.wrongLedgerEntries).get();
-    expect(entries.length, 1);
-    expect(entries.first.questionId, 'q4');
-    expect(entries.first.timesWrong, 1);
-  });
+      // Verify ledger entry was created
+      final entries = await db.select(db.wrongLedgerEntries).get();
+      expect(entries.length, 1);
+      expect(entries.first.questionId, 'q4');
+      expect(entries.first.timesWrong, 1);
+    },
+  );
 
   // ═════════════════════════════════════════════════════════════
   // Test 4b: recordWrongAnswer with correct answer does NOT mark wrong
@@ -189,22 +198,25 @@ void main() {
   // ═════════════════════════════════════════════════════════════
   // Test 6: getActiveByBank returns active wrong count per bankId
   // ═════════════════════════════════════════════════════════════
-  test('getActiveByBank returns active wrong count for specific bank', () async {
-    await _insertQuestion('qX', 'bankX');
-    await _insertQuestion('qY', 'bankY');
+  test(
+    'getActiveByBank returns active wrong count for specific bank',
+    () async {
+      await _insertQuestion('qX', 'bankX');
+      await _insertQuestion('qY', 'bankY');
 
-    await repo.markWrong('qX');
-    await repo.markWrong('qY');
+      await repo.markWrong('qX');
+      await repo.markWrong('qY');
 
-    expect(await repo.getActiveByBank('bankX'), 1);
-    expect(await repo.getActiveByBank('bankY'), 1);
+      expect(await repo.getActiveByBank('bankX'), 1);
+      expect(await repo.getActiveByBank('bankY'), 1);
 
-    // Master the bankX question
-    await repo.markMastered('qX');
+      // Master the bankX question
+      await repo.markMastered('qX');
 
-    expect(await repo.getActiveByBank('bankX'), 0);
-    expect(await repo.getActiveByBank('bankY'), 1);
-  });
+      expect(await repo.getActiveByBank('bankX'), 0);
+      expect(await repo.getActiveByBank('bankY'), 1);
+    },
+  );
 
   // ═════════════════════════════════════════════════════════════
   // Test 7: watchActiveCount emits updated count reactively
@@ -245,30 +257,33 @@ void main() {
   // ═════════════════════════════════════════════════════════════
   // Test 8: recordCorrectReview inserts attempt + marks mastered atomically
   // ═════════════════════════════════════════════════════════════
-  test('recordCorrectReview inserts attempt and marks mastered atomically', () async {
-    await _insertQuestion('qR1', 'bR');
+  test(
+    'recordCorrectReview inserts attempt and marks mastered atomically',
+    () async {
+      await _insertQuestion('qR1', 'bR');
 
-    // First mark wrong to create ledger entry
-    await repo.markWrong('qR1');
+      // First mark wrong to create ledger entry
+      await repo.markWrong('qR1');
 
-    // Now record a correct review answer
-    await repo.recordCorrectReview(
-      questionId: 'qR1',
-      givenAnswer: ['A'],
-      mode: 'review',
-      elapsedMs: 2000,
-    );
+      // Now record a correct review answer
+      await repo.recordCorrectReview(
+        questionId: 'qR1',
+        givenAnswer: ['A'],
+        mode: 'review',
+        elapsedMs: 2000,
+      );
 
-    // Verify answer attempt was inserted
-    final attempts = await db.select(db.answerAttempts).get();
-    expect(attempts.length, 1);
-    expect(attempts.first.isCorrect, true);
-    expect(attempts.first.mode, 'review');
+      // Verify answer attempt was inserted
+      final attempts = await db.select(db.answerAttempts).get();
+      expect(attempts.length, 1);
+      expect(attempts.first.isCorrect, true);
+      expect(attempts.first.mode, 'review');
 
-    // Verify ledger entry was marked as mastered
-    final entry = await (db.select(db.wrongLedgerEntries)
-      ..where((e) => e.questionId.equals('qR1'))
-    ).getSingle();
-    expect(entry.masteredAt, isNotNull);
-  });
+      // Verify ledger entry was marked as mastered
+      final entry = await (db.select(
+        db.wrongLedgerEntries,
+      )..where((e) => e.questionId.equals('qR1'))).getSingle();
+      expect(entry.masteredAt, isNotNull);
+    },
+  );
 }

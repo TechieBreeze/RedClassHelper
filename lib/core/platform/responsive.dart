@@ -17,18 +17,27 @@ class ResponsiveBuilder extends StatelessWidget {
 }
 
 class AdaptiveLayout extends StatelessWidget {
-  const AdaptiveLayout({super.key, required this.compact, this.medium, this.expanded});
+  const AdaptiveLayout({
+    super.key,
+    required this.compact,
+    this.medium,
+    this.expanded,
+  });
   final WidgetBuilder compact;
   final WidgetBuilder? medium;
   final WidgetBuilder? expanded;
   @override
   Widget build(BuildContext context) {
-    return ResponsiveBuilder(builder: (_, info) {
-      return switch (info.formFactor) {
-        FormFactor.compact => Builder(builder: compact),
-        FormFactor.medium => Builder(builder: medium ?? compact),
-        FormFactor.expanded => Builder(builder: expanded ?? medium ?? compact),
-      };
-    });
+    return ResponsiveBuilder(
+      builder: (_, info) {
+        return switch (info.formFactor) {
+          FormFactor.compact => Builder(builder: compact),
+          FormFactor.medium => Builder(builder: medium ?? compact),
+          FormFactor.expanded => Builder(
+            builder: expanded ?? medium ?? compact,
+          ),
+        };
+      },
+    );
   }
 }

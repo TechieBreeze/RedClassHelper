@@ -45,9 +45,7 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: 'pick/:mode',
           builder: (BuildContext context, GoRouterState state) =>
-              BankPickerScreen(
-            mode: state.pathParameters['mode']!,
-          ),
+              BankPickerScreen(mode: state.pathParameters['mode']!),
         ),
         GoRoute(
           path: ':bankId/:mode',
@@ -71,17 +69,16 @@ final GoRouter appRouter = GoRouter(
                   quizSessionControllerProvider(bankId, mode),
                 );
                 final session = sessionAsync.value;
-                if (session == null ||
-                    session.status != QuizStatus.complete) {
+                if (session == null || session.status != QuizStatus.complete) {
                   return '/';
                 }
                 return null;
               },
               builder: (BuildContext context, GoRouterState state) =>
                   QuizSummaryScreen(
-                bankId: state.pathParameters['bankId']!,
-                mode: state.pathParameters['mode']!,
-              ),
+                    bankId: state.pathParameters['bankId']!,
+                    mode: state.pathParameters['mode']!,
+                  ),
             ),
           ],
           builder: (BuildContext context, GoRouterState state) => QuizScreen(
@@ -152,8 +149,6 @@ final GoRouter appRouter = GoRouter(
   ],
   errorBuilder: (BuildContext context, GoRouterState state) => Scaffold(
     appBar: AppBar(title: const Text('路由错误')),
-    body: Center(
-      child: Text('Route not found: ${state.uri}'),
-    ),
+    body: Center(child: Text('Route not found: ${state.uri}')),
   ),
 );

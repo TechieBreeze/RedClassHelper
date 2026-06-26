@@ -55,8 +55,9 @@ void main() {
       expect(find.text('导入题库'), findsOneWidget);
     });
 
-    testWidgets('navigates to /bookmarks renders BookmarksScreen',
-        (tester) async {
+    testWidgets('navigates to /bookmarks renders BookmarksScreen', (
+      tester,
+    ) async {
       await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
       await tester.pumpAndSettle();
       appRouter.go('/bookmarks');
@@ -64,8 +65,9 @@ void main() {
       expect(find.text('收藏夹'), findsOneWidget);
     });
 
-    testWidgets('navigates to /bank/some-id renders BankDetailScreen',
-        (tester) async {
+    testWidgets('navigates to /bank/some-id renders BankDetailScreen', (
+      tester,
+    ) async {
       await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
       await tester.pumpAndSettle();
       appRouter.go('/bank/some-id');
@@ -74,8 +76,9 @@ void main() {
       expect(find.textContaining('some-id'), findsOneWidget);
     });
 
-    testWidgets('navigates to /quiz/bank-1/random renders QuizScreen',
-        (tester) async {
+    testWidgets('navigates to /quiz/bank-1/random renders QuizScreen', (
+      tester,
+    ) async {
       await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
       await tester.pumpAndSettle();
       appRouter.go('/quiz/bank-1/random');

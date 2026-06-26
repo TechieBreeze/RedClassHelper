@@ -68,17 +68,11 @@ class _HoverableCardState extends State<HoverableCard>
               scale: 1.0 + (widget.scaleOnHover - 1.0) * t,
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius:
-                      BorderRadius.circular(widget.borderRadius),
-                  color: Color.lerp(
-                    cs.surface,
-                    cs.surfaceContainerHigh,
-                    t,
-                  ),
+                  borderRadius: BorderRadius.circular(widget.borderRadius),
+                  color: Color.lerp(cs.surface, cs.surfaceContainerHigh, t),
                   boxShadow: [
                     BoxShadow(
-                      color: cs.shadow
-                          .withAlpha((10 + t * 40).round()),
+                      color: cs.shadow.withAlpha((10 + t * 40).round()),
                       blurRadius: 4 + t * 12,
                       offset: Offset(0, 2 + t * 4),
                     ),

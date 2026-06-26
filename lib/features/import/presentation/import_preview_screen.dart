@@ -74,10 +74,10 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     final filteredCandidates = _filterType == null
         ? candidates.asMap().entries.toList()
         : candidates
-            .asMap()
-            .entries
-            .where((e) => e.value.candidateType == _filterType)
-            .toList();
+              .asMap()
+              .entries
+              .where((e) => e.value.candidateType == _filterType)
+              .toList();
 
     return PopScope(
       canPop: false,
@@ -86,9 +86,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(
-            '审核结果（${confirmedIndices.length}/${candidates.length}）',
-          ),
+          title: Text('审核结果（${confirmedIndices.length}/${candidates.length}）'),
           leading: IconButton(
             icon: const Icon(Icons.close),
             tooltip: '放弃并返回',
@@ -184,9 +182,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
             children: [
               TextButton.icon(
                 onPressed: _toggleSelectAll,
-                icon: Icon(_selectAll
-                    ? Icons.deselect
-                    : Icons.select_all),
+                icon: Icon(_selectAll ? Icons.deselect : Icons.select_all),
                 label: Text(_selectAll ? '取消全选' : '全选'),
               ),
               const Spacer(),
@@ -207,8 +203,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                   FilterChip(
                     label: const Text('全部'),
                     selected: _filterType == null,
-                    onSelected: (_) =>
-                        setState(() => _filterType = null),
+                    onSelected: (_) => setState(() => _filterType = null),
                   ),
                   const SizedBox(width: 8),
                   ...types.map(
@@ -217,9 +212,8 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                       child: FilterChip(
                         label: Text(_typeLabel(t)),
                         selected: _filterType == t,
-                        onSelected: (selected) => setState(
-                          () => _filterType = selected ? t : null,
-                        ),
+                        onSelected: (selected) =>
+                            setState(() => _filterType = selected ? t : null),
                       ),
                     ),
                   ),
@@ -243,10 +237,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
           ),
           const SizedBox(height: 16),
-          Text(
-            '未解析到题目',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text('未解析到题目', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(
             '请检查文件格式或尝试手动创建题库',
@@ -304,13 +295,11 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
         // ── 底部 Sheet：批量操作 + 题型筛选 ──
         _buildToolbar(context, confirmedIndices, candidates),
         // ── Phase 3: 解析来源摘要行 ──
-        if (state.parseSources.isNotEmpty)
-          _buildSourceSummary(context, state),
+        if (state.parseSources.isNotEmpty) _buildSourceSummary(context, state),
         // ── 候选列表（移动端纵向滚动）──
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             itemCount: filteredCandidates.length,
             itemBuilder: (context, index) {
               final entry = filteredCandidates[index];
@@ -350,10 +339,10 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     final filtered = _filterType == null
         ? candidates.asMap().entries.toList()
         : candidates
-            .asMap()
-            .entries
-            .where((e) => e.value.candidateType == _filterType)
-            .toList();
+              .asMap()
+              .entries
+              .where((e) => e.value.candidateType == _filterType)
+              .toList();
 
     return Center(
       child: ConstrainedBox(
@@ -398,7 +387,9 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                 builder: (context, constraints) {
                   return SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: Wrap(
                       spacing: 12,
                       runSpacing: 12,
@@ -448,9 +439,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
         if (state.parseSources.containsKey(index))
           Padding(
             padding: const EdgeInsets.only(bottom: 4, left: 4),
-            child: _ParseSourceBadge(
-              source: state.parseSources[index]!,
-            ),
+            child: _ParseSourceBadge(source: state.parseSources[index]!),
           ),
         CandidateCard(
           candidate: candidate,
@@ -495,10 +484,8 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
         }
       }
     } else {
-      for (final i in ref
-          .read(importNotifierProvider)
-          .confirmedIndices
-          .toList()) {
+      for (final i
+          in ref.read(importNotifierProvider).confirmedIndices.toList()) {
         notifier.toggleCandidate(i);
       }
     }
@@ -541,7 +528,8 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
       return;
     }
     // 确保 state 中的 bankName 是最新的
-    ref.read(importNotifierProvider.notifier)
+    ref
+        .read(importNotifierProvider.notifier)
         .setBankName(_bankNameController.text.trim());
 
     setState(() => _isSaving = true);
@@ -591,15 +579,17 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
   // ── Phase 3: LLM 预览扩展（D-08）──
 
   /// 绿色信息横幅："LLM 解析结果已自动确认，N 题待入库"
-  Widget _buildAutoConfirmBanner(
-      BuildContext context, int confirmedCount) {
+  Widget _buildAutoConfirmBanner(BuildContext context, int confirmedCount) {
     return Card(
       color: Theme.of(context).colorScheme.tertiaryContainer,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(Icons.check_circle, color: Theme.of(context).colorScheme.tertiary),
+            Icon(
+              Icons.check_circle,
+              color: Theme.of(context).colorScheme.tertiary,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -630,11 +620,8 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
       child: Text(
         '解析来源：LLM $llmCount 题 / 启发式 $heuristicCount 题 / 兜底 $fallbackCount 题',
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withOpacity(0.7),
-            ),
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+        ),
       ),
     );
   }
@@ -648,25 +635,18 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     final (color, icon, label) = switch (source) {
       ParseSource.llm => (Colors.teal, Icons.psychology, 'LLM'),
       ParseSource.heuristic => (
-          Theme.of(context).colorScheme.secondary,
-          Icons.rule,
-          '启发式'
-        ),
-      ParseSource.fallback => (
-          Colors.amber.shade700,
-          Icons.swap_horiz,
-          '兜底'
-        ),
+        Theme.of(context).colorScheme.secondary,
+        Icons.rule,
+        '启发式',
+      ),
+      ParseSource.fallback => (Colors.amber.shade700, Icons.swap_horiz, '兜底'),
     };
 
     return SizedBox(
       height: 24,
       child: ActionChip(
         avatar: Icon(icon, size: 14),
-        label: Text(
-          label,
-          style: const TextStyle(fontSize: 12),
-        ),
+        label: Text(label, style: const TextStyle(fontSize: 12)),
         backgroundColor: color.withOpacity(0.15),
         side: BorderSide.none,
         visualDensity: VisualDensity.compact,

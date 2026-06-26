@@ -6,7 +6,10 @@ import 'file_picker_errors.dart';
 
 class DesktopFilePickerService implements FilePickerService {
   @override
-  Future<PickedFile?> pickFile({required Set<String> allowedExtensions, String? dialogTitle}) async {
+  Future<PickedFile?> pickFile({
+    required Set<String> allowedExtensions,
+    String? dialogTitle,
+  }) async {
     try {
       final result = await fp.FilePicker.pickFiles(
         type: fp.FileType.custom,
@@ -25,14 +28,20 @@ class DesktopFilePickerService implements FilePickerService {
       throw FilePickUnknown(e.toString());
     }
   }
+
   @override
   Future<PickedFile?> pickFromDroppedPath(String path) async {
     final file = File(path);
     if (!await file.exists()) {
       throw FileReadError('Dropped path does not exist: $path');
     }
-    return PickedPathFile(name: path.split(Platform.pathSeparator).last, path: path, length: await file.length());
+    return PickedPathFile(
+      name: path.split(Platform.pathSeparator).last,
+      path: path,
+      length: await file.length(),
+    );
   }
+
   @override
   Future<void> dispose() async {}
 }

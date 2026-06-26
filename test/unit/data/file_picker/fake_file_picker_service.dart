@@ -8,11 +8,15 @@ class FakeFilePickerService implements FilePickerService {
   final List<({Set<String> extensions, String? title})> calls = [];
 
   @override
-  Future<PickedFile?> pickFile({required Set<String> allowedExtensions, String? dialogTitle}) async {
+  Future<PickedFile?> pickFile({
+    required Set<String> allowedExtensions,
+    String? dialogTitle,
+  }) async {
     calls.add((extensions: allowedExtensions, title: dialogTitle));
     if (nextError != null) throw nextError!;
     return nextResult;
   }
+
   @override
   Future<PickedFile?> pickFromDroppedPath(String path) async => null;
   @override

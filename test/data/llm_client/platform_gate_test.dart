@@ -23,8 +23,7 @@ void main() {
     expect(container.read(llmModeProvider), LlmMode.http);
   });
 
-  test('llmClientProvider compiles and returns StubLlmClient on desktop',
-      () {
+  test('llmClientProvider compiles and returns StubLlmClient on desktop', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final client = container.read(llmClientProvider);

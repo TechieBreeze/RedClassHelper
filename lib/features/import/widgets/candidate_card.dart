@@ -65,125 +65,124 @@ class _CandidateCardState extends State<CandidateCard> {
             ? null
             : theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
         child: InkWell(
-        onTap: () => setState(() => _expanded = !_expanded),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── 头部：题号 + 题型标签 + 置信度标记 ──
-              Row(
-                children: [
-                  // 题号
-                  Text(
-                    '${widget.index + 1}/${widget.total}',
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // 题型标签
-                  _TypeChip(type: c.candidateType),
-                  const SizedBox(width: 8),
-
-                  // 低置信度标记
-                  if (isLowConfidence) ...[
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      size: 16,
-                      color: theme.colorScheme.error,
-                    ),
-                    const SizedBox(width: 4),
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── 头部：题号 + 题型标签 + 置信度标记 ──
+                Row(
+                  children: [
+                    // 题号
                     Text(
-                      '可能需要人工复核',
-                      style: theme.textTheme.bodySmall?.copyWith(
+                      '${widget.index + 1}/${widget.total}',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // 题型标签
+                    _TypeChip(type: c.candidateType),
+                    const SizedBox(width: 8),
+
+                    // 低置信度标记
+                    if (isLowConfidence) ...[
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 16,
                         color: theme.colorScheme.error,
                       ),
-                    ),
-                  ],
-
-                  const Spacer(),
-
-                  // 确认复选框
-                  Checkbox(
-                    value: widget.isConfirmed,
-                    onChanged: (_) => widget.onToggleConfirm(),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              // ── 题干 ──
-              Text(
-                c.title.isNotEmpty ? c.title : c.rawText,
-                style: theme.textTheme.bodyMedium,
-                maxLines: _expanded ? null : 3,
-                overflow: _expanded ? null : TextOverflow.ellipsis,
-              ),
-
-              // ── 选项预览 ──
-              if (c.options.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                ...c.options.take(_expanded ? c.options.length : 2).map(
-                      (opt) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          opt,
-                          style: theme.textTheme.bodySmall,
+                      const SizedBox(width: 4),
+                      Text(
+                        '可能需要人工复核',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.error,
                         ),
                       ),
+                    ],
+
+                    const Spacer(),
+
+                    // 确认复选框
+                    Checkbox(
+                      value: widget.isConfirmed,
+                      onChanged: (_) => widget.onToggleConfirm(),
                     ),
-                if (!_expanded && c.options.length > 2)
-                  Text(
-                    '…还有 ${c.options.length - 2} 个选项',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.5),
-                    ),
-                  ),
-              ],
-
-              // ── 展开编辑区域 ──
-              if (_expanded) ...[
-                const Divider(height: 24),
-
-                // 题型选择器
-                _buildTypeSelector(context),
-                const SizedBox(height: 16),
-
-                // 选项编辑
-                if (c.candidateType == CandidateType.singleChoice ||
-                    c.candidateType == CandidateType.multiChoice) ...[
-                  _buildOptionsEditor(context),
-                  const SizedBox(height: 16),
-                ],
-
-                // 答案编辑
-                _buildAnswerEditor(context),
-
-                // 判断题答案编辑
-                if (c.candidateType == CandidateType.trueFalse) ...[
-                  const SizedBox(height: 16),
-                  _buildTrueFalseEditor(context),
-                ],
-              ],
-
-              // ── 展开/收起提示 ──
-              if (!_expanded)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Icon(
-                    Icons.keyboard_arrow_down,
-                    size: 20,
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
-                  ),
+                  ],
                 ),
-            ],
+
+                const SizedBox(height: 8),
+
+                // ── 题干 ──
+                Text(
+                  c.title.isNotEmpty ? c.title : c.rawText,
+                  style: theme.textTheme.bodyMedium,
+                  maxLines: _expanded ? null : 3,
+                  overflow: _expanded ? null : TextOverflow.ellipsis,
+                ),
+
+                // ── 选项预览 ──
+                if (c.options.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ...c.options
+                      .take(_expanded ? c.options.length : 2)
+                      .map(
+                        (opt) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(opt, style: theme.textTheme.bodySmall),
+                        ),
+                      ),
+                  if (!_expanded && c.options.length > 2)
+                    Text(
+                      '…还有 ${c.options.length - 2} 个选项',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      ),
+                    ),
+                ],
+
+                // ── 展开编辑区域 ──
+                if (_expanded) ...[
+                  const Divider(height: 24),
+
+                  // 题型选择器
+                  _buildTypeSelector(context),
+                  const SizedBox(height: 16),
+
+                  // 选项编辑
+                  if (c.candidateType == CandidateType.singleChoice ||
+                      c.candidateType == CandidateType.multiChoice) ...[
+                    _buildOptionsEditor(context),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // 答案编辑
+                  _buildAnswerEditor(context),
+
+                  // 判断题答案编辑
+                  if (c.candidateType == CandidateType.trueFalse) ...[
+                    const SizedBox(height: 16),
+                    _buildTrueFalseEditor(context),
+                  ],
+                ],
+
+                // ── 展开/收起提示 ──
+                if (!_expanded)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 20,
+                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -204,10 +203,7 @@ class _CandidateCardState extends State<CandidateCard> {
                 value: CandidateType.multiChoice,
                 label: Text('多选'),
               ),
-              ButtonSegment(
-                value: CandidateType.trueFalse,
-                label: Text('判断'),
-              ),
+              ButtonSegment(value: CandidateType.trueFalse, label: Text('判断')),
               ButtonSegment(
                 value: CandidateType.shortAnswer,
                 label: Text('简答'),
@@ -243,17 +239,23 @@ class _CandidateCardState extends State<CandidateCard> {
               children: [
                 SizedBox(
                   width: 24,
-                  child: Text('$label.',
-                      style: Theme.of(context).textTheme.labelMedium),
+                  child: Text(
+                    '$label.',
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
                 ),
                 Expanded(
                   child: TextFormField(
                     initialValue: options[i].replaceFirst(
-                        RegExp(r'^[A-H][.、．]\s*'), ''),
+                      RegExp(r'^[A-H][.、．]\s*'),
+                      '',
+                    ),
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       isDense: true,
                     ),
                     onChanged: (value) {
@@ -283,8 +285,7 @@ class _CandidateCardState extends State<CandidateCard> {
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               hintText: '如 A',
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               isDense: true,
             ),
             onChanged: widget.onAnswerChanged,
@@ -295,12 +296,14 @@ class _CandidateCardState extends State<CandidateCard> {
   }
 
   Widget _buildTrueFalseEditor(BuildContext context) {
-    final isTrue = widget.candidate.answer.toUpperCase().contains('A') ||
+    final isTrue =
+        widget.candidate.answer.toUpperCase().contains('A') ||
         widget.candidate.answer.contains('对') ||
         widget.candidate.answer.contains('正') ||
         widget.candidate.answer.contains('✓') ||
         widget.candidate.answer.contains('✔');
-    final isFalse = widget.candidate.answer.toUpperCase().contains('B') ||
+    final isFalse =
+        widget.candidate.answer.toUpperCase().contains('B') ||
         widget.candidate.answer.contains('错') ||
         widget.candidate.answer.contains('误') ||
         widget.candidate.answer.contains('✗') ||
@@ -352,10 +355,7 @@ class _TypeChip extends StatelessWidget {
         children: [
           Icon(icon, size: 14),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall,
-          ),
+          Text(label, style: Theme.of(context).textTheme.labelSmall),
         ],
       ),
     );

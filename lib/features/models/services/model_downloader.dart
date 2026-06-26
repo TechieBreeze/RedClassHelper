@@ -27,10 +27,9 @@ class DownloadProgress {
     this.speedBytesPerSec = 0,
   });
 
-  double get fraction =>
-      totalBytes != null && totalBytes! > 0
-          ? (bytesDownloaded / totalBytes!).clamp(0.0, 1.0)
-          : 0.0;
+  double get fraction => totalBytes != null && totalBytes! > 0
+      ? (bytesDownloaded / totalBytes!).clamp(0.0, 1.0)
+      : 0.0;
 }
 
 /// Result of a successful download.
@@ -38,10 +37,7 @@ class DownloadResult {
   final String filePath;
   final int totalBytes;
 
-  const DownloadResult({
-    required this.filePath,
-    required this.totalBytes,
-  });
+  const DownloadResult({required this.filePath, required this.totalBytes});
 }
 
 /// Thrown when the download cannot be completed due to a network error.
@@ -53,9 +49,7 @@ class DownloadNetworkException implements Exception {
 
   @override
   String toString() =>
-      originalError != null
-          ? '下载失败：$originalError'
-          : '下载失败：网络连接异常。请检查网络后重试';
+      originalError != null ? '下载失败：$originalError' : '下载失败：网络连接异常。请检查网络后重试';
 }
 
 /// Thrown when SHA-256 verification fails — the downloaded file is
@@ -136,10 +130,7 @@ class ModelDownloader {
           .timeout(const Duration(seconds: 30));
 
       if (headResponse.statusCode != 200) {
-        throw DownloadNetworkException(
-          url,
-          '服务器返回 ${headResponse.statusCode}',
-        );
+        throw DownloadNetworkException(url, '服务器返回 ${headResponse.statusCode}');
       }
 
       final contentLength = int.tryParse(
@@ -231,10 +222,7 @@ class ModelDownloader {
         }
       }
 
-      return DownloadResult(
-        filePath: destPath,
-        totalBytes: contentLength,
-      );
+      return DownloadResult(filePath: destPath, totalBytes: contentLength);
     } on DownloadVerificationException {
       rethrow;
     } on DownloadNetworkException {
@@ -269,8 +257,7 @@ class ModelDownloader {
     final elapsed = now.difference(_lastProgressTime).inMilliseconds;
     final deltaBytes = bytes - _lastBytesDownloaded;
 
-    final speed =
-        elapsed > 0 ? (deltaBytes / (elapsed / 1000.0)) : 0.0;
+    final speed = elapsed > 0 ? (deltaBytes / (elapsed / 1000.0)) : 0.0;
 
     _lastProgressTime = now;
     _lastBytesDownloaded = bytes;
@@ -290,6 +277,5 @@ class ModelDownloader {
     return digest.toString();
   }
 
-  Exception _cancellationException() =>
-      DownloadNetworkException(url, '下载已取消');
+  Exception _cancellationException() => DownloadNetworkException(url, '下载已取消');
 }

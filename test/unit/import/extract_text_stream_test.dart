@@ -18,7 +18,12 @@ void main() {
   });
 
   test('extractTextFromStream routes docx to docx extractor', () async {
-    final bytes = Uint8List.fromList([0x50, 0x4B, 0x03, 0x04]); // ZIP/OOXML magic
+    final bytes = Uint8List.fromList([
+      0x50,
+      0x4B,
+      0x03,
+      0x04,
+    ]); // ZIP/OOXML magic
     final stream = Stream.value(bytes);
     expect(
       () => extractTextFromStream(
@@ -30,16 +35,18 @@ void main() {
     );
   });
 
-  test('extractTextFromStream throws UnsupportedFormat for unknown ext',
-      () async {
-    final stream = Stream.value(Uint8List(0));
-    expect(
-      () => extractTextFromStream(
-        stream,
-        fileName: 'a.xyz',
-        fileExtension: '.xyz',
-      ),
-      throwsA(isA<UnsupportedFormatException>()),
-    );
-  });
+  test(
+    'extractTextFromStream throws UnsupportedFormat for unknown ext',
+    () async {
+      final stream = Stream.value(Uint8List(0));
+      expect(
+        () => extractTextFromStream(
+          stream,
+          fileName: 'a.xyz',
+          fileExtension: '.xyz',
+        ),
+        throwsA(isA<UnsupportedFormatException>()),
+      );
+    },
+  );
 }

@@ -2,8 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:redclass/data/db/tables/question_banks.dart';
+import 'package:redclass/data/db/database.dart';
 import 'package:redclass/features/home/presentation/home_screen.dart';
 import 'package:redclass/features/quiz/providers/bank_pick_provider.dart';
 import 'package:redclass/routing/router.dart';
@@ -12,8 +13,8 @@ import 'package:redclass/routing/router.dart';
 /// shows the empty-state card (rather than loading or error) when a
 /// test does not supply its own [bankPickListProvider] override.
 List<Override> _emptyBankListOverrides() => [
-      bankPickListProvider.overrideWith((ref) async => <BankPickItem>[]),
-    ];
+  bankPickListProvider.overrideWith((ref) async => <BankPickItem>[]),
+];
 
 void main() {
   setUp(() {
@@ -21,8 +22,9 @@ void main() {
     // 每个测试前强制回到 / 路由。
     appRouter.go('/');
   });
-  testWidgets('HomeScreen renders all sections per UI-SPEC (UI-02)',
-      (tester) async {
+  testWidgets('HomeScreen renders all sections per UI-SPEC (UI-02)', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: _emptyBankListOverrides(),
@@ -59,8 +61,9 @@ void main() {
     expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
   });
 
-  testWidgets('Tapping mode tile navigates to /quiz/new/<mode>',
-      (tester) async {
+  testWidgets('Tapping mode tile navigates to /quiz/new/<mode>', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: _emptyBankListOverrides(),
@@ -129,8 +132,9 @@ void main() {
     expect(find.text('导入题库'), findsOneWidget); // app bar on ImportScreen
   });
 
-  testWidgets('HomeScreen shows real bank cards when banks exist',
-      (tester) async {
+  testWidgets('HomeScreen shows real bank cards when banks exist', (
+    tester,
+  ) async {
     final testBanks = [
       BankPickItem(
         bank: QuestionBank(
@@ -168,15 +172,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(_BankCard), findsNWidgets(2));
     expect(find.text('题库A'), findsOneWidget);
     expect(find.text('题库B'), findsOneWidget);
     expect(find.textContaining('30题'), findsOneWidget);
     expect(find.textContaining('50题'), findsOneWidget);
   });
 
-  testWidgets('HomeScreen shows empty state when bank list is empty',
-      (tester) async {
+  testWidgets('HomeScreen shows empty state when bank list is empty', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -188,11 +192,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('还没有题库'), findsOneWidget);
-    expect(find.byType(_BankEmptyStateCard), findsOneWidget);
   });
 
-  testWidgets('HomeScreen shows loading state while bank list loads',
-      (tester) async {
+  testWidgets('HomeScreen shows loading state while bank list loads', (
+    tester,
+  ) async {
     final completer = Completer<List<BankPickItem>>();
 
     await tester.pumpWidget(
@@ -206,11 +210,11 @@ void main() {
     await tester.pump();
 
     expect(find.byType(CircularProgressIndicator), findsAtLeast(1));
-    expect(find.byType(_BankListLoading), findsOneWidget);
   });
 
-  testWidgets('HomeScreen shows error state when bank list fails',
-      (tester) async {
+  testWidgets('HomeScreen shows error state when bank list fails', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -231,20 +235,22 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          bankPickListProvider.overrideWith((ref) async => [
-                BankPickItem(
-                  bank: QuestionBank(
-                    id: 'bank-123',
-                    name: '测试题库',
-                    source: '/path/test.docx',
-                    questionCount: 10,
-                    createdAt: DateTime.now(),
-                    updatedAt: DateTime.now(),
-                  ),
-                  totalQuestions: 10,
-                  activeWrongCount: 0,
+          bankPickListProvider.overrideWith(
+            (ref) async => [
+              BankPickItem(
+                bank: QuestionBank(
+                  id: 'bank-123',
+                  name: '测试题库',
+                  source: '/path/test.docx',
+                  questionCount: 10,
+                  createdAt: DateTime.now(),
+                  updatedAt: DateTime.now(),
                 ),
-              ]),
+                totalQuestions: 10,
+                activeWrongCount: 0,
+              ),
+            ],
+          ),
         ],
         child: MaterialApp.router(routerConfig: appRouter),
       ),

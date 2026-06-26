@@ -31,9 +31,7 @@ LlmMode llmMode(Ref ref) => LlmMode.stub;
 @Riverpod(keepAlive: true)
 LlmClient llmClient(Ref ref) {
   if (!(Platform.isWindows || Platform.isLinux)) {
-    throw UnsupportedError(
-      'LLM is desktop-only; use JSON import on Android',
-    );
+    throw UnsupportedError('LLM is desktop-only; use JSON import on Android');
   }
 
   final mode = ref.watch(llmModeProvider);

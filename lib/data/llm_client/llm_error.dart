@@ -6,10 +6,7 @@
 ///
 /// 携带超时时长和服务端地址，便于日志记录和用户提示。
 class LlmTimeoutException implements Exception {
-  LlmTimeoutException({
-    required this.timeout,
-    required this.serverUrl,
-  });
+  LlmTimeoutException({required this.timeout, required this.serverUrl});
 
   /// 超时时长
   final Duration timeout;
@@ -29,10 +26,7 @@ class LlmTimeoutException implements Exception {
 ///
 /// 携带原始响应文本和解析错误详情，便于调试。
 class LlmJsonParseException implements Exception {
-  LlmJsonParseException({
-    required this.rawResponse,
-    required this.parseError,
-  });
+  LlmJsonParseException({required this.rawResponse, required this.parseError});
 
   /// LLM 返回的原始文本（格式错误的 JSON）
   final String rawResponse;
@@ -51,10 +45,7 @@ class LlmJsonParseException implements Exception {
 ///
 /// 携带已尝试次数和最后一次失败的错误信息。
 class LlmRetryExhaustedException implements Exception {
-  LlmRetryExhaustedException({
-    required this.attempts,
-    required this.lastError,
-  });
+  LlmRetryExhaustedException({required this.attempts, required this.lastError});
 
   /// 已尝试的解析次数（约定 >= 1，构造器不作强制校验）
   final int attempts;
@@ -74,10 +65,7 @@ class LlmRetryExhaustedException implements Exception {
 ///
 /// 携带目标服务器地址和可选的原始错误信息。
 class LlmConnectionException implements Exception {
-  LlmConnectionException({
-    required this.serverUrl,
-    this.originalError,
-  });
+  LlmConnectionException({required this.serverUrl, this.originalError});
 
   /// 请求的目标服务器地址
   final String serverUrl;

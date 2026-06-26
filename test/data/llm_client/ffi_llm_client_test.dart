@@ -70,25 +70,22 @@ void main() {
       },
     );
 
-    test(
-      'parse() reports library path in retry-exhausted error',
-      () async {
-        const badLibraryName = 'lib_that_does_not_exist_abc123';
-        final client = FfiLlmClient(
-          libraryPath: badLibraryName,
-          modelPath: testModelPath,
-          maxRetries: 1,
-        );
+    test('parse() reports library path in retry-exhausted error', () async {
+      const badLibraryName = 'lib_that_does_not_exist_abc123';
+      final client = FfiLlmClient(
+        libraryPath: badLibraryName,
+        modelPath: testModelPath,
+        maxRetries: 1,
+      );
 
-        try {
-          await client.parse('test question');
-          fail('Expected LlmRetryExhaustedException');
-        } on LlmRetryExhaustedException catch (e) {
-          expect(e.attempts, 1);
-          expect(e.lastError, contains('load/inference'));
-        }
-      },
-    );
+      try {
+        await client.parse('test question');
+        fail('Expected LlmRetryExhaustedException');
+      } on LlmRetryExhaustedException catch (e) {
+        expect(e.attempts, 1);
+        expect(e.lastError, contains('load/inference'));
+      }
+    });
 
     test(
       'parse() throws LlmRetryExhaustedException after exhausting retries',
@@ -112,22 +109,24 @@ void main() {
       },
     );
 
-    test('parse() throws LlmRetryExhaustedException with descriptive message',
-        () async {
-      final client = FfiLlmClient(
-        libraryPath: 'nonexistent_library',
-        modelPath: testModelPath,
-        maxRetries: 1,
-      );
+    test(
+      'parse() throws LlmRetryExhaustedException with descriptive message',
+      () async {
+        final client = FfiLlmClient(
+          libraryPath: 'nonexistent_library',
+          modelPath: testModelPath,
+          maxRetries: 1,
+        );
 
-      try {
-        await client.parse('test question');
-        fail('Expected LlmRetryExhaustedException');
-      } on LlmRetryExhaustedException catch (e) {
-        expect(e.attempts, 1);
-        expect(e.lastError, isNotEmpty);
-      }
-    });
+        try {
+          await client.parse('test question');
+          fail('Expected LlmRetryExhaustedException');
+        } on LlmRetryExhaustedException catch (e) {
+          expect(e.attempts, 1);
+          expect(e.lastError, isNotEmpty);
+        }
+      },
+    );
   });
 
   group('FfiLlmClient lifecycle', () {
@@ -183,8 +182,7 @@ void main() {
   });
 
   group('FfiLlmClient LLM JSON type mapping', () {
-    test('type field values are mapped correctly to candidateType strings',
-        () {
+    test('type field values are mapped correctly to candidateType strings', () {
       // _mapCandidateType is private — we verify through the parse flow
       // that the type strings are correct. This test documents the mapping
       // and serves as a regression guard.

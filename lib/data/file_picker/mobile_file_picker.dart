@@ -5,7 +5,10 @@ import 'file_picker_errors.dart';
 
 class MobileFilePickerService implements FilePickerService {
   @override
-  Future<PickedFile?> pickFile({required Set<String> allowedExtensions, String? dialogTitle}) async {
+  Future<PickedFile?> pickFile({
+    required Set<String> allowedExtensions,
+    String? dialogTitle,
+  }) async {
     try {
       final result = await fp.FilePicker.pickFiles(
         type: fp.FileType.custom,
@@ -24,10 +27,12 @@ class MobileFilePickerService implements FilePickerService {
       throw FilePickUnknown(e.toString());
     }
   }
+
   @override
   Future<PickedFile?> pickFromDroppedPath(String path) async {
     throw const FilePickUnsupportedMethod('Drop is desktop-only');
   }
+
   @override
   Future<void> dispose() async {}
 }

@@ -109,8 +109,7 @@ void main() {
 
     // Tooltip with 桌面端功能 must be present on the fallback buttons.
     final tooltips = tester.widgetList<Tooltip>(find.byType(Tooltip));
-    final hasDesktopOnlyTooltip =
-        tooltips.any((t) => t.message == '桌面端功能');
+    final hasDesktopOnlyTooltip = tooltips.any((t) => t.message == '桌面端功能');
     expect(hasDesktopOnlyTooltip, isTrue);
   });
 }

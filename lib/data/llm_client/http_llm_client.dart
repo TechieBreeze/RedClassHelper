@@ -92,11 +92,7 @@ class HttpLlmClient implements LlmClient {
 
     try {
       final response = await http
-          .post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: body,
-          )
+          .post(uri, headers: {'Content-Type': 'application/json'}, body: body)
           .timeout(timeout);
 
       if (response.statusCode != 200) {
@@ -144,11 +140,7 @@ class HttpLlmClient implements LlmClient {
   ///
   /// The inner `content` string is the LLM's JSON output matching our schema.
   /// This method extracts and validates it.
-  ParseCandidate _parseResponse(
-    String body,
-    String rawText,
-    String? bankName,
-  ) {
+  ParseCandidate _parseResponse(String body, String rawText, String? bankName) {
     // Step 1: Parse the llama.cpp wrapper JSON
     final Map<String, dynamic> wrapper;
     try {
@@ -174,10 +166,7 @@ class HttpLlmClient implements LlmClient {
     try {
       llmJson = jsonDecode(content.trim()) as Map<String, dynamic>;
     } on FormatException catch (e) {
-      throw LlmJsonParseException(
-        rawResponse: content,
-        parseError: e.message,
-      );
+      throw LlmJsonParseException(rawResponse: content, parseError: e.message);
     }
 
     // Step 4: Map LLM field names to ParseCandidate field names
@@ -201,10 +190,7 @@ class HttpLlmClient implements LlmClient {
 
     // Step 6: Add metadata
     return candidate.copyWith(
-      metadata: {
-        'source': 'llm',
-        if (bankName != null) 'bankName': bankName,
-      },
+      metadata: {'source': 'llm', if (bankName != null) 'bankName': bankName},
     );
   }
 

@@ -38,26 +38,19 @@ Future<String> extractDocText(
   // 2. 准备临时输出路径
   final tempDir = await tempImportDirResolver();
   final baseName = p.basenameWithoutExtension(filePath);
-  final tempDocxPath = p.join(
-    tempDir,
-    '${baseName}_pandoc_converted.docx',
-  );
+  final tempDocxPath = p.join(tempDir, '${baseName}_pandoc_converted.docx');
 
   try {
     // 3. 运行 pandoc 转换
-    final result = await Process.run(
-      pandocPath,
-      [
-        filePath,
-        '--from',
-        'doc',
-        '--to',
-        'docx',
-        '--output',
-        tempDocxPath,
-      ],
-      runInShell: true,
-    );
+    final result = await Process.run(pandocPath, [
+      filePath,
+      '--from',
+      'doc',
+      '--to',
+      'docx',
+      '--output',
+      tempDocxPath,
+    ], runInShell: true);
 
     if (result.exitCode != 0) {
       final stderr = (result.stderr as String).trim();

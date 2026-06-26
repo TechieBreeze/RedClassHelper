@@ -76,9 +76,7 @@ void main() {
     await testDb.close();
   });
 
-  ProviderContainer createContainer({
-    required LlmClient llmClient,
-  }) {
+  ProviderContainer createContainer({required LlmClient llmClient}) {
     return ProviderContainer(
       overrides: [
         llmClientProvider.overrideWithValue(llmClient),
@@ -88,89 +86,116 @@ void main() {
   }
 
   group('Full LLM parse pipeline', () {
-    test('chunk → parse → editing with ParseSource.llm and auto-confirm',
-        () async {
-      final stub = IntegrationStubLlmClient(parsers: [
-        IntegrationStubLlmClient.makeSingle,
-        IntegrationStubLlmClient.makeMulti,
-      ]);
-      final container = createContainer(llmClient: stub);
+    test(
+      'chunk → parse → editing with ParseSource.llm and auto-confirm',
+      () async {
+        final stub = IntegrationStubLlmClient(
+          parsers: [
+            IntegrationStubLlmClient.makeSingle,
+            IntegrationStubLlmClient.makeMulti,
+          ],
+        );
+        final container = createContainer(llmClient: stub);
 
-      final notifier = container.read(importNotifierProvider.notifier);
-      notifier.pickFiles([
-        const ImportFile(
-            path: 'test.docx', name: 'test.docx', sizeBytes: 100),
-      ]);
+        final notifier = container.read(importNotifierProvider.notifier);
+        notifier.pickFiles([
+          ImportFile.fromPath(
+            path: 'test.docx',
+            name: 'test.docx',
+            sizeBytes: 100,
+          ),
+        ]);
 
-      notifier.state = container.read(importNotifierProvider).copyWith(
-            extractedText: '1. Question One\nA. Alpha\nB. Beta\n\n'
-                '2. Question Two\nA. Apple\nB. Banana\nC. Cherry',
-          );
+        notifier.state = container
+            .read(importNotifierProvider)
+            .copyWith(
+              extractedText:
+                  '1. Question One\nA. Alpha\nB. Beta\n\n'
+                  '2. Question Two\nA. Apple\nB. Banana\nC. Cherry',
+            );
 
-      await notifier.llmParse();
+        await notifier.llmParse();
 
-      final finalState = container.read(importNotifierProvider);
-      expect(finalState.phase, ImportPhase.editing);
-      expect(finalState.candidates.length, 2);
-      expect(finalState.confirmedIndices.length, 2); // D-08: auto-confirm
-      expect(finalState.parseSources.length, 2);
-      expect(finalState.parseSources[0], ParseSource.llm);
-      expect(finalState.parseSources[1], ParseSource.llm);
-      expect(finalState.candidates[0].confidence, 0.9);
-      expect(finalState.candidates[1].metadata['source'], 'llm');
-    });
+        final finalState = container.read(importNotifierProvider);
+        expect(finalState.phase, ImportPhase.editing);
+        expect(finalState.candidates.length, 2);
+        expect(finalState.confirmedIndices.length, 2); // D-08: auto-confirm
+        expect(finalState.parseSources.length, 2);
+        expect(finalState.parseSources[0], ParseSource.llm);
+        expect(finalState.parseSources[1], ParseSource.llm);
+        expect(finalState.candidates[0].confidence, 0.9);
+        expect(finalState.candidates[1].metadata['source'], 'llm');
+      },
+    );
 
-    test('mixed LLM + fallback: parseSources records both source types',
-        () async {
-      final stub = IntegrationStubLlmClient(parsers: [
-        IntegrationStubLlmClient.makeSingle,
-        (rawText, bankName) =>
-            throw LlmRetryExhaustedException(
+    test(
+      'mixed LLM + fallback: parseSources records both source types',
+      () async {
+        final stub = IntegrationStubLlmClient(
+          parsers: [
+            IntegrationStubLlmClient.makeSingle,
+            (rawText, bankName) => throw LlmRetryExhaustedException(
               attempts: 3,
               lastError: 'mock retry exhausted',
             ),
-      ]);
-      final container = createContainer(llmClient: stub);
+          ],
+        );
+        final container = createContainer(llmClient: stub);
 
-      final notifier = container.read(importNotifierProvider.notifier);
-      notifier.pickFiles([
-        const ImportFile(
-            path: 'test.docx', name: 'test.docx', sizeBytes: 100),
-      ]);
+        final notifier = container.read(importNotifierProvider.notifier);
+        notifier.pickFiles([
+          ImportFile.fromPath(
+            path: 'test.docx',
+            name: 'test.docx',
+            sizeBytes: 100,
+          ),
+        ]);
 
-      notifier.state = container.read(importNotifierProvider).copyWith(
-            extractedText: '1. Question One\nA. Option\n'
-                'B. Option\n答案：A\n\n'
-                '2. Question Two\nA. Option\n'
-                'B. Option\n答案：B',
-          );
+        notifier.state = container
+            .read(importNotifierProvider)
+            .copyWith(
+              extractedText:
+                  '1. Question One\nA. Option\n'
+                  'B. Option\n答案：A\n\n'
+                  '2. Question Two\nA. Option\n'
+                  'B. Option\n答案：B',
+            );
 
-      await notifier.llmParse();
+        await notifier.llmParse();
 
-      final finalState = container.read(importNotifierProvider);
-      if (finalState.candidates.length >= 2) {
-        expect(finalState.parseSources[0], ParseSource.llm);
-        expect(finalState.parseSources[1], ParseSource.fallback);
-        // Fallback candidate has reduced confidence
-        expect(finalState.candidates[1].confidence, lessThan(0.9));
-      }
-    });
+        final finalState = container.read(importNotifierProvider);
+        if (finalState.candidates.length >= 2) {
+          expect(finalState.parseSources[0], ParseSource.llm);
+          expect(finalState.parseSources[1], ParseSource.fallback);
+          // Fallback candidate has reduced confidence
+          expect(finalState.candidates[1].confidence, lessThan(0.9));
+        }
+      },
+    );
 
     test('LLM import sets parseStatus during processing', () async {
-      final stub = IntegrationStubLlmClient(parsers: [
-        IntegrationStubLlmClient.makeSingle,
-        IntegrationStubLlmClient.makeSingle,
-      ]);
+      final stub = IntegrationStubLlmClient(
+        parsers: [
+          IntegrationStubLlmClient.makeSingle,
+          IntegrationStubLlmClient.makeSingle,
+        ],
+      );
       final container = createContainer(llmClient: stub);
 
       final notifier = container.read(importNotifierProvider.notifier);
       notifier.pickFiles([
-        const ImportFile(
-            path: 'test.docx', name: 'test.docx', sizeBytes: 100),
+        ImportFile.fromPath(
+          path: 'test.docx',
+          name: 'test.docx',
+          sizeBytes: 100,
+        ),
       ]);
 
-      notifier.state = container.read(importNotifierProvider).copyWith(
-            extractedText: '1. Q1\nA. Alpha\nB. Beta\n\n'
+      notifier.state = container
+          .read(importNotifierProvider)
+          .copyWith(
+            extractedText:
+                '1. Q1\nA. Alpha\nB. Beta\n\n'
                 '2. Q2\nA. Alpha\nB. Beta',
           );
 
@@ -184,20 +209,23 @@ void main() {
     });
 
     test('all chunks fail → idle with error', () async {
-      final stub = IntegrationStubLlmClient(parsers: [
-        (rawText, bankName) => throw Exception('total failure'),
-      ]);
+      final stub = IntegrationStubLlmClient(
+        parsers: [(rawText, bankName) => throw Exception('total failure')],
+      );
       final container = createContainer(llmClient: stub);
 
       final notifier = container.read(importNotifierProvider.notifier);
       notifier.pickFiles([
-        const ImportFile(
-            path: 'test.docx', name: 'test.docx', sizeBytes: 100),
+        ImportFile.fromPath(
+          path: 'test.docx',
+          name: 'test.docx',
+          sizeBytes: 100,
+        ),
       ]);
 
-      notifier.state = container.read(importNotifierProvider).copyWith(
-            extractedText: 'XYZ\nNo question pattern here',
-          );
+      notifier.state = container
+          .read(importNotifierProvider)
+          .copyWith(extractedText: 'XYZ\nNo question pattern here');
 
       await notifier.llmParse();
 
@@ -208,11 +236,10 @@ void main() {
       }
     });
 
-    test('parseStatus is set to "正在解析" during llmParsing loop',
-        () async {
-      final stub = IntegrationStubLlmClient(parsers: [
-        IntegrationStubLlmClient.makeSingle,
-      ]);
+    test('parseStatus is set to "正在解析" during llmParsing loop', () async {
+      final stub = IntegrationStubLlmClient(
+        parsers: [IntegrationStubLlmClient.makeSingle],
+      );
       final container = createContainer(llmClient: stub);
 
       // Listen to state changes to verify parseStatus is set
@@ -223,42 +250,55 @@ void main() {
 
       final notifier = container.read(importNotifierProvider.notifier);
       notifier.pickFiles([
-        const ImportFile(
-            path: 'test.docx', name: 'test.docx', sizeBytes: 100),
+        ImportFile.fromPath(
+          path: 'test.docx',
+          name: 'test.docx',
+          sizeBytes: 100,
+        ),
       ]);
 
-      notifier.state = container.read(importNotifierProvider).copyWith(
-            extractedText: '1. Question One\nA. Alpha\nB. Beta',
-          );
+      notifier.state = container
+          .read(importNotifierProvider)
+          .copyWith(extractedText: '1. Question One\nA. Alpha\nB. Beta');
 
       await notifier.llmParse();
 
       // Check that at least one state had parseStatus set
       final parsingStates = states
-          .where((s) =>
-              s.isLlmParsing &&
-              s.parseStatus != null &&
-              s.parseStatus!.contains('解析'))
+          .where(
+            (s) =>
+                s.isLlmParsing &&
+                s.parseStatus != null &&
+                s.parseStatus!.contains('解析'),
+          )
           .toList();
       expect(parsingStates.isNotEmpty, isTrue);
     });
 
     test('progress updates from 0.0 to 1.0 during llmParsing', () async {
-      final stub = IntegrationStubLlmClient(parsers: [
-        IntegrationStubLlmClient.makeSingle,
-        IntegrationStubLlmClient.makeSingle,
-        IntegrationStubLlmClient.makeSingle,
-      ]);
+      final stub = IntegrationStubLlmClient(
+        parsers: [
+          IntegrationStubLlmClient.makeSingle,
+          IntegrationStubLlmClient.makeSingle,
+          IntegrationStubLlmClient.makeSingle,
+        ],
+      );
       final container = createContainer(llmClient: stub);
 
       final notifier = container.read(importNotifierProvider.notifier);
       notifier.pickFiles([
-        const ImportFile(
-            path: 'test.docx', name: 'test.docx', sizeBytes: 100),
+        ImportFile.fromPath(
+          path: 'test.docx',
+          name: 'test.docx',
+          sizeBytes: 100,
+        ),
       ]);
 
-      notifier.state = container.read(importNotifierProvider).copyWith(
-            extractedText: '1. Q1\nA. Opt\n\n2. Q2\nA. Opt\n\n'
+      notifier.state = container
+          .read(importNotifierProvider)
+          .copyWith(
+            extractedText:
+                '1. Q1\nA. Opt\n\n2. Q2\nA. Opt\n\n'
                 '3. Q3\nA. Opt',
           );
 

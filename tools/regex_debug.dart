@@ -8,7 +8,8 @@ void main() {
     dotAll: true,
   );
   print('Original: ${orig.firstMatch(text) != null}');
-  if (orig.firstMatch(text) != null) print('  => "${orig.firstMatch(text)!.group(1)}"');
+  if (orig.firstMatch(text) != null)
+    print('  => "${orig.firstMatch(text)!.group(1)}"');
 
   // Test each part
   print('');
@@ -21,12 +22,18 @@ void main() {
   // Part B: prefix + content
   final pB = RegExp(r'(?:解析|解释|答案[解解]析)\s*[：:]\s*(.+)');
   print('Prefix+content: ${pB.firstMatch(text) != null}');
-  if (pB.firstMatch(text) != null) print('  => "${pB.firstMatch(text)!.group(1)}"');
+  if (pB.firstMatch(text) != null)
+    print('  => "${pB.firstMatch(text)!.group(1)}"');
 
   // Part C: with lazy .+? and simple $
-  final pC = RegExp(r'(?:解析|解释|答案[解解]析)\s*[：:]\s*(.+?)$', multiLine: true, dotAll: true);
+  final pC = RegExp(
+    r'(?:解析|解释|答案[解解]析)\s*[：:]\s*(.+?)$',
+    multiLine: true,
+    dotAll: true,
+  );
   print('Prefix+content+lazy+\$: ${pC.firstMatch(text) != null}');
-  if (pC.firstMatch(text) != null) print('  => "${pC.firstMatch(text)!.group(1)}"');
+  if (pC.firstMatch(text) != null)
+    print('  => "${pC.firstMatch(text)!.group(1)}"');
 
   // Part D: full lookahead
   final lookahead = RegExp(r'(?=\n(?:\d{1,4}[）.、]|\s*(?:答案|参考|正确|解析|解释)|$))');
@@ -39,26 +46,54 @@ void main() {
   print('.+?\$: ${pE.firstMatch(text)?.group(1) ?? "NO MATCH"}');
 
   // Part F: the lookahead after prefix
-  final pF = RegExp(r'(?:解析)\s*[：:]\s*(.+?)(?=$)', multiLine: true, dotAll: true);
+  final pF = RegExp(
+    r'(?:解析)\s*[：:]\s*(.+?)(?=$)',
+    multiLine: true,
+    dotAll: true,
+  );
   print('parse .+? \$: ${pF.firstMatch(text)?.group(1) ?? "NO MATCH"}');
 
   // Part G: try the full lookahead but simplified
-  final pG = RegExp(r'(?:解析)\s*[：:]\s*(.+?)(?=\n\d|$)', multiLine: true, dotAll: true);
-  print('parse .+? (\\n\\d|\$): ${pG.firstMatch(text)?.group(1) ?? "NO MATCH"}');
+  final pG = RegExp(
+    r'(?:解析)\s*[：:]\s*(.+?)(?=\n\d|$)',
+    multiLine: true,
+    dotAll: true,
+  );
+  print(
+    'parse .+? (\\n\\d|\$): ${pG.firstMatch(text)?.group(1) ?? "NO MATCH"}',
+  );
 
   // Part H: the alternation with \s*
-  final pH = RegExp(r'(?:解析)\s*[：:]\s*(.+?)(?=\n\d|\s*答案|$)', multiLine: true, dotAll: true);
-  print('parse .+? (\\n\\d|\\s*答案|\$): ${pH.firstMatch(text)?.group(1) ?? "NO MATCH"}');
+  final pH = RegExp(
+    r'(?:解析)\s*[：:]\s*(.+?)(?=\n\d|\s*答案|$)',
+    multiLine: true,
+    dotAll: true,
+  );
+  print(
+    'parse .+? (\\n\\d|\\s*答案|\$): ${pH.firstMatch(text)?.group(1) ?? "NO MATCH"}',
+  );
 
   // What about: the exact alternation?
-  final pI = RegExp(r'(?:解析)\s*[：:]\s*(.+?)(?=\n(?:\d|\s*(?:答案))|$)', multiLine: true, dotAll: true);
-  print('parse .+? (\\n(?:\\d|\\s*(?:答案))|\$): ${pI.firstMatch(text)?.group(1) ?? "NO MATCH"}');
+  final pI = RegExp(
+    r'(?:解析)\s*[：:]\s*(.+?)(?=\n(?:\d|\s*(?:答案))|$)',
+    multiLine: true,
+    dotAll: true,
+  );
+  print(
+    'parse .+? (\\n(?:\\d|\\s*(?:答案))|\$): ${pI.firstMatch(text)?.group(1) ?? "NO MATCH"}',
+  );
 
   // The exact structure: \n followed by (alt1 | alt2 | alt3) or $
   // wait, the original regex has: (?=\n(?:alt1|alt2)|$)
   // Let me check: does the \n grouping matter?
-  final pJ = RegExp(r'(?:解析)\s*[：:]\s*(.+?)(?=\n(?:\d|答案)|$)', multiLine: true, dotAll: true);
-  print('parse .+? (\\n(?:\\d|答案)|\$): ${pJ.firstMatch(text)?.group(1) ?? "NO MATCH"}');
+  final pJ = RegExp(
+    r'(?:解析)\s*[：:]\s*(.+?)(?=\n(?:\d|答案)|$)',
+    multiLine: true,
+    dotAll: true,
+  );
+  print(
+    'parse .+? (\\n(?:\\d|答案)|\$): ${pJ.firstMatch(text)?.group(1) ?? "NO MATCH"}',
+  );
 
   // Test the FULL exact regex piece by piece
   final pK = RegExp(
@@ -69,7 +104,8 @@ void main() {
   // Test on a string that has a newline BEFORE the dollar sign match
   final testText = '解析：test\n1. next';
   print('\npK on text with newline: ${pK.firstMatch(testText) != null}');
-  if (pK.firstMatch(testText) != null) print('  => "${pK.firstMatch(testText)!.group(1)}"');
+  if (pK.firstMatch(testText) != null)
+    print('  => "${pK.firstMatch(testText)!.group(1)}"');
 
   // Test \n in the regex: is it matching something it shouldn't?
   print('\n--- Debug \n ---');

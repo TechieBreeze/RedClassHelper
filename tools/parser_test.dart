@@ -154,11 +154,17 @@ void _test(HeuristicParser parser, String label, String input) {
     final c = candidates[i];
     final typeStr = c.candidateType.name;
     final mark = _passFail(c);
-    print('  [$i] $mark 类型=$typeStr 答案="${c.answer}" 选项数=${c.options.length} 置信度=${c.confidence.toStringAsFixed(2)}');
-    final title = c.title.length > 50 ? '${c.title.substring(0, 50)}...' : c.title;
+    print(
+      '  [$i] $mark 类型=$typeStr 答案="${c.answer}" 选项数=${c.options.length} 置信度=${c.confidence.toStringAsFixed(2)}',
+    );
+    final title = c.title.length > 50
+        ? '${c.title.substring(0, 50)}...'
+        : c.title;
     print('      题干="$title"');
     if (c.explanation.isNotEmpty) {
-      final expl = c.explanation.length > 60 ? '${c.explanation.substring(0,60)}...' : c.explanation;
+      final expl = c.explanation.length > 60
+          ? '${c.explanation.substring(0, 60)}...'
+          : c.explanation;
       print('      解析="$expl"');
     }
   }

@@ -30,8 +30,7 @@ class StubLlmClient implements LlmClient {
   /// ```dart
   /// StubLlmClient(fixtures: myTestData);
   /// ```
-  StubLlmClient({Map<String, dynamic>? fixtures})
-      : _testFixtures = fixtures;
+  StubLlmClient({Map<String, dynamic>? fixtures}) : _testFixtures = fixtures;
 
   /// Loads fixtures from the asset bundle (lazy, cached).
   Future<Map<String, dynamic>> _loadFixtures() async {
@@ -40,8 +39,9 @@ class StubLlmClient implements LlmClient {
       _fixtures = _testFixtures;
       return _fixtures!;
     }
-    final jsonStr =
-        await rootBundle.loadString('assets/fixtures/sample_llm_response.json');
+    final jsonStr = await rootBundle.loadString(
+      'assets/fixtures/sample_llm_response.json',
+    );
     _fixtures = jsonDecode(jsonStr) as Map<String, dynamic>;
     return _fixtures!;
   }
@@ -61,7 +61,8 @@ class StubLlmClient implements LlmClient {
   Future<ParseCandidate> parse(String rawText, {String? bankName}) async {
     final fixtures = await _loadFixtures();
     final key = _selectFixtureKey(rawText);
-    final entry = (fixtures[key] ?? fixtures['default']!) as Map<String, dynamic>;
+    final entry =
+        (fixtures[key] ?? fixtures['default']!) as Map<String, dynamic>;
 
     return ParseCandidate(
       rawText: rawText,
@@ -71,10 +72,7 @@ class StubLlmClient implements LlmClient {
       answer: entry['answer'] as String,
       explanation: (entry['explanation'] as String?) ?? '',
       confidence: 1.0,
-      metadata: {
-        'source': 'stub',
-        if (bankName != null) 'bankName': bankName,
-      },
+      metadata: {'source': 'stub', if (bankName != null) 'bankName': bankName},
     );
   }
 

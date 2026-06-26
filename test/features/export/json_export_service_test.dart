@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:drift/drift.dart' hide isNull, isNotNull;
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:redclass/data/db/database.dart';
@@ -110,8 +110,7 @@ void main() {
     });
 
     // Test 2: multi-choice → answer_type=1, key="AC", answer map 4 entries
-    test('multi-choice produces answer_type=1, key="AC", 4 answer entries',
-        () {
+    test('multi-choice produces answer_type=1, key="AC", 4 answer entries', () {
       final bank = _testBank();
       final question = _multiChoiceQuestion(
         stem: 'Which of these are fruits?',
@@ -121,8 +120,9 @@ void main() {
 
       final result = bankToUserJson(bank, [question]);
 
-      final q1 = (result['questions'] as Map<String, dynamic>)['1']
-          as Map<String, dynamic>;
+      final q1 =
+          (result['questions'] as Map<String, dynamic>)['1']
+              as Map<String, dynamic>;
       expect(q1['answer_type'], 1);
       expect(q1['key'], 'AC');
       expect((q1['answer'] as Map).length, 4);
@@ -145,18 +145,22 @@ void main() {
     // Test 4: 5 questions → numbered keys "1" through "5"
     test('5 questions produce numbered keys 1-5 in order', () {
       final bank = _testBank();
-      final questions = List.generate(5, (i) => _singleChoiceQuestion(
-            id: 'q-${i + 1}',
-            stem: 'Question ${i + 1}',
-          ));
+      final questions = List.generate(
+        5,
+        (i) =>
+            _singleChoiceQuestion(id: 'q-${i + 1}', stem: 'Question ${i + 1}'),
+      );
 
       final result = bankToUserJson(bank, questions);
 
       final qs = result['questions'] as Map<String, dynamic>;
       expect(qs.length, 5);
       for (var i = 1; i <= 5; i++) {
-        expect(qs.containsKey('$i'), isTrue,
-            reason: 'Expected key "$i" in questions map');
+        expect(
+          qs.containsKey('$i'),
+          isTrue,
+          reason: 'Expected key "$i" in questions map',
+        );
       }
       // Verify order: the map itself has insertion order
       final keys = qs.keys.toList();
@@ -202,8 +206,9 @@ void main() {
       );
 
       final result = bankToUserJson(bank, [question]);
-      final q1 = (result['questions'] as Map<String, dynamic>)['1']
-          as Map<String, dynamic>;
+      final q1 =
+          (result['questions'] as Map<String, dynamic>)['1']
+              as Map<String, dynamic>;
       expect(q1['question'], '会议是（）');
     });
 
@@ -216,8 +221,9 @@ void main() {
       );
 
       final result = bankToUserJson(bank, [question]);
-      final q1 = (result['questions'] as Map<String, dynamic>)['1']
-          as Map<String, dynamic>;
+      final q1 =
+          (result['questions'] as Map<String, dynamic>)['1']
+              as Map<String, dynamic>;
       expect(q1['question'], '下列哪些是正确的（）');
     });
 
@@ -230,8 +236,9 @@ void main() {
       );
 
       final result = bankToUserJson(bank, [question]);
-      final q1 = (result['questions'] as Map<String, dynamic>)['1']
-          as Map<String, dynamic>;
+      final q1 =
+          (result['questions'] as Map<String, dynamic>)['1']
+              as Map<String, dynamic>;
       expect(q1['question'], '普通无标记的题干');
     });
 
@@ -249,8 +256,9 @@ void main() {
       );
 
       final result = bankToUserJson(bank, [question]);
-      final q1 = (result['questions'] as Map<String, dynamic>)['1']
-          as Map<String, dynamic>;
+      final q1 =
+          (result['questions'] as Map<String, dynamic>)['1']
+              as Map<String, dynamic>;
       expect(q1['question'], '资本是能够带来剩余价值的价值。（）');
     });
 
@@ -268,8 +276,9 @@ void main() {
       );
 
       final result = bankToUserJson(bank, [question]);
-      final q1 = (result['questions'] as Map<String, dynamic>)['1']
-          as Map<String, dynamic>;
+      final q1 =
+          (result['questions'] as Map<String, dynamic>)['1']
+              as Map<String, dynamic>;
       expect(q1['question'], '运动和发展是唯物辩证法的总特征。（）');
     });
 
@@ -290,8 +299,9 @@ void main() {
       );
 
       final result = bankToUserJson(bank, [question]);
-      final q1 = (result['questions'] as Map<String, dynamic>)['1']
-          as Map<String, dynamic>;
+      final q1 =
+          (result['questions'] as Map<String, dynamic>)['1']
+              as Map<String, dynamic>;
 
       expect(q1['answer_type'], 0);
       expect(q1['key'], 'A');
@@ -355,12 +365,7 @@ void main() {
         'questions': {
           '1': {
             'question': '1. What is 2+2?',
-            'answer': {
-              'A': '3',
-              'B': '4',
-              'C': '5',
-              'D': '6',
-            },
+            'answer': {'A': '3', 'B': '4', 'C': '5', 'D': '6'},
             'key': 'B',
             'answer_type': 0,
           },
@@ -379,8 +384,7 @@ void main() {
       expect(q.bankId.value, 'bank-id-1');
 
       // Verify optionsJson was correctly converted
-      final options =
-          jsonDecode(q.optionsJson.value) as List;
+      final options = jsonDecode(q.optionsJson.value) as List;
       expect(options.length, 4);
       expect(options[0]['key'], 'A');
       expect(options[0]['text'], '3');
@@ -442,17 +446,17 @@ void main() {
     test('round-trip: export then import preserves all question data', () async {
       // Use an in-memory DB to simulate the round-trip more realistically
       final db = AppDatabase.openInMemoryDatabase();
-      addTearDown(() async => await db.close());
-
       final now = DateTime.now();
       final bankId = 'round-trip-bank';
 
       // Insert bank
-      await db.into(db.questionBanks).insert(
+      await db
+          .into(db.questionBanks)
+          .insert(
             QuestionBanksCompanion.insert(
               id: bankId,
               name: 'Round Trip Bank',
-              source: 'test',
+              source: const Value('test'),
               questionCount: 3,
               createdAt: now,
               updatedAt: now,
@@ -460,7 +464,9 @@ void main() {
           );
 
       // Insert questions
-      await db.into(db.questions).insert(
+      await db
+          .into(db.questions)
+          .insert(
             QuestionsCompanion.insert(
               id: 'rt-q1',
               bankId: bankId,
@@ -475,7 +481,9 @@ void main() {
               createdAt: now,
             ),
           );
-      await db.into(db.questions).insert(
+      await db
+          .into(db.questions)
+          .insert(
             QuestionsCompanion.insert(
               id: 'rt-q2',
               bankId: bankId,
@@ -492,7 +500,9 @@ void main() {
               createdAt: now,
             ),
           );
-      await db.into(db.questions).insert(
+      await db
+          .into(db.questions)
+          .insert(
             QuestionsCompanion.insert(
               id: 'rt-q3',
               bankId: bankId,
@@ -511,21 +521,18 @@ void main() {
           );
 
       // Read back from DB
-      final bank = await (db.select(db.questionBanks)
-            ..where((b) => b.id.equals(bankId)))
-          .getSingle();
-      final dbQuestions = await (db.select(db.questions)
-            ..where((q) => q.bankId.equals(bankId)))
-          .get();
+      final bank = await (db.select(
+        db.questionBanks,
+      )..where((b) => b.id.equals(bankId))).getSingle();
+      final dbQuestions = await (db.select(
+        db.questions,
+      )..where((q) => q.bankId.equals(bankId))).get();
 
       // Export to user JSON format
       final exported = bankToUserJson(bank, dbQuestions);
 
       // Import back
-      final imported = userJsonToEntities(
-        exported,
-        'new-bank-id',
-      );
+      final imported = userJsonToEntities(exported, 'new-bank-id');
 
       expect(imported.bankName, 'Round Trip Bank');
       expect(imported.questions.length, 3);
@@ -539,25 +546,21 @@ void main() {
       // Verify single-choice question
       final q1 = imported.questions[0];
       expect(q1.type.value, 'single');
-      final q1Options =
-          jsonDecode(q1.optionsJson.value) as List;
+      final q1Options = jsonDecode(q1.optionsJson.value) as List;
       expect(q1Options.length, 2);
       expect((q1Options[0] as Map)['key'], 'A');
       expect((q1Options[0] as Map)['text'], 'Paris');
-      final q1Correct =
-          jsonDecode(q1.correctJson.value) as List;
+      final q1Correct = jsonDecode(q1.correctJson.value) as List;
       expect(q1Correct, ['A']);
 
       // Verify multi-choice question
       final q2 = imported.questions[1];
       expect(q2.type.value, 'multiple');
-      final q2Correct =
-          jsonDecode(q2.correctJson.value) as List;
+      final q2Correct = jsonDecode(q2.correctJson.value) as List;
       expect(q2Correct, ['A', 'C']);
 
       // Verify option texts round-trip
-      final q2Options =
-          jsonDecode(q2.optionsJson.value) as List;
+      final q2Options = jsonDecode(q2.optionsJson.value) as List;
       expect((q2Options[0] as Map)['key'], 'A');
       expect((q2Options[0] as Map)['text'], '2');
       expect((q2Options[2] as Map)['key'], 'C');
@@ -587,10 +590,7 @@ void main() {
 
     // Test 11: missing 'questions' key → FormatException
     test('missing questions key throws FormatException', () {
-      final json = {
-        'name': 'Test',
-        'version': '1.0',
-      };
+      final json = {'name': 'Test', 'version': '1.0'};
 
       expect(
         () => userJsonToEntities(json, 'bank-id'),

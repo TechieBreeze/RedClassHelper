@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:riverpod/riverpod.dart';
 
@@ -34,11 +35,7 @@ Map<String, dynamic> _validJson({
       'answer_type': answerType,
     };
   }
-  return {
-    'name': bankName,
-    'version': '1.0',
-    'questions': questions,
-  };
+  return {'name': bankName, 'version': '1.0', 'questions': questions};
 }
 
 /// Helper: Write a JSON file to [path] and return the [File] object.
@@ -55,9 +52,7 @@ Future<File> _writeTempJson(
 /// Helper: Create a [ProviderContainer] with in-memory DB override.
 ProviderContainer _createContainer(AppDatabase db) {
   return ProviderContainer(
-    overrides: [
-      appDatabaseProvider.overrideWith((ref) async => db),
-    ],
+    overrides: [appDatabaseProvider.overrideWith((ref) async => db)],
   );
 }
 
@@ -67,7 +62,9 @@ void main() {
 
   setUp(() async {
     db = AppDatabase.openInMemoryDatabase();
-    tempDir = await Directory.systemTemp.createTemp('redclass_json_import_test_');
+    tempDir = await Directory.systemTemp.createTemp(
+      'redclass_json_import_test_',
+    );
   });
 
   tearDown(() async {
@@ -92,12 +89,17 @@ void main() {
     // ignore: unused_local_variable
     final _ = container.listen(importNotifierProvider, (_, _) {});
 
-    notifier.pickFiles([ImportFile(path: file.path, name: 'test.json', sizeBytes: 100)]);
+    notifier.pickFiles([
+      ImportFile.fromPath(path: file.path, name: 'test.json', sizeBytes: 100),
+    ]);
     await notifier.importJsonFile();
 
     final state = container.read(importNotifierProvider);
-    expect(state.phase, ImportPhase.done,
-        reason: 'Should transition to done after successful import');
+    expect(
+      state.phase,
+      ImportPhase.done,
+      reason: 'Should transition to done after successful import',
+    );
     expect(state.committedCount, 1);
     expect(state.bankName, 'Test Bank');
 
@@ -134,7 +136,9 @@ void main() {
     // ignore: unused_local_variable
     final _ = container.listen(importNotifierProvider, (_, _) {});
 
-    notifier.pickFiles([ImportFile(path: file.path, name: 'multi.json', sizeBytes: 100)]);
+    notifier.pickFiles([
+      ImportFile.fromPath(path: file.path, name: 'multi.json', sizeBytes: 100),
+    ]);
     await notifier.importJsonFile();
 
     final state = container.read(importNotifierProvider);
@@ -152,75 +156,96 @@ void main() {
   // ═════════════════════════════════════════════════════════════
   // Test 3: importJsonFile with duplicate bank name replaces existing (D-06)
   // ═════════════════════════════════════════════════════════════
-  test('importJsonFile with duplicate bank name silently replaces existing (D-06)', () async {
-    // Pre-insert a bank named "重复题库" with 5 questions
-    final now = DateTime.now();
-    final oldBankId = 'old-bank-id';
-    await db.into(db.questionBanks).insert(
-          QuestionBanksCompanion.insert(
-            id: oldBankId,
-            name: '重复题库',
-            source: 'old-source',
-            questionCount: 5,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
-    for (var i = 0; i < 5; i++) {
-      await db.into(db.questions).insert(
-            QuestionsCompanion.insert(
-              id: 'old-q-$i',
-              bankId: oldBankId,
-              type: 'single',
-              stem: 'Old question $i',
-              optionsJson: '[{"key":"A","text":"x"}]',
-              correctJson: '["A"]',
-              rawText: 'Old question $i',
+  test(
+    'importJsonFile with duplicate bank name silently replaces existing (D-06)',
+    () async {
+      // Pre-insert a bank named "重复题库" with 5 questions
+      final now = DateTime.now();
+      final oldBankId = 'old-bank-id';
+      await db
+          .into(db.questionBanks)
+          .insert(
+            QuestionBanksCompanion.insert(
+              id: oldBankId,
+              name: '重复题库',
+              source: const Value('old-source'),
+              questionCount: 5,
               createdAt: now,
+              updatedAt: now,
             ),
           );
-    }
+      for (var i = 0; i < 5; i++) {
+        await db
+            .into(db.questions)
+            .insert(
+              QuestionsCompanion.insert(
+                id: 'old-q-$i',
+                bankId: oldBankId,
+                type: 'single',
+                stem: 'Old question $i',
+                optionsJson: '[{"key":"A","text":"x"}]',
+                correctJson: '["A"]',
+                rawText: 'Old question $i',
+                createdAt: now,
+              ),
+            );
+      }
 
-    // Verify old bank exists
-    var oldBanks = await db.select(db.questionBanks).get();
-    expect(oldBanks.length, 1);
-    var oldQuestions = await db.select(db.questions).get();
-    expect(oldQuestions.length, 5);
+      // Verify old bank exists
+      var oldBanks = await db.select(db.questionBanks).get();
+      expect(oldBanks.length, 1);
+      var oldQuestions = await db.select(db.questions).get();
+      expect(oldQuestions.length, 5);
 
-    // Now import JSON with same name but 3 questions
-    final container = _createContainer(db);
-    addTearDown(container.dispose);
+      // Now import JSON with same name but 3 questions
+      final container = _createContainer(db);
+      addTearDown(container.dispose);
 
-    final jsonData = _validJson(bankName: '重复题库', questionCount: 3);
-    final file = await _writeTempJson(tempDir, 'dup.json', jsonData);
-    final notifier = container.read(importNotifierProvider.notifier);
-    // Keep a subscription alive to prevent auto-dispose during async operations
-    // ignore: unused_local_variable
-    final _ = container.listen(importNotifierProvider, (_, _) {});
+      final jsonData = _validJson(bankName: '重复题库', questionCount: 3);
+      final file = await _writeTempJson(tempDir, 'dup.json', jsonData);
+      final notifier = container.read(importNotifierProvider.notifier);
+      // Keep a subscription alive to prevent auto-dispose during async operations
+      // ignore: unused_local_variable
+      final _ = container.listen(importNotifierProvider, (_, _) {});
 
-    notifier.pickFiles([ImportFile(path: file.path, name: 'dup.json', sizeBytes: 100)]);
-    await notifier.importJsonFile();
+      notifier.pickFiles([
+        ImportFile.fromPath(path: file.path, name: 'dup.json', sizeBytes: 100),
+      ]);
+      await notifier.importJsonFile();
 
-    final state = container.read(importNotifierProvider);
-    expect(state.phase, ImportPhase.done,
-        reason: 'Should succeed — silent replacement per D-06');
-    expect(state.committedCount, 3);
-    expect(state.error, isNull,
-        reason: 'No error — replacement is silent per D-06');
+      final state = container.read(importNotifierProvider);
+      expect(
+        state.phase,
+        ImportPhase.done,
+        reason: 'Should succeed — silent replacement per D-06',
+      );
+      expect(state.committedCount, 3);
+      expect(
+        state.error,
+        isNull,
+        reason: 'No error — replacement is silent per D-06',
+      );
 
-    // Verify old bank is gone (cascade deleted)
-    oldBanks = await db.select(db.questionBanks).get();
-    expect(oldBanks.length, 1,
-        reason: 'Should have exactly 1 bank (the new one)');
-    expect(oldBanks.first.name, '重复题库');
-    expect(oldBanks.first.questionCount, 3);
-    expect(oldBanks.first.id, isNot(oldBankId),
-        reason: 'New bank ID should differ from old');
+      // Verify old bank is gone (cascade deleted)
+      oldBanks = await db.select(db.questionBanks).get();
+      expect(
+        oldBanks.length,
+        1,
+        reason: 'Should have exactly 1 bank (the new one)',
+      );
+      expect(oldBanks.first.name, '重复题库');
+      expect(oldBanks.first.questionCount, 3);
+      expect(
+        oldBanks.first.id,
+        isNot(oldBankId),
+        reason: 'New bank ID should differ from old',
+      );
 
-    // Verify only 3 questions exist (old 5 were cascade-deleted)
-    oldQuestions = await db.select(db.questions).get();
-    expect(oldQuestions.length, 3);
-  });
+      // Verify only 3 questions exist (old 5 were cascade-deleted)
+      oldQuestions = await db.select(db.questions).get();
+      expect(oldQuestions.length, 3);
+    },
+  );
 
   // ═════════════════════════════════════════════════════════════
   // Test 4: importJsonFile rejects file >10MB
@@ -245,12 +270,21 @@ void main() {
     final notifier = container.read(importNotifierProvider.notifier);
     // ignore: unused_local_variable
     final _ = container.listen(importNotifierProvider, (_, _) {});
-    notifier.pickFiles([ImportFile(path: largeFile.path, name: 'large.json', sizeBytes: 11 * 1024 * 1024)]);
+    notifier.pickFiles([
+      ImportFile.fromPath(
+        path: largeFile.path,
+        name: 'large.json',
+        sizeBytes: 11 * 1024 * 1024,
+      ),
+    ]);
     await notifier.importJsonFile();
 
     final state = container.read(importNotifierProvider);
-    expect(state.phase, ImportPhase.idle,
-        reason: 'Should stay idle — file too large');
+    expect(
+      state.phase,
+      ImportPhase.idle,
+      reason: 'Should stay idle — file too large',
+    );
     expect(state.error, isNotNull);
     expect(state.error!, contains('10MB'));
   });
@@ -269,12 +303,17 @@ void main() {
     final notifier = container.read(importNotifierProvider.notifier);
     // ignore: unused_local_variable
     final _ = container.listen(importNotifierProvider, (_, _) {});
-    notifier.pickFiles([ImportFile(path: badFile.path, name: 'bad.json', sizeBytes: 100)]);
+    notifier.pickFiles([
+      ImportFile.fromPath(path: badFile.path, name: 'bad.json', sizeBytes: 100),
+    ]);
     await notifier.importJsonFile();
 
     final state = container.read(importNotifierProvider);
-    expect(state.phase, ImportPhase.idle,
-        reason: 'Should stay idle on malformed JSON');
+    expect(
+      state.phase,
+      ImportPhase.idle,
+      reason: 'Should stay idle on malformed JSON',
+    );
     expect(state.error, isNotNull);
   });
 
@@ -292,12 +331,17 @@ void main() {
     // ignore: unused_local_variable
     final _ = container.listen(importNotifierProvider, (_, _) {});
 
-    notifier.pickFiles([ImportFile(path: file.path, name: 'noq.json', sizeBytes: 100)]);
+    notifier.pickFiles([
+      ImportFile.fromPath(path: file.path, name: 'noq.json', sizeBytes: 100),
+    ]);
     await notifier.importJsonFile();
 
     final state = container.read(importNotifierProvider);
-    expect(state.phase, ImportPhase.idle,
-        reason: 'Should stay idle — missing questions field');
+    expect(
+      state.phase,
+      ImportPhase.idle,
+      reason: 'Should stay idle — missing questions field',
+    );
     expect(state.error, isNotNull);
     expect(state.error!.toLowerCase(), contains('questions'));
   });
@@ -320,12 +364,17 @@ void main() {
     // ignore: unused_local_variable
     final _ = container.listen(importNotifierProvider, (_, _) {});
 
-    notifier.pickFiles([ImportFile(path: file.path, name: 'emptyq.json', sizeBytes: 100)]);
+    notifier.pickFiles([
+      ImportFile.fromPath(path: file.path, name: 'emptyq.json', sizeBytes: 100),
+    ]);
     await notifier.importJsonFile();
 
     final state = container.read(importNotifierProvider);
-    expect(state.phase, ImportPhase.idle,
-        reason: 'Should stay idle — empty questions map');
+    expect(
+      state.phase,
+      ImportPhase.idle,
+      reason: 'Should stay idle — empty questions map',
+    );
     expect(state.error, isNotNull);
     expect(state.error!.toLowerCase(), contains('questions'));
   });
@@ -355,12 +404,17 @@ void main() {
     // ignore: unused_local_variable
     final _ = container.listen(importNotifierProvider, (_, _) {});
 
-    notifier.pickFiles([ImportFile(path: file.path, name: 'badkey.json', sizeBytes: 100)]);
+    notifier.pickFiles([
+      ImportFile.fromPath(path: file.path, name: 'badkey.json', sizeBytes: 100),
+    ]);
     await notifier.importJsonFile();
 
     final state = container.read(importNotifierProvider);
-    expect(state.phase, ImportPhase.idle,
-        reason: 'Should stay idle — key validation failed in userJsonToEntities');
+    expect(
+      state.phase,
+      ImportPhase.idle,
+      reason: 'Should stay idle — key validation failed in userJsonToEntities',
+    );
     expect(state.error, isNotNull);
   });
 
@@ -389,12 +443,21 @@ void main() {
     // ignore: unused_local_variable
     final _ = container.listen(importNotifierProvider, (_, _) {});
 
-    notifier.pickFiles([ImportFile(path: file.path, name: 'badtype.json', sizeBytes: 100)]);
+    notifier.pickFiles([
+      ImportFile.fromPath(
+        path: file.path,
+        name: 'badtype.json',
+        sizeBytes: 100,
+      ),
+    ]);
     await notifier.importJsonFile();
 
     final state = container.read(importNotifierProvider);
-    expect(state.phase, ImportPhase.idle,
-        reason: 'Should stay idle — invalid answer_type');
+    expect(
+      state.phase,
+      ImportPhase.idle,
+      reason: 'Should stay idle — invalid answer_type',
+    );
     expect(state.error, isNotNull);
   });
 
@@ -412,7 +475,9 @@ void main() {
     // ignore: unused_local_variable
     final _ = container.listen(importNotifierProvider, (_, _) {});
 
-    notifier.pickFiles([ImportFile(path: file.path, name: 'idtest.json', sizeBytes: 100)]);
+    notifier.pickFiles([
+      ImportFile.fromPath(path: file.path, name: 'idtest.json', sizeBytes: 100),
+    ]);
     await notifier.importJsonFile();
 
     final state = container.read(importNotifierProvider);
@@ -437,12 +502,18 @@ void main() {
     // ignore: unused_local_variable
     final _ = container.listen(importNotifierProvider, (_, _) {});
 
-    notifier.pickFiles([ImportFile(path: file.path, name: 'route.json', sizeBytes: 100)]);
+    notifier.pickFiles([
+      ImportFile.fromPath(path: file.path, name: 'route.json', sizeBytes: 100),
+    ]);
     await notifier.extractAndParse();
 
     final state = container.read(importNotifierProvider);
-    expect(state.phase, ImportPhase.done,
-        reason: 'extractAndParse() should route .json directly to done, NOT editing');
+    expect(
+      state.phase,
+      ImportPhase.done,
+      reason:
+          'extractAndParse() should route .json directly to done, NOT editing',
+    );
     expect(state.committedCount, 1);
     expect(state.bankName, 'Route Test');
 
@@ -474,7 +545,9 @@ void main() {
     // ignore: unused_local_variable
     final _ = container.listen(importNotifierProvider, (_, _) {});
 
-    notifier.pickFiles([ImportFile(path: file.path, name: 'noname.json', sizeBytes: 100)]);
+    notifier.pickFiles([
+      ImportFile.fromPath(path: file.path, name: 'noname.json', sizeBytes: 100),
+    ]);
     await notifier.importJsonFile();
 
     final state = container.read(importNotifierProvider);
@@ -508,7 +581,9 @@ void main() {
     // ignore: unused_local_variable
     final _ = container.listen(importNotifierProvider, (_, _) {});
 
-    notifier.pickFiles([ImportFile(path: file.path, name: 'five.json', sizeBytes: 100)]);
+    notifier.pickFiles([
+      ImportFile.fromPath(path: file.path, name: 'five.json', sizeBytes: 100),
+    ]);
     await notifier.importJsonFile();
 
     final state = container.read(importNotifierProvider);
@@ -550,7 +625,13 @@ void main() {
     // ignore: unused_local_variable
     final _ = container.listen(importNotifierProvider, (_, _) {});
 
-    notifier.pickFiles([ImportFile(path: file.path, name: 'emptyname.json', sizeBytes: 100)]);
+    notifier.pickFiles([
+      ImportFile.fromPath(
+        path: file.path,
+        name: 'emptyname.json',
+        sizeBytes: 100,
+      ),
+    ]);
     await notifier.importJsonFile();
 
     final state = container.read(importNotifierProvider);

@@ -31,7 +31,8 @@ BankStats _createMockStats({
     totalAttempts: totalAttempts,
     correctCount: correctCount,
     activeLedgerCount: activeLedgerCount,
-    modes: modes ??
+    modes:
+        modes ??
         const [
           ModeBreakdown(mode: 'random', attempts: 30, correctCount: 20),
           ModeBreakdown(mode: 'review', attempts: 15, correctCount: 12),
@@ -42,8 +43,9 @@ BankStats _createMockStats({
 
 void main() {
   // ── Test 1: Loading state ──
-  testWidgets('StatsScreen shows CircularProgressIndicator while loading',
-      (tester) async {
+  testWidgets('StatsScreen shows CircularProgressIndicator while loading', (
+    tester,
+  ) async {
     final completer = Completer<List<BankStats>>();
     await tester.pumpWidget(
       ProviderScope(
@@ -63,13 +65,12 @@ void main() {
   });
 
   // ── Test 2: Empty state ──
-  testWidgets('StatsScreen shows empty state when no banks exist',
-      (tester) async {
+  testWidgets('StatsScreen shows empty state when no banks exist', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          bankStatsListProvider.overrideWith((ref) async => []),
-        ],
+        overrides: [bankStatsListProvider.overrideWith((ref) async => [])],
         child: const MaterialApp(home: StatsScreen()),
       ),
     );
@@ -81,17 +82,16 @@ void main() {
   });
 
   // ── Test 3: Data state ──
-  testWidgets('StatsScreen shows bank card list when banks have stats',
-      (tester) async {
+  testWidgets('StatsScreen shows bank card list when banks have stats', (
+    tester,
+  ) async {
     final stats = [
       _createMockStats(bankName: 'Bank A'),
       _createMockStats(bankName: 'Bank B'),
     ];
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          bankStatsListProvider.overrideWith((ref) async => stats),
-        ],
+        overrides: [bankStatsListProvider.overrideWith((ref) async => stats)],
         child: const MaterialApp(home: StatsScreen()),
       ),
     );
@@ -119,14 +119,13 @@ void main() {
   });
 
   // ── Test 4: Expanding a card shows per-mode rows ──
-  testWidgets('StatsScreen expanding a card shows per-mode rows',
-      (tester) async {
+  testWidgets('StatsScreen expanding a card shows per-mode rows', (
+    tester,
+  ) async {
     final stats = [_createMockStats(bankName: 'Bank A')];
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          bankStatsListProvider.overrideWith((ref) async => stats),
-        ],
+        overrides: [bankStatsListProvider.overrideWith((ref) async => stats)],
         child: const MaterialApp(home: StatsScreen()),
       ),
     );
@@ -156,8 +155,7 @@ void main() {
   });
 
   // ── Test 5: Error state with retry ──
-  testWidgets('StatsScreen retry button invalidates provider',
-      (tester) async {
+  testWidgets('StatsScreen retry button invalidates provider', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

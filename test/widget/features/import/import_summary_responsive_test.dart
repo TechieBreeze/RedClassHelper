@@ -30,7 +30,13 @@ ImportState _seedState() {
     jobId: 'job-summary-1',
     bankId: 'bank-1',
     bankName: '测试题库',
-    files: [ImportFile.fromPath(path: '/tmp/test.txt', name: 'test.txt', sizeBytes: 1024)],
+    files: [
+      ImportFile.fromPath(
+        path: '/tmp/test.txt',
+        name: 'test.txt',
+        sizeBytes: 1024,
+      ),
+    ],
     candidates: candidates,
     confirmedIndices: const {0, 1, 2},
     committedCount: 12,
@@ -51,9 +57,7 @@ Widget _harness({required Size size, required AppPlatform platform}) {
   );
 
   return ProviderScope(
-    overrides: [
-      importNotifierProvider.overrideWithValue(_seedState()),
-    ],
+    overrides: [importNotifierProvider.overrideWithValue(_seedState())],
     child: ResponsiveBuilder(
       info: PlatformInfo.forTesting(
         platform: platform,
@@ -92,10 +96,7 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
-        _harness(
-          size: const Size(400, 800),
-          platform: AppPlatform.android,
-        ),
+        _harness(size: const Size(400, 800), platform: AppPlatform.android),
       );
       await tester.pumpAndSettle();
 
@@ -126,10 +127,7 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
-        _harness(
-          size: const Size(700, 900),
-          platform: AppPlatform.android,
-        ),
+        _harness(size: const Size(700, 900), platform: AppPlatform.android),
       );
       await tester.pumpAndSettle();
 
@@ -160,10 +158,7 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
-        _harness(
-          size: const Size(1500, 1000),
-          platform: AppPlatform.windows,
-        ),
+        _harness(size: const Size(1500, 1000), platform: AppPlatform.windows),
       );
       await tester.pumpAndSettle();
 

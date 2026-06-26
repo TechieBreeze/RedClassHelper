@@ -22,9 +22,7 @@ class BankPickerScreen extends ConsumerWidget {
     if (!(Platform.isWindows || Platform.isLinux) && !kIsWeb) {
       return Scaffold(
         appBar: AppBar(title: const Text('选择题库')),
-        body: const Center(
-          child: Text('答题功能仅支持桌面端 (Windows/Linux)'),
-        ),
+        body: const Center(child: Text('答题功能仅支持桌面端 (Windows/Linux)')),
       );
     }
 
@@ -67,16 +65,16 @@ class BankPickerScreen extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.library_add_rounded,
-                      size: 48, color: cs.outline),
+                  Icon(Icons.library_add_rounded, size: 48, color: cs.outline),
                   const SizedBox(height: 16),
-                  Text('暂无题库',
-                      style: Theme.of(context).textTheme.titleLarge),
+                  Text('暂无题库', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 8),
-                  Text('先导入题库再开始答题',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: cs.onSurface.withAlpha(150),
-                          )),
+                  Text(
+                    '先导入题库再开始答题',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: cs.onSurface.withAlpha(150),
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   FilledButton.tonalIcon(
                     onPressed: () => context.push('/import'),
@@ -94,15 +92,20 @@ class BankPickerScreen extends ConsumerWidget {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 720),
                   child: ListView(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 20,
+                    ),
                     children: [
                       // Hero header
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: heroGradient(cs, Theme.of(context).brightness),
+                          gradient: LinearGradient(
+                            colors: heroGradient(
+                              cs,
+                              Theme.of(context).brightness,
+                            ),
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -127,10 +130,9 @@ class BankPickerScreen extends ConsumerWidget {
                               child: Icon(
                                 reviewModeDisplayName(modeEnum) == '乱序抽题'
                                     ? Icons.shuffle_rounded
-                                    : reviewModeDisplayName(modeEnum) ==
-                                            '错题复习'
-                                        ? Icons.replay_rounded
-                                        : Icons.bolt_rounded,
+                                    : reviewModeDisplayName(modeEnum) == '错题复习'
+                                    ? Icons.replay_rounded
+                                    : Icons.bolt_rounded,
                                 color: Colors.white,
                                 size: 26,
                               ),
@@ -196,65 +198,60 @@ class _PickBankCard extends StatelessWidget {
     final bank = item.bank;
 
     return HoverableCard(
-      onTap: item.isEmpty
-          ? null
-          : () => context.go('/quiz/${bank.id}/$mode'),
+      onTap: item.isEmpty ? null : () => context.go('/quiz/${bank.id}/$mode'),
       child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: item.isEmpty
-                        ? [cs.surfaceContainerHighest, cs.surfaceContainerHighest]
-                        : [cs.primaryContainer, cs.primary.withAlpha(60)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: item.isEmpty
+                      ? [cs.surfaceContainerHighest, cs.surfaceContainerHighest]
+                      : [cs.primaryContainer, cs.primary.withAlpha(60)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                item.isEmpty ? Icons.block_rounded : Icons.menu_book_rounded,
+                size: 22,
+                color: item.isEmpty ? cs.outline : cs.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    bank.name,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  item.isEmpty
-                      ? Icons.block_rounded
-                      : Icons.menu_book_rounded,
-                  size: 22,
-                  color: item.isEmpty ? cs.outline : cs.onPrimaryContainer,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      bank.name,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 2),
+                  Text(
+                    item.isEmpty
+                        ? '空题库'
+                        : '${item.totalQuestions} 题 · 错题 ${item.activeWrongCount}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: cs.onSurface.withAlpha(150),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      item.isEmpty
-                          ? '空题库'
-                          : '${item.totalQuestions} 题 · 错题 ${item.activeWrongCount}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: cs.onSurface.withAlpha(150),
-                          ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              if (!item.isEmpty)
-                Icon(Icons.chevron_right_rounded, color: cs.outline, size: 20),
-            ],
-          ),
+            ),
+            if (!item.isEmpty)
+              Icon(Icons.chevron_right_rounded, color: cs.outline, size: 20),
+          ],
         ),
+      ),
     );
   }
 }

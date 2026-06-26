@@ -10,9 +10,7 @@ import '../lib/features/import/parsing/heuristic_parser.dart';
 import '../lib/features/import/parsing/parse_candidate.dart';
 
 void main(List<String> args) {
-  final path = args.isNotEmpty
-      ? args[0]
-      : 'doc/example/_gangyao_extracted.txt';
+  final path = args.isNotEmpty ? args[0] : 'doc/example/_gangyao_extracted.txt';
   final file = File(path);
   if (!file.existsSync()) {
     stderr.writeln('ERROR: 文件不存在: $path');
@@ -35,7 +33,8 @@ void main(List<String> args) {
     // 异常检测：
     // 1. 题目是选择类但选项数 < 4（标准 4 选项结构）
     // 2. 题目是选择类但答案为空
-    final isChoice = c.candidateType == CandidateType.singleChoice ||
+    final isChoice =
+        c.candidateType == CandidateType.singleChoice ||
         c.candidateType == CandidateType.multiChoice;
     final optionCount = c.options.length;
     final isSuspicious = isChoice && (optionCount < 4 || optionCount > 8);
@@ -48,7 +47,8 @@ void main(List<String> args) {
     final titleShort = title.length > 40 ? '${title.substring(0, 40)}…' : title;
     final flag = isSuspicious ? '⚠' : (missingAnswer ? '?' : ' ');
     print(
-        '[$i] $flag type=${c.candidateType.name} opts=$optionCount ans="${c.answer}" title=$titleShort');
+      '[$i] $flag type=${c.candidateType.name} opts=$optionCount ans="${c.answer}" title=$titleShort',
+    );
 
     if (c.options.isNotEmpty && (isSuspicious || i < 5)) {
       for (final opt in c.options) {

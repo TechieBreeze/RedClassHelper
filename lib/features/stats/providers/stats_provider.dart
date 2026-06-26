@@ -26,11 +26,11 @@ class ModeBreakdown {
   double get correctRate => attempts == 0 ? 0.0 : correctCount / attempts;
 
   String get displayName => switch (mode) {
-        'random' => '乱序抽题',
-        'review' => '错题复习',
-        'spotcheck' => '错题抽查',
-        _ => mode,
-      };
+    'random' => '乱序抽题',
+    'review' => '错题复习',
+    'spotcheck' => '错题抽查',
+    _ => mode,
+  };
 }
 
 /// Aggregated statistics for a single question bank (D-09, D-10).
@@ -56,9 +56,8 @@ class BankStats {
       totalAttempts == 0 ? 0.0 : correctCount / totalAttempts;
 
   /// Formatted correct rate as percentage string, or '暂无' if no attempts.
-  String get correctRateDisplay => totalAttempts == 0
-      ? '暂无'
-      : '${(correctRate * 100).toStringAsFixed(0)}%';
+  String get correctRateDisplay =>
+      totalAttempts == 0 ? '暂无' : '${(correctRate * 100).toStringAsFixed(0)}%';
 }
 
 /// Returns aggregated per-bank statistics with per-mode breakdown.
@@ -75,35 +74,34 @@ Future<List<BankStats>> bankStatsList(Ref ref) async {
 
   for (final bank in banks) {
     // Total questions in bank (COUNT via selectOnly — no join needed)
-    final questionCountRow = await (db.selectOnly(db.questions)
-          ..addColumns([db.questions.id.count()])
-          ..where(db.questions.bankId.equals(bank.id)))
-        .getSingle();
-    final totalQuestions =
-        questionCountRow.read(db.questions.id.count()) ?? 0;
+    final questionCountRow =
+        await (db.selectOnly(db.questions)
+              ..addColumns([db.questions.id.count()])
+              ..where(db.questions.bankId.equals(bank.id)))
+            .getSingle();
+    final totalQuestions = questionCountRow.read(db.questions.id.count()) ?? 0;
 
     // Total attempts for this bank: JOIN questions + answer_attempts.
     // Uses select().join() pattern (same as getActiveByBank).
     final attemptRows = await (db.select(db.answerAttempts).join([
-          innerJoin(
-            db.questions,
-            db.questions.id.equalsExp(db.answerAttempts.questionId),
-          ),
-        ])
-          ..where(db.questions.bankId.equals(bank.id)))
-        .get();
+      innerJoin(
+        db.questions,
+        db.questions.id.equalsExp(db.answerAttempts.questionId),
+      ),
+    ])..where(db.questions.bankId.equals(bank.id))).get();
     final totalAttempts = attemptRows.length;
 
     // Correct count: same JOIN + isCorrect filter
-    final correctRows = await (db.select(db.answerAttempts).join([
-          innerJoin(
-            db.questions,
-            db.questions.id.equalsExp(db.answerAttempts.questionId),
-          ),
-        ])
-          ..where(db.questions.bankId.equals(bank.id))
-          ..where(db.answerAttempts.isCorrect.equals(true)))
-        .get();
+    final correctRows =
+        await (db.select(db.answerAttempts).join([
+                innerJoin(
+                  db.questions,
+                  db.questions.id.equalsExp(db.answerAttempts.questionId),
+                ),
+              ])
+              ..where(db.questions.bankId.equals(bank.id))
+              ..where(db.answerAttempts.isCorrect.equals(true)))
+            .get();
     final correctCount = correctRows.length;
 
     // Active ledger count
@@ -112,44 +110,50 @@ Future<List<BankStats>> bankStatsList(Ref ref) async {
     // Per-mode breakdown (D-10): for each mode, count attempts and correct
     final modes = <ModeBreakdown>[];
     for (final mode in ['random', 'review', 'spotcheck']) {
-      final modeRows = await (db.select(db.answerAttempts).join([
-            innerJoin(
-              db.questions,
-              db.questions.id.equalsExp(db.answerAttempts.questionId),
-            ),
-          ])
-            ..where(db.questions.bankId.equals(bank.id))
-            ..where(db.answerAttempts.mode.equals(mode)))
-          .get();
+      final modeRows =
+          await (db.select(db.answerAttempts).join([
+                  innerJoin(
+                    db.questions,
+                    db.questions.id.equalsExp(db.answerAttempts.questionId),
+                  ),
+                ])
+                ..where(db.questions.bankId.equals(bank.id))
+                ..where(db.answerAttempts.mode.equals(mode)))
+              .get();
       final modeAttempts = modeRows.length;
 
-      final modeCorrectRows = await (db.select(db.answerAttempts).join([
-            innerJoin(
-              db.questions,
-              db.questions.id.equalsExp(db.answerAttempts.questionId),
-            ),
-          ])
-            ..where(db.questions.bankId.equals(bank.id))
-            ..where(db.answerAttempts.mode.equals(mode))
-            ..where(db.answerAttempts.isCorrect.equals(true)))
-          .get();
+      final modeCorrectRows =
+          await (db.select(db.answerAttempts).join([
+                  innerJoin(
+                    db.questions,
+                    db.questions.id.equalsExp(db.answerAttempts.questionId),
+                  ),
+                ])
+                ..where(db.questions.bankId.equals(bank.id))
+                ..where(db.answerAttempts.mode.equals(mode))
+                ..where(db.answerAttempts.isCorrect.equals(true)))
+              .get();
       final modeCorrect = modeCorrectRows.length;
 
-      modes.add(ModeBreakdown(
-        mode: mode,
-        attempts: modeAttempts,
-        correctCount: modeCorrect,
-      ));
+      modes.add(
+        ModeBreakdown(
+          mode: mode,
+          attempts: modeAttempts,
+          correctCount: modeCorrect,
+        ),
+      );
     }
 
-    stats.add(BankStats(
-      bank: bank,
-      totalQuestions: totalQuestions,
-      totalAttempts: totalAttempts,
-      correctCount: correctCount,
-      activeLedgerCount: activeLedgerCount,
-      modes: modes,
-    ));
+    stats.add(
+      BankStats(
+        bank: bank,
+        totalQuestions: totalQuestions,
+        totalAttempts: totalAttempts,
+        correctCount: correctCount,
+        activeLedgerCount: activeLedgerCount,
+        modes: modes,
+      ),
+    );
   }
 
   return stats;

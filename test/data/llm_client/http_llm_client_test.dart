@@ -94,18 +94,14 @@ void main() {
     // ── POST request tests ──
 
     test('parse() sends POST to /completion with Content-Type json', () async {
-      final client = HttpLlmClient(
-        serverUrl: 'http://localhost:$_port',
-      );
+      final client = HttpLlmClient(serverUrl: 'http://localhost:$_port');
       await client.parse('test question');
       expect(_capturedPath, '/completion');
       expect(_capturedContentType, 'application/json');
     });
 
     test('parse() POST body includes all required fields', () async {
-      final client = HttpLlmClient(
-        serverUrl: 'http://localhost:$_port',
-      );
+      final client = HttpLlmClient(serverUrl: 'http://localhost:$_port');
       await client.parse('什么是光合作用？');
 
       expect(_capturedBody, isNotNull);
@@ -130,9 +126,7 @@ void main() {
     // ── Response parsing tests ──
 
     test('parse() extracts content and creates ParseCandidate', () async {
-      final client = HttpLlmClient(
-        serverUrl: 'http://localhost:$_port',
-      );
+      final client = HttpLlmClient(serverUrl: 'http://localhost:$_port');
       final candidate = await client.parse('测试题：什么是光合作用？');
 
       expect(candidate.title, '测试题');
@@ -167,49 +161,41 @@ void main() {
       },
     );
 
-    test(
-      'throws LlmRetryExhaustedException on connection refused',
-      () async {
-        await _server.close(force: true);
-        final client = HttpLlmClient(
-          serverUrl: 'http://localhost:$_port',
-          maxRetries: 1,
-        );
+    test('throws LlmRetryExhaustedException on connection refused', () async {
+      await _server.close(force: true);
+      final client = HttpLlmClient(
+        serverUrl: 'http://localhost:$_port',
+        maxRetries: 1,
+      );
 
-        await expectLater(
-          client.parse('test question'),
-          throwsA(isA<LlmRetryExhaustedException>()),
-        );
-      },
-    );
+      await expectLater(
+        client.parse('test question'),
+        throwsA(isA<LlmRetryExhaustedException>()),
+      );
+    });
 
-    test(
-      'retries up to 3 times on non-200 then throws '
-      'LlmRetryExhaustedException',
-      () async {
-        _statusCode = 500;
-        final client = HttpLlmClient(
-          serverUrl: 'http://localhost:$_port',
-          timeout: const Duration(seconds: 5),
-        );
+    test('retries up to 3 times on non-200 then throws '
+        'LlmRetryExhaustedException', () async {
+      _statusCode = 500;
+      final client = HttpLlmClient(
+        serverUrl: 'http://localhost:$_port',
+        timeout: const Duration(seconds: 5),
+      );
 
-        await expectLater(
-          client.parse('test question'),
-          throwsA(isA<LlmRetryExhaustedException>()),
-        );
-        // Verify exactly 3 attempts were made
-        expect(_requestCount, 3);
-      },
-    );
+      await expectLater(
+        client.parse('test question'),
+        throwsA(isA<LlmRetryExhaustedException>()),
+      );
+      // Verify exactly 3 attempts were made
+      expect(_requestCount, 3);
+    });
 
     test('throws LlmJsonParseException on invalid JSON (no retry)', () async {
       _responseBody = {
         'content': 'this is not valid json at all !!!',
         'stop': true,
       };
-      final client = HttpLlmClient(
-        serverUrl: 'http://localhost:$_port',
-      );
+      final client = HttpLlmClient(serverUrl: 'http://localhost:$_port');
 
       await expectLater(
         client.parse('test question'),
@@ -219,41 +205,40 @@ void main() {
       expect(_requestCount, 1);
     });
 
-    test('throws LlmJsonParseException when content field is missing', () async {
-      _responseBody = {'stop': true};
-      final client = HttpLlmClient(
-        serverUrl: 'http://localhost:$_port',
-      );
+    test(
+      'throws LlmJsonParseException when content field is missing',
+      () async {
+        _responseBody = {'stop': true};
+        final client = HttpLlmClient(serverUrl: 'http://localhost:$_port');
 
-      await expectLater(
-        client.parse('test question'),
-        throwsA(isA<LlmJsonParseException>()),
-      );
-      expect(_requestCount, 1);
-    });
+        await expectLater(
+          client.parse('test question'),
+          throwsA(isA<LlmJsonParseException>()),
+        );
+        expect(_requestCount, 1);
+      },
+    );
 
     // ── Metadata tests ──
 
     test('stores source=llm and bankName in metadata if provided', () async {
-      final client = HttpLlmClient(
-        serverUrl: 'http://localhost:$_port',
-      );
+      final client = HttpLlmClient(serverUrl: 'http://localhost:$_port');
       final candidate = await client.parse('test', bankName: '期中题库');
 
       expect(candidate.metadata['source'], 'llm');
       expect(candidate.metadata['bankName'], '期中题库');
     });
 
-    test('metadata source is llm and bankName absent when not provided',
-        () async {
-      final client = HttpLlmClient(
-        serverUrl: 'http://localhost:$_port',
-      );
-      final candidate = await client.parse('test');
+    test(
+      'metadata source is llm and bankName absent when not provided',
+      () async {
+        final client = HttpLlmClient(serverUrl: 'http://localhost:$_port');
+        final candidate = await client.parse('test');
 
-      expect(candidate.metadata['source'], 'llm');
-      expect(candidate.metadata['bankName'], isNull);
-    });
+        expect(candidate.metadata['source'], 'llm');
+        expect(candidate.metadata['bankName'], isNull);
+      },
+    );
 
     // ── Edge case: content contains extraneous whitespace ──
 
@@ -264,9 +249,7 @@ void main() {
             '"options":["A","B","C"],"answer":"AB"}\n  ',
         'stop': true,
       };
-      final client = HttpLlmClient(
-        serverUrl: 'http://localhost:$_port',
-      );
+      final client = HttpLlmClient(serverUrl: 'http://localhost:$_port');
       final candidate = await client.parse('test');
 
       expect(candidate.title, 'trim test');

@@ -12,8 +12,9 @@ import 'pdf_extractor.dart';
 /// 文件格式不支持时抛出
 class UnsupportedFormatException implements Exception {
   UnsupportedFormatException(this.extension_)
-      : message = '不支持的文件格式 "$extension_"，'
-            '请选择 .doc/.docx/.pdf 文件';
+    : message =
+          '不支持的文件格式 "$extension_"，'
+          '请选择 .doc/.docx/.pdf 文件';
 
   final String extension_;
   final String message;

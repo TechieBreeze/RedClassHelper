@@ -11,11 +11,7 @@ import 'package:flutter/material.dart';
 /// Uses StatefulWidget because the animation is purely local UI state
 /// (no business logic involved).
 class WrongQuestionChip extends StatefulWidget {
-  const WrongQuestionChip({
-    super.key,
-    required this.show,
-    this.onDismissed,
-  });
+  const WrongQuestionChip({super.key, required this.show, this.onDismissed});
 
   final bool show;
   final VoidCallback? onDismissed;
@@ -39,8 +35,10 @@ class _WrongQuestionChipState extends State<WrongQuestionChip>
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
-    _fadeAnimation =
-        CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    );
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
@@ -89,18 +87,17 @@ class _WrongQuestionChipState extends State<WrongQuestionChip>
         if (_controller.value == 0) return const SizedBox.shrink();
         return FadeTransition(
           opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: child!,
-          ),
+          child: SlideTransition(position: _slideAnimation, child: child!),
         );
       },
       child: Chip(
         avatar: const Icon(Icons.bookmark_added, size: 16),
         label: const Text('已加入错题本'),
         backgroundColor: colorScheme.errorContainer,
-        labelStyle:
-            TextStyle(color: colorScheme.onErrorContainer, fontSize: 13),
+        labelStyle: TextStyle(
+          color: colorScheme.onErrorContainer,
+          fontSize: 13,
+        ),
         side: BorderSide.none,
         padding: const EdgeInsets.symmetric(horizontal: 4),
       ),

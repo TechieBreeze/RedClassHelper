@@ -56,9 +56,9 @@ class QuizSessionController extends _$QuizSessionController {
     }
 
     // Load bank name
-    final bank = await (db.select(db.questionBanks)
-      ..where((b) => b.id.equals(bankId))
-    ).getSingleOrNull();
+    final bank = await (db.select(
+      db.questionBanks,
+    )..where((b) => b.id.equals(bankId))).getSingleOrNull();
 
     if (bank == null) {
       return QuizSessionState(
@@ -138,9 +138,9 @@ class QuizSessionController extends _$QuizSessionController {
     String bankId,
   ) async {
     // REV-01: Load ALL questions from bank
-    return (db.select(db.questions)
-      ..where((q) => q.bankId.equals(bankId))
-    ).get();
+    return (db.select(
+      db.questions,
+    )..where((q) => q.bankId.equals(bankId))).get();
   }
 
   Future<List<Question>> _loadReviewQuestions(
@@ -179,8 +179,7 @@ class QuizSessionController extends _$QuizSessionController {
 
     final question = current.currentQuestion!;
     final submitStart = DateTime.now();
-    final elapsedMs =
-        submitStart.difference(current.startTime).inMilliseconds;
+    final elapsedMs = submitStart.difference(current.startTime).inMilliseconds;
 
     final correctKeys = List<String>.from(
       jsonDecode(question.correctJson) as List,
@@ -202,8 +201,8 @@ class QuizSessionController extends _$QuizSessionController {
     final modeStr = current.mode == ReviewMode.random
         ? 'random'
         : current.mode == ReviewMode.review
-            ? 'review'
-            : 'spotcheck';
+        ? 'review'
+        : 'spotcheck';
 
     if (isCorrect && current.mode == ReviewMode.review) {
       // REV-04: Correct in review mode → mark as mastered
@@ -225,36 +224,42 @@ class QuizSessionController extends _$QuizSessionController {
     } else {
       // STAT-01: Record attempt without ledger change
       final db = await ref.read(appDatabaseProvider.future);
-      await db.into(db.answerAttempts).insert(
-        AnswerAttemptsCompanion.insert(
-          questionId: question.id,
-          givenAnswerJson: jsonEncode(optionKeys),
-          isCorrect: isCorrect,
-          mode: modeStr,
-          elapsedMs: elapsedMs,
-          createdAt: DateTime.now(),
-        ),
-      );
+      await db
+          .into(db.answerAttempts)
+          .insert(
+            AnswerAttemptsCompanion.insert(
+              questionId: question.id,
+              givenAnswerJson: jsonEncode(optionKeys),
+              isCorrect: isCorrect,
+              mode: modeStr,
+              elapsedMs: elapsedMs,
+              createdAt: DateTime.now(),
+            ),
+          );
     }
 
     // Count new wrongs for summary
-    final newlyWrong =
-        (!isCorrect && current.mode != ReviewMode.spotcheck) ? 1 : 0;
-    final newlyMastered =
-        (isCorrect && current.mode == ReviewMode.review) ? 1 : 0;
+    final newlyWrong = (!isCorrect && current.mode != ReviewMode.spotcheck)
+        ? 1
+        : 0;
+    final newlyMastered = (isCorrect && current.mode == ReviewMode.review)
+        ? 1
+        : 0;
 
     final updatedAnswers = [...current.answers, record];
     final correctCount = updatedAnswers.where((a) => a.isCorrect).length;
     final wrongCount = updatedAnswers.length - correctCount;
 
-    state = AsyncData(current.copyWith(
-      answers: updatedAnswers,
-      correctCount: correctCount,
-      wrongCount: wrongCount,
-      newlyWrongCount: (current.newlyWrongCount ?? 0) + newlyWrong,
-      newlyMasteredCount: (current.newlyMasteredCount ?? 0) + newlyMastered,
-      status: QuizStatus.showingFeedback,
-    ));
+    state = AsyncData(
+      current.copyWith(
+        answers: updatedAnswers,
+        correctCount: correctCount,
+        wrongCount: wrongCount,
+        newlyWrongCount: (current.newlyWrongCount ?? 0) + newlyWrong,
+        newlyMasteredCount: (current.newlyMasteredCount ?? 0) + newlyMastered,
+        status: QuizStatus.showingFeedback,
+      ),
+    );
 
     // 保存进度到持久化存储
     await _saveSession();
@@ -272,10 +277,12 @@ class QuizSessionController extends _$QuizSessionController {
     if (current == null) return;
     if (current.currentIndex <= 0) return;
 
-    state = AsyncData(current.copyWith(
-      currentIndex: current.currentIndex - 1,
-      status: QuizStatus.showingFeedback,
-    ));
+    state = AsyncData(
+      current.copyWith(
+        currentIndex: current.currentIndex - 1,
+        status: QuizStatus.showingFeedback,
+      ),
+    );
   }
 
   /// D-03: Advance to the next question.
@@ -291,21 +298,25 @@ class QuizSessionController extends _$QuizSessionController {
     if (nextIndex >= current.questions.length) {
       // All questions answered — compute summary
       final elapsed = DateTime.now().difference(current.startTime);
-      state = AsyncData(current.copyWith(
-        status: QuizStatus.complete,
-        elapsedSeconds: elapsed.inSeconds,
-        totalQuestions: current.questions.length,
-      ));
+      state = AsyncData(
+        current.copyWith(
+          status: QuizStatus.complete,
+          elapsedSeconds: elapsed.inSeconds,
+          totalQuestions: current.questions.length,
+        ),
+      );
       // 清除已保存的会话（已完成，无需恢复）
       _persistence?.clear(current.bankId, current.mode.name);
     } else {
       final alreadyAnswered = nextIndex < current.answers.length;
-      state = AsyncData(current.copyWith(
-        currentIndex: nextIndex,
-        status: alreadyAnswered
-            ? QuizStatus.showingFeedback
-            : QuizStatus.active,
-      ));
+      state = AsyncData(
+        current.copyWith(
+          currentIndex: nextIndex,
+          status: alreadyAnswered
+              ? QuizStatus.showingFeedback
+              : QuizStatus.active,
+        ),
+      );
       // 保存进度
       _saveSession();
     }

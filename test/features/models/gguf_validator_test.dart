@@ -46,16 +46,25 @@ void main() {
       expect(result, isFalse);
     });
 
-    test('.gguf file with correct magic but only 3 bytes returns false', () async {
-      final file = File('${tempDir.path}/short.gguf');
-      await file.writeAsBytes([0x47, 0x47, 0x55]); // Only 3 bytes — missing 'F'
+    test(
+      '.gguf file with correct magic but only 3 bytes returns false',
+      () async {
+        final file = File('${tempDir.path}/short.gguf');
+        await file.writeAsBytes([
+          0x47,
+          0x47,
+          0x55,
+        ]); // Only 3 bytes — missing 'F'
 
-      final result = await GgufValidator.isGgufFile(file.path);
-      expect(result, isFalse);
-    });
+        final result = await GgufValidator.isGgufFile(file.path);
+        expect(result, isFalse);
+      },
+    );
 
     test('non-existent file returns false', () async {
-      final result = await GgufValidator.isGgufFile('${tempDir.path}/nope.gguf');
+      final result = await GgufValidator.isGgufFile(
+        '${tempDir.path}/nope.gguf',
+      );
       expect(result, isFalse);
     });
 
@@ -67,16 +76,13 @@ void main() {
       expect(result, isFalse);
     });
 
-    test(
-      'validateGgufFile returns null for valid GGUF file',
-      () async {
-        final file = File('${tempDir.path}/valid2.gguf');
-        await file.writeAsBytes([0x47, 0x47, 0x55, 0x46, 0x01]);
+    test('validateGgufFile returns null for valid GGUF file', () async {
+      final file = File('${tempDir.path}/valid2.gguf');
+      await file.writeAsBytes([0x47, 0x47, 0x55, 0x46, 0x01]);
 
-        final result = await GgufValidator.validateGgufFile(file.path);
-        expect(result, isNull);
-      },
-    );
+      final result = await GgufValidator.validateGgufFile(file.path);
+      expect(result, isNull);
+    });
 
     test(
       'validateGgufFile returns "仅支持 .gguf 文件" for non-.gguf extension',
@@ -99,15 +105,12 @@ void main() {
       },
     );
 
-    test(
-      'validateGgufFile returns error for non-existent .gguf',
-      () async {
-        final result = await GgufValidator.validateGgufFile(
-          '${tempDir.path}/missing.gguf',
-        );
-        expect(result, equals('文件格式无效，无法识别为 GGUF 模型'));
-      },
-    );
+    test('validateGgufFile returns error for non-existent .gguf', () async {
+      final result = await GgufValidator.validateGgufFile(
+        '${tempDir.path}/missing.gguf',
+      );
+      expect(result, equals('文件格式无效，无法识别为 GGUF 模型'));
+    });
   });
 
   group('ModelCatalogProvider (3-tier preset models)', () {
@@ -119,24 +122,21 @@ void main() {
       expect(catalog.length, equals(3));
     });
 
-    test(
-      'models have tiers: recommended, fast, experimental',
-      () {
-        final container = ProviderContainer();
-        addTearDown(container.dispose);
+    test('models have tiers: recommended, fast, experimental', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
 
-        final catalog = container.read(modelCatalogProvider);
-        final tiers = catalog.map((m) => m.tier).toSet();
-        expect(
-          tiers,
-          containsAll([
-            ModelTier.recommended,
-            ModelTier.fast,
-            ModelTier.experimental,
-          ]),
-        );
-      },
-    );
+      final catalog = container.read(modelCatalogProvider);
+      final tiers = catalog.map((m) => m.tier).toSet();
+      expect(
+        tiers,
+        containsAll([
+          ModelTier.recommended,
+          ModelTier.fast,
+          ModelTier.experimental,
+        ]),
+      );
+    });
 
     test(
       'Recommended model has name "Qwen2.5-1.5B Q4_K_M" and tier recommended',
@@ -153,43 +153,34 @@ void main() {
       },
     );
 
-    test(
-      'Each ModelInfo has all required fields: id, name, tier, sizeBytes, '
-      'ramRequirement, description, downloadUrl, sha256Hash',
-      () {
-        final container = ProviderContainer();
-        addTearDown(container.dispose);
+    test('Each ModelInfo has all required fields: id, name, tier, sizeBytes, '
+        'ramRequirement, description, downloadUrl, sha256Hash', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
 
-        final catalog = container.read(modelCatalogProvider);
-        for (final model in catalog) {
-          expect(model.id, isNotEmpty);
-          expect(model.name, isNotEmpty);
-          expect(model.tier, isA<ModelTier>());
-          expect(model.sizeBytes, greaterThan(0));
-          expect(model.ramRequirement, isNotEmpty);
-          expect(model.description, isNotEmpty);
-          expect(model.downloadUrl, isNotEmpty);
-          expect(model.sha256Hash, isNotEmpty);
-        }
-      },
-    );
+      final catalog = container.read(modelCatalogProvider);
+      for (final model in catalog) {
+        expect(model.id, isNotEmpty);
+        expect(model.name, isNotEmpty);
+        expect(model.tier, isA<ModelTier>());
+        expect(model.sizeBytes, greaterThan(0));
+        expect(model.ramRequirement, isNotEmpty);
+        expect(model.description, isNotEmpty);
+        expect(model.downloadUrl, isNotEmpty);
+        expect(model.sha256Hash, isNotEmpty);
+      }
+    });
 
-    test(
-      'downloadUrl uses HuggingFace /resolve/main/ pattern',
-      () {
-        final container = ProviderContainer();
-        addTearDown(container.dispose);
+    test('downloadUrl uses HuggingFace /resolve/main/ pattern', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
 
-        final catalog = container.read(modelCatalogProvider);
-        for (final model in catalog) {
-          expect(
-            model.downloadUrl,
-            contains('huggingface.co'),
-          );
-          expect(model.downloadUrl, contains('/resolve/main/'));
-          expect(model.downloadUrl, endsWith('.gguf'));
-        }
-      },
-    );
+      final catalog = container.read(modelCatalogProvider);
+      for (final model in catalog) {
+        expect(model.downloadUrl, contains('huggingface.co'));
+        expect(model.downloadUrl, contains('/resolve/main/'));
+        expect(model.downloadUrl, endsWith('.gguf'));
+      }
+    });
   });
 }

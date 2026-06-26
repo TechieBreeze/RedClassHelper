@@ -8,16 +8,24 @@ sealed class PickedFile {
 }
 
 class PickedPathFile extends PickedFile {
-  const PickedPathFile({required this.path, required this.name, required this.length});
+  const PickedPathFile({
+    required this.path,
+    required this.name,
+    required this.length,
+  });
   final String path;
-  @override final String name;
+  @override
+  final String name;
   final int length;
-  @override Stream<Uint8List> openRead() => File(path).openRead().map(Uint8List.fromList);
+  @override
+  Stream<Uint8List> openRead() => File(path).openRead().map(Uint8List.fromList);
 }
 
 class PickedBytesFile extends PickedFile {
   const PickedBytesFile({required this.bytes, required this.name});
   final Uint8List bytes;
-  @override final String name;
-  @override Stream<Uint8List> openRead() => Stream.value(bytes);
+  @override
+  final String name;
+  @override
+  Stream<Uint8List> openRead() => Stream.value(bytes);
 }

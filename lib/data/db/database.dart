@@ -20,15 +20,17 @@ import 'tables/wrong_ledger_entries.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [
-  QuestionBanks,
-  Questions,
-  WrongLedgerEntries,
-  AnswerAttempts,
-  Bookmarks,
-  ParseJobs,
-  ParseLogs,
-])
+@DriftDatabase(
+  tables: [
+    QuestionBanks,
+    Questions,
+    WrongLedgerEntries,
+    AnswerAttempts,
+    Bookmarks,
+    ParseJobs,
+    ParseLogs,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   /// 由 drift codegen 调用；传入底层数据库连接。
   AppDatabase(super.e);
@@ -42,33 +44,33 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          // D-14: v1 起步 — 创建所有 6+1 张表
-          await m.createAll();
-        },
-        onUpgrade: (m, from, to) async {
-          // v2: source/sourcePath 改为 nullable（移动端字节源无磁盘路径）
-          if (from < 2) {
-            // SQLite 不支持 ALTER COLUMN — 通过 rename + recreate + copy 重建表
-            await _recreateTableNullable(
-              m,
-              oldName: 'question_banks',
-              newName: 'question_banks',
-              ddl: _questionBanksV2Ddl,
-            );
-            await _recreateTableNullable(
-              m,
-              oldName: 'parse_jobs',
-              newName: 'parse_jobs',
-              ddl: _parseJobsV2Ddl,
-            );
-          }
-        },
-        beforeOpen: (details) async {
-          // PITFALL 3: SQLite 默认关闭外键; 每次连接必须显式开启
-          await customStatement('PRAGMA foreign_keys = ON');
-        },
-      );
+    onCreate: (m) async {
+      // D-14: v1 起步 — 创建所有 6+1 张表
+      await m.createAll();
+    },
+    onUpgrade: (m, from, to) async {
+      // v2: source/sourcePath 改为 nullable（移动端字节源无磁盘路径）
+      if (from < 2) {
+        // SQLite 不支持 ALTER COLUMN — 通过 rename + recreate + copy 重建表
+        await _recreateTableNullable(
+          m,
+          oldName: 'question_banks',
+          newName: 'question_banks',
+          ddl: _questionBanksV2Ddl,
+        );
+        await _recreateTableNullable(
+          m,
+          oldName: 'parse_jobs',
+          newName: 'parse_jobs',
+          ddl: _parseJobsV2Ddl,
+        );
+      }
+    },
+    beforeOpen: (details) async {
+      // PITFALL 3: SQLite 默认关闭外键; 每次连接必须显式开启
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
+  );
 
   /// 将指定表重建为给定 DDL，并保留旧数据。
   ///

@@ -70,7 +70,8 @@ class _OptionCardState extends State<OptionCard>
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    final bool canTap = widget.state == OptionCardState.normal ||
+    final bool canTap =
+        widget.state == OptionCardState.normal ||
         widget.state == OptionCardState.hovered ||
         widget.state == OptionCardState.selected;
 
@@ -87,8 +88,10 @@ class _OptionCardState extends State<OptionCard>
             return Transform.scale(
               scale: 1.0 + t * 0.015,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: _buildBackground(cs, t),
                   borderRadius: BorderRadius.circular(12),
@@ -134,18 +137,12 @@ class _OptionCardState extends State<OptionCard>
               Expanded(
                 child: Text(
                   widget.optionText,
-                  style: tt.bodyLarge?.copyWith(
-                    color: _textColor(cs),
-                  ),
+                  style: tt.bodyLarge?.copyWith(color: _textColor(cs)),
                 ),
               ),
               if (_trailingIcon != null) ...[
                 const SizedBox(width: 8),
-                Icon(
-                  _trailingIcon!,
-                  color: _trailingIconColor(cs),
-                  size: 22,
-                ),
+                Icon(_trailingIcon!, color: _trailingIconColor(cs), size: 22),
               ],
             ],
           ),
@@ -164,19 +161,22 @@ class _OptionCardState extends State<OptionCard>
     final isDark = cs.brightness == Brightness.dark;
 
     return switch (widget.state) {
-      OptionCardState.correct => isDark
-          ? const Color(0xFF1B3A2A).withAlpha(220)
-          : Color.lerp(Colors.green.shade50, Colors.green.shade100, hoverT)!,
-      OptionCardState.correctUnselected => isDark
-          ? const Color(0xFF1B3A2A).withAlpha(160)
-          : Colors.green.shade50.withAlpha(180),
-      OptionCardState.wrongSelected => isDark
-          ? const Color(0xFF3A2020).withAlpha(220)
-          : Color.lerp(
-              cs.errorContainer.withAlpha(80),
-              cs.errorContainer.withAlpha(120),
-              hoverT,
-            )!,
+      OptionCardState.correct =>
+        isDark
+            ? const Color(0xFF1B3A2A).withAlpha(220)
+            : Color.lerp(Colors.green.shade50, Colors.green.shade100, hoverT)!,
+      OptionCardState.correctUnselected =>
+        isDark
+            ? const Color(0xFF1B3A2A).withAlpha(160)
+            : Colors.green.shade50.withAlpha(180),
+      OptionCardState.wrongSelected =>
+        isDark
+            ? const Color(0xFF3A2020).withAlpha(220)
+            : Color.lerp(
+                cs.errorContainer.withAlpha(80),
+                cs.errorContainer.withAlpha(120),
+                hoverT,
+              )!,
       OptionCardState.selected => cs.primaryContainer,
       _ => normalBg,
     };
@@ -234,14 +234,12 @@ class _OptionCardState extends State<OptionCard>
 
   Color _trailingIconColor(ColorScheme cs) {
     return switch (widget.state) {
-      OptionCardState.correct ||
-      OptionCardState.correctUnselected =>
+      OptionCardState.correct || OptionCardState.correctUnselected =>
         cs.brightness == Brightness.dark
             ? const Color(0xFF81C995)
             : Colors.green.shade600,
-      OptionCardState.wrongSelected => cs.brightness == Brightness.dark
-          ? const Color(0xFFEA8A8A)
-          : cs.error,
+      OptionCardState.wrongSelected =>
+        cs.brightness == Brightness.dark ? const Color(0xFFEA8A8A) : cs.error,
       _ => cs.onSurface,
     };
   }

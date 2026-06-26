@@ -8,8 +8,10 @@ enum FormFactor { compact, medium, expanded }
 
 class PlatformInfo {
   const PlatformInfo({required this.platform, required this.shortestSide});
-  factory PlatformInfo.forTesting({required AppPlatform platform, required double shortestSide}) =>
-      PlatformInfo(platform: platform, shortestSide: shortestSide);
+  factory PlatformInfo.forTesting({
+    required AppPlatform platform,
+    required double shortestSide,
+  }) => PlatformInfo(platform: platform, shortestSide: shortestSide);
 
   factory PlatformInfo.fromContext(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -33,8 +35,13 @@ class PlatformInfo {
     if (shortestSide < 840) return FormFactor.medium;
     return FormFactor.expanded;
   }
-  bool get isMobile => platform == AppPlatform.android || platform == AppPlatform.ios;
-  bool get isDesktop => platform == AppPlatform.windows || platform == AppPlatform.linux || platform == AppPlatform.macos;
+
+  bool get isMobile =>
+      platform == AppPlatform.android || platform == AppPlatform.ios;
+  bool get isDesktop =>
+      platform == AppPlatform.windows ||
+      platform == AppPlatform.linux ||
+      platform == AppPlatform.macos;
   bool get supportsLlm => isDesktop;
   bool get isCompact => formFactor == FormFactor.compact;
   bool get isExpanded => formFactor == FormFactor.expanded;

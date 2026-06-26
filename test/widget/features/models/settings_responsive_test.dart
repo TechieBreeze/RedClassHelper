@@ -41,9 +41,9 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ]);
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
       addTearDown(container.dispose);
 
       final router = GoRouter(
@@ -73,14 +73,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const Key('settings_vertical_layout')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const Key('settings_horizontal_layout')),
-        findsNothing,
-      );
+      expect(find.byKey(const Key('settings_vertical_layout')), findsOneWidget);
+      expect(find.byKey(const Key('settings_horizontal_layout')), findsNothing);
 
       expect(
         _hasDescendantConstrainedBoxMaxWidth(
@@ -100,9 +94,9 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ]);
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
       addTearDown(container.dispose);
 
       final router = GoRouter(
@@ -132,14 +126,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const Key('settings_vertical_layout')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const Key('settings_horizontal_layout')),
-        findsNothing,
-      );
+      expect(find.byKey(const Key('settings_vertical_layout')), findsOneWidget);
+      expect(find.byKey(const Key('settings_horizontal_layout')), findsNothing);
 
       expect(
         _hasDescendantConstrainedBoxMaxWidth(
@@ -159,9 +147,9 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ]);
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
       addTearDown(container.dispose);
 
       final router = GoRouter(
@@ -195,10 +183,7 @@ void main() {
         find.byKey(const Key('settings_horizontal_layout')),
         findsOneWidget,
       );
-      expect(
-        find.byKey(const Key('settings_vertical_layout')),
-        findsNothing,
-      );
+      expect(find.byKey(const Key('settings_vertical_layout')), findsNothing);
 
       expect(
         _hasDescendantConstrainedBoxMaxWidth(

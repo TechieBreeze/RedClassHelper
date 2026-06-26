@@ -23,28 +23,30 @@ class LedgerRepository {
   Future<void> markWrong(String questionId) async {
     await _db.transaction(() async {
       final now = DateTime.now();
-      final existing = await (_db.select(_db.wrongLedgerEntries)
-        ..where((e) => e.questionId.equals(questionId))
-      ).getSingleOrNull();
+      final existing = await (_db.select(
+        _db.wrongLedgerEntries,
+      )..where((e) => e.questionId.equals(questionId))).getSingleOrNull();
 
       if (existing != null) {
-        await (_db.update(_db.wrongLedgerEntries)
-          ..where((e) => e.questionId.equals(questionId))
-        ).write(
+        await (_db.update(
+          _db.wrongLedgerEntries,
+        )..where((e) => e.questionId.equals(questionId))).write(
           WrongLedgerEntriesCompanion(
             timesWrong: Value(existing.timesWrong + 1),
             lastWrongAt: Value(now),
           ),
         );
       } else {
-        await _db.into(_db.wrongLedgerEntries).insert(
-          WrongLedgerEntriesCompanion.insert(
-            questionId: questionId,
-            timesWrong: 1,
-            firstWrongAt: now,
-            lastWrongAt: now,
-          ),
-        );
+        await _db
+            .into(_db.wrongLedgerEntries)
+            .insert(
+              WrongLedgerEntriesCompanion.insert(
+                questionId: questionId,
+                timesWrong: 1,
+                firstWrongAt: now,
+                lastWrongAt: now,
+              ),
+            );
       }
     });
   }
@@ -55,12 +57,10 @@ class LedgerRepository {
   /// 此后该题目不再计入 active wrong count。
   Future<void> markMastered(String questionId) async {
     await _db.transaction(() async {
-      await (_db.update(_db.wrongLedgerEntries)
-        ..where((e) => e.questionId.equals(questionId))
-      ).write(
-        WrongLedgerEntriesCompanion(
-          masteredAt: Value(DateTime.now()),
-        ),
+      await (_db.update(
+        _db.wrongLedgerEntries,
+      )..where((e) => e.questionId.equals(questionId))).write(
+        WrongLedgerEntriesCompanion(masteredAt: Value(DateTime.now())),
       );
     });
   }
@@ -82,42 +82,46 @@ class LedgerRepository {
   }) async {
     await _db.transaction(() async {
       // 1. Insert answer attempt (STAT-01)
-      await _db.into(_db.answerAttempts).insert(
-        AnswerAttemptsCompanion.insert(
-          questionId: questionId,
-          givenAnswerJson: jsonEncode(givenAnswer),
-          isCorrect: isCorrect,
-          mode: mode,
-          elapsedMs: elapsedMs,
-          createdAt: DateTime.now(),
-        ),
-      );
+      await _db
+          .into(_db.answerAttempts)
+          .insert(
+            AnswerAttemptsCompanion.insert(
+              questionId: questionId,
+              givenAnswerJson: jsonEncode(givenAnswer),
+              isCorrect: isCorrect,
+              mode: mode,
+              elapsedMs: elapsedMs,
+              createdAt: DateTime.now(),
+            ),
+          );
 
       // 2. If incorrect, upsert into wrong ledger (REV-02)
       if (!isCorrect) {
         final now = DateTime.now();
-        final existing = await (_db.select(_db.wrongLedgerEntries)
-          ..where((e) => e.questionId.equals(questionId))
-        ).getSingleOrNull();
+        final existing = await (_db.select(
+          _db.wrongLedgerEntries,
+        )..where((e) => e.questionId.equals(questionId))).getSingleOrNull();
 
         if (existing != null) {
-          await (_db.update(_db.wrongLedgerEntries)
-            ..where((e) => e.questionId.equals(questionId))
-          ).write(
+          await (_db.update(
+            _db.wrongLedgerEntries,
+          )..where((e) => e.questionId.equals(questionId))).write(
             WrongLedgerEntriesCompanion(
               timesWrong: Value(existing.timesWrong + 1),
               lastWrongAt: Value(now),
             ),
           );
         } else {
-          await _db.into(_db.wrongLedgerEntries).insert(
-            WrongLedgerEntriesCompanion.insert(
-              questionId: questionId,
-              timesWrong: 1,
-              firstWrongAt: now,
-              lastWrongAt: now,
-            ),
-          );
+          await _db
+              .into(_db.wrongLedgerEntries)
+              .insert(
+                WrongLedgerEntriesCompanion.insert(
+                  questionId: questionId,
+                  timesWrong: 1,
+                  firstWrongAt: now,
+                  lastWrongAt: now,
+                ),
+              );
         }
       }
     });
@@ -136,24 +140,24 @@ class LedgerRepository {
   }) async {
     await _db.transaction(() async {
       // 1. Insert answer attempt
-      await _db.into(_db.answerAttempts).insert(
-        AnswerAttemptsCompanion.insert(
-          questionId: questionId,
-          givenAnswerJson: jsonEncode(givenAnswer),
-          isCorrect: true,
-          mode: mode,
-          elapsedMs: elapsedMs,
-          createdAt: DateTime.now(),
-        ),
-      );
+      await _db
+          .into(_db.answerAttempts)
+          .insert(
+            AnswerAttemptsCompanion.insert(
+              questionId: questionId,
+              givenAnswerJson: jsonEncode(givenAnswer),
+              isCorrect: true,
+              mode: mode,
+              elapsedMs: elapsedMs,
+              createdAt: DateTime.now(),
+            ),
+          );
 
       // 2. Mark as mastered (REV-04)
-      await (_db.update(_db.wrongLedgerEntries)
-        ..where((e) => e.questionId.equals(questionId))
-      ).write(
-        WrongLedgerEntriesCompanion(
-          masteredAt: Value(DateTime.now()),
-        ),
+      await (_db.update(
+        _db.wrongLedgerEntries,
+      )..where((e) => e.questionId.equals(questionId))).write(
+        WrongLedgerEntriesCompanion(masteredAt: Value(DateTime.now())),
       );
     });
   }
@@ -176,14 +180,15 @@ class LedgerRepository {
   /// 返回 JOIN Questions 后 WHERE mastered_at IS NULL AND bank_id = ?
   /// 的行数。
   Future<int> getActiveByBank(String bankId) async {
-    final joinQuery = _db.select(_db.wrongLedgerEntries).join([
-      innerJoin(
-        _db.questions,
-        _db.questions.id.equalsExp(_db.wrongLedgerEntries.questionId),
-      ),
-    ])
-      ..where(_db.wrongLedgerEntries.masteredAt.isNull())
-      ..where(_db.questions.bankId.equals(bankId));
+    final joinQuery =
+        _db.select(_db.wrongLedgerEntries).join([
+            innerJoin(
+              _db.questions,
+              _db.questions.id.equalsExp(_db.wrongLedgerEntries.questionId),
+            ),
+          ])
+          ..where(_db.wrongLedgerEntries.masteredAt.isNull())
+          ..where(_db.questions.bankId.equals(bankId));
     final rows = await joinQuery.get();
     return rows.length;
   }

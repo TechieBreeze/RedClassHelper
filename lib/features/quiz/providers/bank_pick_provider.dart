@@ -41,19 +41,23 @@ Future<List<BankPickItem>> bankPickList(Ref ref) async {
   final items = <BankPickItem>[];
   for (final bank in banks) {
     // Count total questions in this bank (D-09)
-    final questionCount = await (db.selectOnly(db.questions)
-      ..addColumns([db.questions.id.count()])
-      ..where(db.questions.bankId.equals(bank.id))
-    ).map((row) => row.read(db.questions.id.count()) ?? 0).getSingle();
+    final questionCount =
+        await (db.selectOnly(db.questions)
+              ..addColumns([db.questions.id.count()])
+              ..where(db.questions.bankId.equals(bank.id)))
+            .map((row) => row.read(db.questions.id.count()) ?? 0)
+            .getSingle();
 
     // Count active wrong questions in this bank (D-09)
     final wrongCount = await repo.getActiveByBank(bank.id);
 
-    items.add(BankPickItem(
-      bank: bank,
-      totalQuestions: questionCount,
-      activeWrongCount: wrongCount,
-    ));
+    items.add(
+      BankPickItem(
+        bank: bank,
+        totalQuestions: questionCount,
+        activeWrongCount: wrongCount,
+      ),
+    );
   }
 
   return items;

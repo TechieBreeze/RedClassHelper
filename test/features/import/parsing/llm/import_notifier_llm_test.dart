@@ -2,6 +2,7 @@
 // ── ImportNotifier LLM 分支测试 ──
 // 验证 llmParse() 的完整流程：分块、LLM 调用、重试、兜底、parse_log、自动确认。
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:riverpod/riverpod.dart';
 
@@ -21,9 +22,8 @@ class TestStubLlmClient implements LlmClient {
   ParseCandidate Function(String, String?) _parser;
   int callCount = 0;
 
-  TestStubLlmClient({
-    ParseCandidate Function(String, String?)? parser,
-  }) : _parser = parser ?? _defaultParser;
+  TestStubLlmClient({ParseCandidate Function(String, String?)? parser})
+    : _parser = parser ?? _defaultParser;
 
   static ParseCandidate _defaultParser(String rawText, String? bankName) {
     return ParseCandidate(
@@ -60,9 +60,7 @@ void main() {
   });
 
   /// 创建一个带有 LLM 覆盖的 ProviderContainer。
-  ProviderContainer createContainer({
-    required LlmClient llmClient,
-  }) {
+  ProviderContainer createContainer({required LlmClient llmClient}) {
     return ProviderContainer(
       overrides: [
         llmClientProvider.overrideWithValue(llmClient),
@@ -78,14 +76,21 @@ void main() {
 
       final notifier = container.read(importNotifierProvider.notifier);
       notifier.pickFiles([
-        const ImportFile(path: 'test.docx', name: 'test.docx', sizeBytes: 100),
+        ImportFile.fromPath(
+          path: 'test.docx',
+          name: 'test.docx',
+          sizeBytes: 100,
+        ),
       ]);
 
       // Set extracted text with multi-question input
       final stateWithText = container
           .read(importNotifierProvider)
-          .copyWith(extractedText: '1. Question One\nA. Option\nB. Option\n\n'
-              '2. Question Two\nA. Option\nB. Option');
+          .copyWith(
+            extractedText:
+                '1. Question One\nA. Option\nB. Option\n\n'
+                '2. Question Two\nA. Option\nB. Option',
+          );
 
       // Manually set the state with extracted text
       notifier.state = stateWithText;
@@ -95,50 +100,65 @@ void main() {
       final finalState = container.read(importNotifierProvider);
       expect(finalState.phase, ImportPhase.editing);
       expect(finalState.candidates.length, greaterThanOrEqualTo(1));
-      expect(finalState.confirmedIndices.length,
-          finalState.candidates.length); // D-08: auto-confirm
+      expect(
+        finalState.confirmedIndices.length,
+        finalState.candidates.length,
+      ); // D-08: auto-confirm
     });
 
-    test('parseSources records ParseSource.llm for successful candidates',
-        () async {
-      final stubClient = TestStubLlmClient();
-      final container = createContainer(llmClient: stubClient);
+    test(
+      'parseSources records ParseSource.llm for successful candidates',
+      () async {
+        final stubClient = TestStubLlmClient();
+        final container = createContainer(llmClient: stubClient);
 
-      final notifier = container.read(importNotifierProvider.notifier);
-      notifier.pickFiles([
-        const ImportFile(path: 'test.docx', name: 'test.docx', sizeBytes: 100),
-      ]);
+        final notifier = container.read(importNotifierProvider.notifier);
+        notifier.pickFiles([
+          ImportFile.fromPath(
+            path: 'test.docx',
+            name: 'test.docx',
+            sizeBytes: 100,
+          ),
+        ]);
 
-      notifier.state = container
-          .read(importNotifierProvider)
-          .copyWith(extractedText: '1. Question One\nA. Option\nB. Option');
+        notifier.state = container
+            .read(importNotifierProvider)
+            .copyWith(extractedText: '1. Question One\nA. Option\nB. Option');
 
-      await notifier.llmParse();
+        await notifier.llmParse();
 
-      final finalState = container.read(importNotifierProvider);
-      expect(finalState.parseSources.isNotEmpty, isTrue);
-      expect(finalState.parseSources[0], ParseSource.llm);
-    });
+        final finalState = container.read(importNotifierProvider);
+        expect(finalState.parseSources.isNotEmpty, isTrue);
+        expect(finalState.parseSources[0], ParseSource.llm);
+      },
+    );
 
-    test('LLM candidates have confidence=0.9 and metadata source=llm', () async {
-      final stubClient = TestStubLlmClient();
-      final container = createContainer(llmClient: stubClient);
+    test(
+      'LLM candidates have confidence=0.9 and metadata source=llm',
+      () async {
+        final stubClient = TestStubLlmClient();
+        final container = createContainer(llmClient: stubClient);
 
-      final notifier = container.read(importNotifierProvider.notifier);
-      notifier.pickFiles([
-        const ImportFile(path: 'test.docx', name: 'test.docx', sizeBytes: 100),
-      ]);
+        final notifier = container.read(importNotifierProvider.notifier);
+        notifier.pickFiles([
+          ImportFile.fromPath(
+            path: 'test.docx',
+            name: 'test.docx',
+            sizeBytes: 100,
+          ),
+        ]);
 
-      notifier.state = container
-          .read(importNotifierProvider)
-          .copyWith(extractedText: '1. Question One\nA. Option\nB. Option');
+        notifier.state = container
+            .read(importNotifierProvider)
+            .copyWith(extractedText: '1. Question One\nA. Option\nB. Option');
 
-      await notifier.llmParse();
+        await notifier.llmParse();
 
-      final finalState = container.read(importNotifierProvider);
-      expect(finalState.candidates[0].confidence, 0.9);
-      expect(finalState.candidates[0].metadata['source'], 'llm');
-    });
+        final finalState = container.read(importNotifierProvider);
+        expect(finalState.candidates[0].confidence, 0.9);
+        expect(finalState.candidates[0].metadata['source'], 'llm');
+      },
+    );
 
     test('progress updates from 0.0 towards 1.0 during llmParsing', () async {
       final stubClient = TestStubLlmClient();
@@ -146,13 +166,20 @@ void main() {
 
       final notifier = container.read(importNotifierProvider.notifier);
       notifier.pickFiles([
-        const ImportFile(path: 'test.docx', name: 'test.docx', sizeBytes: 100),
+        ImportFile.fromPath(
+          path: 'test.docx',
+          name: 'test.docx',
+          sizeBytes: 100,
+        ),
       ]);
 
       notifier.state = container
           .read(importNotifierProvider)
-          .copyWith(extractedText: '1. Q1\nA. Opt\n\n2. Q2\nA. Opt\n\n'
-              '3. Q3\nA. Opt');
+          .copyWith(
+            extractedText:
+                '1. Q1\nA. Opt\n\n2. Q2\nA. Opt\n\n'
+                '3. Q3\nA. Opt',
+          );
 
       await notifier.llmParse();
 
@@ -175,13 +202,20 @@ void main() {
 
       final notifier = container.read(importNotifierProvider.notifier);
       notifier.pickFiles([
-        const ImportFile(path: 'test.docx', name: 'test.docx', sizeBytes: 100),
+        ImportFile.fromPath(
+          path: 'test.docx',
+          name: 'test.docx',
+          sizeBytes: 100,
+        ),
       ]);
 
       notifier.state = container
           .read(importNotifierProvider)
-          .copyWith(extractedText: '1. Question One\nA. Option\n'
-              'B. Option\n答案：A');
+          .copyWith(
+            extractedText:
+                '1. Question One\nA. Option\n'
+                'B. Option\n答案：A',
+          );
 
       await notifier.llmParse();
 
@@ -189,8 +223,10 @@ void main() {
       // Fallback candidate should have ParseSource.fallback
       if (finalState.candidates.isNotEmpty) {
         expect(finalState.parseSources[0], ParseSource.fallback);
-        expect(finalState.candidates[0].metadata['source'],
-            'heuristic_fallback');
+        expect(
+          finalState.candidates[0].metadata['source'],
+          'heuristic_fallback',
+        );
         // Lower confidence for fallback
         expect(finalState.candidates[0].confidence, lessThan(0.9));
       }
@@ -202,11 +238,16 @@ void main() {
 
       final notifier = container.read(importNotifierProvider.notifier);
       notifier.pickFiles([
-        const ImportFile(path: 'test.docx', name: 'test.docx', sizeBytes: 100),
+        ImportFile.fromPath(
+          path: 'test.docx',
+          name: 'test.docx',
+          sizeBytes: 100,
+        ),
       ]);
 
-      notifier.state =
-          container.read(importNotifierProvider).copyWith(extractedText: '');
+      notifier.state = container
+          .read(importNotifierProvider)
+          .copyWith(extractedText: '');
 
       await notifier.llmParse();
 
@@ -225,7 +266,11 @@ void main() {
 
       final notifier = container.read(importNotifierProvider.notifier);
       notifier.pickFiles([
-        const ImportFile(path: 'test.docx', name: 'test.docx', sizeBytes: 100),
+        ImportFile.fromPath(
+          path: 'test.docx',
+          name: 'test.docx',
+          sizeBytes: 100,
+        ),
       ]);
 
       notifier.state = container
@@ -265,7 +310,11 @@ void main() {
 
       final notifier = container.read(importNotifierProvider.notifier);
       notifier.pickFiles([
-        const ImportFile(path: 'test.docx', name: 'test.docx', sizeBytes: 100),
+        ImportFile.fromPath(
+          path: 'test.docx',
+          name: 'test.docx',
+          sizeBytes: 100,
+        ),
       ]);
 
       notifier.state = container
@@ -283,17 +332,19 @@ void main() {
     test('parse_log entries written on fallback', () async {
       // Create a parse_job entry to satisfy FK constraint
       final jobId = 'test-job-id';
-      await testDb.into(testDb.parseJobs).insert(
-        ParseJobsCompanion.insert(
-          id: jobId,
-          sourcePath: 'test.docx',
-          status: 'running',
-          progress: 0.5,
-          resultCount: 0,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ),
-      );
+      await testDb
+          .into(testDb.parseJobs)
+          .insert(
+            ParseJobsCompanion.insert(
+              id: jobId,
+              sourcePath: const Value('test.docx'),
+              status: 'running',
+              progress: 0.5,
+              resultCount: 0,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+          );
 
       final stubClient = TestStubLlmClient();
       stubClient.setParser((rawText, bankName) {
@@ -307,19 +358,19 @@ void main() {
 
       final notifier = container.read(importNotifierProvider.notifier);
       // Set jobId to match the parse_job we created
-      notifier.state = const ImportState()
-          .copyWith(
-            jobId: jobId,
-            extractedText: '1. Question One\nA. Option\n'
-                'B. Option\n答案：A',
-            files: [
-              const ImportFile(
-                path: 'test.docx',
-                name: 'test.docx',
-                sizeBytes: 100,
-              ),
-            ],
-          );
+      notifier.state = const ImportState().copyWith(
+        jobId: jobId,
+        extractedText:
+            '1. Question One\nA. Option\n'
+            'B. Option\n答案：A',
+        files: [
+          ImportFile.fromPath(
+            path: 'test.docx',
+            name: 'test.docx',
+            sizeBytes: 100,
+          ),
+        ],
+      );
 
       await notifier.llmParse();
 

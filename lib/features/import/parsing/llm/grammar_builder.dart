@@ -58,13 +58,15 @@ String jsonSchemaToGbnf(Map<String, dynamic> schema) {
   buf.writeln('root ::= object');
 
   // Define the JSON object structure
-  buf.writeln('object ::= "{" ws '
-      '"\\"title\\"" ws ":" ws string ws "," ws '
-      '"\\"type\\"" ws ":" ws type-value ws "," ws '
-      '"\\"options\\"" ws ":" ws array ws "," ws '
-      '"\\"answer\\"" ws ":" ws answer-string ws '
-      '("," ws "\\"explanation\\"" ws ":" ws explanation-string ws)? '
-      '"}"');
+  buf.writeln(
+    'object ::= "{" ws '
+    '"\\"title\\"" ws ":" ws string ws "," ws '
+    '"\\"type\\"" ws ":" ws type-value ws "," ws '
+    '"\\"options\\"" ws ":" ws array ws "," ws '
+    '"\\"answer\\"" ws ":" ws answer-string ws '
+    '("," ws "\\"explanation\\"" ws ":" ws explanation-string ws)? '
+    '"}"',
+  );
 
   // Whitespace
   buf.writeln('ws ::= [ \\t\\n]*');

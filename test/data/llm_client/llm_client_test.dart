@@ -21,7 +21,10 @@ void main() {
 
       expect(ex.timeout, timeout);
       expect(ex.serverUrl, serverUrl);
-      expect(ex.message, 'LLM request to $serverUrl timed out after ${timeout.inSeconds}s');
+      expect(
+        ex.message,
+        'LLM request to $serverUrl timed out after ${timeout.inSeconds}s',
+      );
       expect(ex.toString(), ex.message);
     });
   });
@@ -30,7 +33,10 @@ void main() {
     test('stores rawResponse and parseError and formats message correctly', () {
       const rawResponse = '{"bad json"';
       const parseError = 'Unexpected end of input';
-      final ex = LlmJsonParseException(rawResponse: rawResponse, parseError: parseError);
+      final ex = LlmJsonParseException(
+        rawResponse: rawResponse,
+        parseError: parseError,
+      );
 
       expect(ex.rawResponse, rawResponse);
       expect(ex.parseError, parseError);
@@ -43,11 +49,17 @@ void main() {
     test('stores attempts and lastError and formats message correctly', () {
       const attempts = 3;
       const lastError = 'Connection refused';
-      final ex = LlmRetryExhaustedException(attempts: attempts, lastError: lastError);
+      final ex = LlmRetryExhaustedException(
+        attempts: attempts,
+        lastError: lastError,
+      );
 
       expect(ex.attempts, attempts);
       expect(ex.lastError, lastError);
-      expect(ex.message, 'LLM parsing failed after $attempts retries. Last error: $lastError');
+      expect(
+        ex.message,
+        'LLM parsing failed after $attempts retries. Last error: $lastError',
+      );
       expect(ex.toString(), ex.message);
     });
 
@@ -59,15 +71,21 @@ void main() {
   });
 
   group('LlmConnectionException', () {
-    test('stores serverUrl and originalError; formats message when originalError is null', () {
-      const serverUrl = 'http://localhost:8080';
-      final exNullError = LlmConnectionException(serverUrl: serverUrl);
+    test(
+      'stores serverUrl and originalError; formats message when originalError is null',
+      () {
+        const serverUrl = 'http://localhost:8080';
+        final exNullError = LlmConnectionException(serverUrl: serverUrl);
 
-      expect(exNullError.serverUrl, serverUrl);
-      expect(exNullError.originalError, isNull);
-      expect(exNullError.message, 'Cannot connect to LLM server at $serverUrl: connection refused');
-      expect(exNullError.toString(), exNullError.message);
-    });
+        expect(exNullError.serverUrl, serverUrl);
+        expect(exNullError.originalError, isNull);
+        expect(
+          exNullError.message,
+          'Cannot connect to LLM server at $serverUrl: connection refused',
+        );
+        expect(exNullError.toString(), exNullError.message);
+      },
+    );
 
     test('formats message correctly when originalError is provided', () {
       const serverUrl = 'http://localhost:8080';
@@ -79,7 +97,10 @@ void main() {
 
       expect(ex.serverUrl, serverUrl);
       expect(ex.originalError, originalError);
-      expect(ex.message, 'Cannot connect to LLM server at $serverUrl: $originalError');
+      expect(
+        ex.message,
+        'Cannot connect to LLM server at $serverUrl: $originalError',
+      );
       expect(ex.toString(), ex.message);
     });
   });

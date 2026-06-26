@@ -14,13 +14,13 @@ import 'package:redclass/features/import/providers/import_notifier.dart';
 import 'package:redclass/features/import/providers/import_state.dart';
 
 ParseCandidate _stubCandidate(int i) => ParseCandidate(
-      rawText: '题 $i 正文',
-      candidateType: CandidateType.singleChoice,
-      options: const ['A', 'B', 'C', 'D'],
-      answer: 'A',
-      startLine: i,
-      endLine: i,
-    );
+  rawText: '题 $i 正文',
+  candidateType: CandidateType.singleChoice,
+  options: const ['A', 'B', 'C', 'D'],
+  answer: 'A',
+  startLine: i,
+  endLine: i,
+);
 
 ImportState _seedState() {
   final candidates = List.generate(6, _stubCandidate);
@@ -40,9 +40,7 @@ ImportState _seedState() {
 
 Widget _harness({required Size size, required AppPlatform platform}) {
   return ProviderScope(
-    overrides: [
-      importNotifierProvider.overrideWithValue(_seedState()),
-    ],
+    overrides: [importNotifierProvider.overrideWithValue(_seedState())],
     child: MaterialApp(
       home: ResponsiveBuilder(
         info: PlatformInfo.forTesting(
@@ -59,12 +57,16 @@ Widget _harness({required Size size, required AppPlatform platform}) {
 }
 
 bool _hasDescendantConstrainedBoxMaxWidth(
-    WidgetTester tester, Finder startFinder, double targetMaxWidth) {
+  WidgetTester tester,
+  Finder startFinder,
+  double targetMaxWidth,
+) {
   final matches = find
       .descendant(
         of: startFinder,
         matching: find.byWidgetPredicate(
-          (w) => w is ConstrainedBox && w.constraints.maxWidth == targetMaxWidth,
+          (w) =>
+              w is ConstrainedBox && w.constraints.maxWidth == targetMaxWidth,
         ),
       )
       .evaluate();
@@ -78,20 +80,26 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(400, 800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(_harness(
-        size: const Size(400, 800),
-        platform: AppPlatform.android,
-      ));
+      await tester.pumpWidget(
+        _harness(size: const Size(400, 800), platform: AppPlatform.android),
+      );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('import_preview_vertical_layout')),
-          findsOneWidget);
-      expect(find.byKey(const Key('import_preview_horizontal_layout')),
-          findsNothing);
+      expect(
+        find.byKey(const Key('import_preview_vertical_layout')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('import_preview_horizontal_layout')),
+        findsNothing,
+      );
 
       expect(
         _hasDescendantConstrainedBoxMaxWidth(
-            tester, find.byKey(const Key('import_preview_vertical_layout')), 720),
+          tester,
+          find.byKey(const Key('import_preview_vertical_layout')),
+          720,
+        ),
         isFalse,
       );
     },
@@ -103,20 +111,26 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(700, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(_harness(
-        size: const Size(700, 900),
-        platform: AppPlatform.android,
-      ));
+      await tester.pumpWidget(
+        _harness(size: const Size(700, 900), platform: AppPlatform.android),
+      );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('import_preview_vertical_layout')),
-          findsOneWidget);
-      expect(find.byKey(const Key('import_preview_horizontal_layout')),
-          findsNothing);
+      expect(
+        find.byKey(const Key('import_preview_vertical_layout')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('import_preview_horizontal_layout')),
+        findsNothing,
+      );
 
       expect(
         _hasDescendantConstrainedBoxMaxWidth(
-            tester, find.byKey(const Key('import_preview_vertical_layout')), 720),
+          tester,
+          find.byKey(const Key('import_preview_vertical_layout')),
+          720,
+        ),
         isTrue,
       );
     },
@@ -128,20 +142,26 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1500, 1000));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(_harness(
-        size: const Size(1500, 1000),
-        platform: AppPlatform.windows,
-      ));
+      await tester.pumpWidget(
+        _harness(size: const Size(1500, 1000), platform: AppPlatform.windows),
+      );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('import_preview_horizontal_layout')),
-          findsOneWidget);
-      expect(find.byKey(const Key('import_preview_vertical_layout')),
-          findsNothing);
+      expect(
+        find.byKey(const Key('import_preview_horizontal_layout')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('import_preview_vertical_layout')),
+        findsNothing,
+      );
 
       expect(
         _hasDescendantConstrainedBoxMaxWidth(
-            tester, find.byKey(const Key('import_preview_horizontal_layout')), 960),
+          tester,
+          find.byKey(const Key('import_preview_horizontal_layout')),
+          960,
+        ),
         isTrue,
       );
 

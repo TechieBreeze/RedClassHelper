@@ -22,9 +22,7 @@ class QuizSummaryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sessionAsync = ref.watch(
-      quizSessionControllerProvider(bankId, mode),
-    );
+    final sessionAsync = ref.watch(quizSessionControllerProvider(bankId, mode));
     final session = sessionAsync.value;
 
     if (session == null || session.status != QuizStatus.complete) {
@@ -37,9 +35,9 @@ class QuizSummaryScreen extends ConsumerWidget {
     final total = session.totalQuestions ?? 0;
     final correct = session.correctCount ?? 0;
     final wrong = session.wrongCount ?? 0;
-    final accuracyPercent =
-        total > 0 ? ((correct / total) * 100).round() : 0;
-    final isAllMastered = session.mode == ReviewMode.review &&
+    final accuracyPercent = total > 0 ? ((correct / total) * 100).round() : 0;
+    final isAllMastered =
+        session.mode == ReviewMode.review &&
         (session.newlyMasteredCount ?? 0) > 0 &&
         wrong == 0;
     final cs = Theme.of(context).colorScheme;
@@ -57,8 +55,10 @@ class QuizSummaryScreen extends ConsumerWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 520),
                 child: SingleChildScrollView(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 20,
+                  ),
                   child: Column(
                     children: [
                       // ── Hero banner ──
@@ -68,8 +68,14 @@ class QuizSummaryScreen extends ConsumerWidget {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: isAllMastered
-                                ? [Colors.amber.shade400, Colors.orange.shade400]
-                                : heroGradient(cs, Theme.of(context).brightness),
+                                ? [
+                                    Colors.amber.shade400,
+                                    Colors.orange.shade400,
+                                  ]
+                                : heroGradient(
+                                    cs,
+                                    Theme.of(context).brightness,
+                                  ),
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -95,9 +101,7 @@ class QuizSummaryScreen extends ConsumerWidget {
                             const SizedBox(height: 12),
                             Text(
                               isAllMastered ? '全部掌握!' : '$accuracyPercent%',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .displaySmall
+                              style: Theme.of(context).textTheme.displaySmall
                                   ?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w800,
@@ -106,9 +110,7 @@ class QuizSummaryScreen extends ConsumerWidget {
                             const SizedBox(height: 4),
                             Text(
                               isAllMastered ? '错题本已清空' : '正确率',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
+                              style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(
                                     color: Colors.white.withAlpha(200),
                                   ),
@@ -151,7 +153,8 @@ class QuizSummaryScreen extends ConsumerWidget {
                             child: _SummaryStatCard(
                               label: '用时',
                               value: _formatElapsedShort(
-                                  session.elapsedSeconds ?? 0),
+                                session.elapsedSeconds ?? 0,
+                              ),
                               unit: '',
                               icon: Icons.timer_outlined,
                               color: cs.secondaryContainer,
@@ -191,7 +194,8 @@ class QuizSummaryScreen extends ConsumerWidget {
                         child: FilledButton(
                           onPressed: () {
                             ref.invalidate(
-                                quizSessionControllerProvider(bankId, mode));
+                              quizSessionControllerProvider(bankId, mode),
+                            );
                             context.go('/quiz/$bankId/$mode');
                           },
                           child: const Text('再来一轮'),
@@ -258,8 +262,8 @@ class _SummaryStatCard extends StatelessWidget {
                 Text(
                   value,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 if (unit.isNotEmpty)
                   Padding(
@@ -267,9 +271,10 @@ class _SummaryStatCard extends StatelessWidget {
                     child: Text(
                       unit,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurface.withAlpha(150),
-                          ),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withAlpha(150),
+                      ),
                     ),
                   ),
               ],
@@ -278,8 +283,8 @@ class _SummaryStatCard extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
-                  ),
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+              ),
             ),
           ],
         ),
@@ -305,8 +310,7 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
             Icon(icon, size: 20, color: color),
@@ -316,9 +320,9 @@ class _DetailRow extends StatelessWidget {
             Text(
               value,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                  ),
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
             ),
           ],
         ),

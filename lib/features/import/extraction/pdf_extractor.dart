@@ -10,8 +10,7 @@ import 'package:pdfrx/pdfrx.dart';
 
 /// PDF 为扫描件时抛出
 class ScannedPdfException implements Exception {
-  ScannedPdfException()
-      : message = '此 PDF 为扫描件，v1 暂不支持 OCR。请使用文字型 PDF';
+  ScannedPdfException() : message = '此 PDF 为扫描件，v1 暂不支持 OCR。请使用文字型 PDF';
 
   final String message;
 
@@ -21,8 +20,7 @@ class ScannedPdfException implements Exception {
 
 /// PDF 已加密时抛出
 class EncryptedPdfException implements Exception {
-  EncryptedPdfException()
-      : message = 'PDF 已加密，请先解密后再导入';
+  EncryptedPdfException() : message = 'PDF 已加密，请先解密后再导入';
 
   final String message;
 

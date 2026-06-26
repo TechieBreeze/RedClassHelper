@@ -99,9 +99,7 @@ class ImportNotifier extends _$ImportNotifier {
     for (var i = 0; i < totalFiles; i++) {
       final file = state.files[i];
       try {
-        state = state.copyWith(
-          progress: (i / totalFiles) * 0.5,
-        );
+        state = state.copyWith(progress: (i / totalFiles) * 0.5);
 
         final ext = p.extension(file.name);
         final text = await _extractSingleFile(file, ext, resolver);
@@ -112,10 +110,7 @@ class ImportNotifier extends _$ImportNotifier {
         // Guard: provider may have been disposed during extractText await.
         if (!_mounted) return;
       } on PandocNotFoundException catch (e) {
-        state = state.copyWith(
-          phase: ImportPhase.idle,
-          error: e.message,
-        );
+        state = state.copyWith(phase: ImportPhase.idle, error: e.message);
         return;
       } on Exception catch (e) {
         state = state.copyWith(
@@ -200,10 +195,7 @@ class ImportNotifier extends _$ImportNotifier {
   Future<void> commitToDatabase() async {
     if (!state.isEditing || state.confirmedIndices.isEmpty) return;
 
-    state = state.copyWith(
-      phase: ImportPhase.committing,
-      progress: 0.0,
-    );
+    state = state.copyWith(phase: ImportPhase.committing, progress: 0.0);
 
     try {
       final db = await ref.read(appDatabaseProvider.future);
@@ -217,9 +209,7 @@ class ImportNotifier extends _$ImportNotifier {
       // 创建 ParseJob
       final job = ParseJobsCompanion.insert(
         id: _uuid.v4(),
-        sourcePath: Value(
-          state.files.map((f) => f.path ?? f.name).join(';'),
-        ),
+        sourcePath: Value(state.files.map((f) => f.path ?? f.name).join(';')),
         status: 'succeeded',
         progress: 1.0,
         resultCount: confirmedCandidates.length,
@@ -232,9 +222,7 @@ class ImportNotifier extends _$ImportNotifier {
       final bank = QuestionBanksCompanion.insert(
         id: bankId,
         name: state.bankName,
-        source: Value(
-          state.files.first.path ?? state.files.first.name,
-        ),
+        source: Value(state.files.first.path ?? state.files.first.name),
         questionCount: confirmedCandidates.length,
         createdAt: now,
         updatedAt: now,
@@ -323,10 +311,7 @@ class ImportNotifier extends _$ImportNotifier {
   /// 6. 全部成功后进入编辑阶段，所有候选自动确认。
   Future<void> llmParse() async {
     if (state.extractedText.isEmpty) {
-      state = state.copyWith(
-        phase: ImportPhase.idle,
-        error: '没有可解析的文本内容',
-      );
+      state = state.copyWith(phase: ImportPhase.idle, error: '没有可解析的文本内容');
       return;
     }
 
@@ -338,10 +323,7 @@ class ImportNotifier extends _$ImportNotifier {
 
     final blocks = splitIntoQuestionBlocks(state.extractedText);
     if (blocks.isEmpty) {
-      state = state.copyWith(
-        phase: ImportPhase.idle,
-        error: '未能将文本拆分为题目块',
-      );
+      state = state.copyWith(phase: ImportPhase.idle, error: '未能将文本拆分为题目块');
       return;
     }
 
@@ -362,13 +344,13 @@ class ImportNotifier extends _$ImportNotifier {
 
       try {
         // 带内置重试的 LLM 解析（HttpLlmClient 内部最多 3 次重试）
-        final llmResult = await ref.read(llmClientProvider).parse(
-          blocks[i],
-          bankName: state.bankName,
-        );
+        final llmResult = await ref
+            .read(llmClientProvider)
+            .parse(blocks[i], bankName: state.bankName);
         // 答案规范化（PITFALL 1: LLM 可能输出多种格式）
-        final canonicalAnswer =
-            formatAnswerForDisplay(canonicalizeAnswer(llmResult.answer));
+        final canonicalAnswer = formatAnswerForDisplay(
+          canonicalizeAnswer(llmResult.answer),
+        );
         candidate = llmResult.copyWith(
           answer: canonicalAnswer,
           metadata: {
@@ -384,9 +366,7 @@ class ImportNotifier extends _$ImportNotifier {
         source = ParseSource.fallback;
         candidate = _fallbackParseSingle(blocks[i], i);
 
-        state = state.copyWith(
-          parseStatus: '第 ${i + 1} 题切换启发式兜底…',
-        );
+        state = state.copyWith(parseStatus: '第 ${i + 1} 题切换启发式兜底…');
 
         // 写入 parse_log（D-09: 失败记录可在汇总页展示）
         await _logParseEvent(
@@ -405,9 +385,7 @@ class ImportNotifier extends _$ImportNotifier {
         source = ParseSource.fallback;
         candidate = _fallbackParseSingle(blocks[i], i);
 
-        state = state.copyWith(
-          parseStatus: '第 ${i + 1} 题切换启发式兜底…',
-        );
+        state = state.copyWith(parseStatus: '第 ${i + 1} 题切换启发式兜底…');
 
         await _logParseEvent(
           db: db,
@@ -540,21 +518,23 @@ class ImportNotifier extends _$ImportNotifier {
 
       await db.transaction(() async {
         // 4b. Detect and replace duplicate bank (D-06: silent, no dialog)
-        final existingBank = await (db.select(db.questionBanks)
-              ..where((b) => b.name.equals(jsonBankName)))
-            .getSingleOrNull();
+        final existingBank = await (db.select(
+          db.questionBanks,
+        )..where((b) => b.name.equals(jsonBankName))).getSingleOrNull();
 
         if (existingBank != null) {
           // Cascade delete: removing bank deletes all its questions + ledger + attempts
-          await (db.delete(db.questionBanks)
-                ..where((b) => b.id.equals(existingBank.id)))
-              .go();
+          await (db.delete(
+            db.questionBanks,
+          )..where((b) => b.id.equals(existingBank.id))).go();
         }
 
         state = state.copyWith(progress: 0.5);
 
         // 4c. Insert QuestionBank
-        await db.into(db.questionBanks).insert(
+        await db
+            .into(db.questionBanks)
+            .insert(
               QuestionBanksCompanion.insert(
                 id: bankId,
                 name: converted.bankName,
@@ -640,8 +620,7 @@ class ImportNotifier extends _$ImportNotifier {
           'source': 'heuristic_fallback',
           'chunkIndex': chunkIndex.toString(),
         },
-        confidence:
-            (parsed.first.confidence * 0.8).clamp(0.0, 1.0),
+        confidence: (parsed.first.confidence * 0.8).clamp(0.0, 1.0),
       );
     }
     return null;
@@ -658,15 +637,17 @@ class ImportNotifier extends _$ImportNotifier {
     required Map<String, dynamic> context,
   }) async {
     try {
-      await db.into(db.parseLogs).insert(
-        ParseLogsCompanion.insert(
-          parseJobId: jobId,
-          level: level,
-          message: message,
-          contextJson: jsonEncode(context),
-          createdAt: DateTime.now(),
-        ),
-      );
+      await db
+          .into(db.parseLogs)
+          .insert(
+            ParseLogsCompanion.insert(
+              parseJobId: jobId,
+              level: level,
+              message: message,
+              contextJson: jsonEncode(context),
+              createdAt: DateTime.now(),
+            ),
+          );
     } catch (_) {
       // parse_log 是尽力而为的操作——静默失败不中断导入
     }
@@ -747,5 +728,6 @@ class ImportNotifier extends _$ImportNotifier {
   }
 
   /// 判断题标准选项 JSON
-  static const _tfOptionsJson = '[{"key":"A","text":"对"},{"key":"B","text":"错"}]';
+  static const _tfOptionsJson =
+      '[{"key":"A","text":"对"},{"key":"B","text":"错"}]';
 }

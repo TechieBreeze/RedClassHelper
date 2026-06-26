@@ -14,11 +14,13 @@ Future<void> _insertBank({
   int questionCount = 0,
 }) async {
   final now = DateTime.now();
-  await db.into(db.questionBanks).insert(
+  await db
+      .into(db.questionBanks)
+      .insert(
         QuestionBanksCompanion.insert(
           id: bankId,
           name: name,
-          source: source,
+          source: Value(source),
           questionCount: questionCount,
           createdAt: now,
           updatedAt: now,
@@ -36,7 +38,9 @@ Future<void> _insertQuestion({
   String stem = 'Test question?',
 }) async {
   final now = DateTime.now();
-  await db.into(db.questions).insert(
+  await db
+      .into(db.questions)
+      .insert(
         QuestionsCompanion.insert(
           id: questionId,
           bankId: bankId,
@@ -59,7 +63,9 @@ Future<void> _insertAttempt({
   required String mode,
   int elapsedMs = 5000,
 }) async {
-  await db.into(db.answerAttempts).insert(
+  await db
+      .into(db.answerAttempts)
+      .insert(
         AnswerAttemptsCompanion.insert(
           questionId: questionId,
           givenAnswerJson: isCorrect ? '["A"]' : '["B"]',
@@ -78,7 +84,9 @@ Future<void> _insertLedgerEntry({
   bool mastered = false,
 }) async {
   final now = DateTime.now();
-  await db.into(db.wrongLedgerEntries).insert(
+  await db
+      .into(db.wrongLedgerEntries)
+      .insert(
         WrongLedgerEntriesCompanion.insert(
           questionId: questionId,
           timesWrong: 1,
@@ -91,9 +99,7 @@ Future<void> _insertLedgerEntry({
 
 ProviderContainer _createContainer(AppDatabase db) {
   return ProviderContainer(
-    overrides: [
-      appDatabaseProvider.overrideWith((ref) async => db),
-    ],
+    overrides: [appDatabaseProvider.overrideWith((ref) async => db)],
   );
 }
 
@@ -112,11 +118,13 @@ void main() {
   });
 
   // ── Test 1 ──
-  test('bankStatsListProvider returns empty list when no banks exist',
-      () async {
-    final stats = await container.read(bankStatsListProvider.future);
-    expect(stats, isEmpty);
-  });
+  test(
+    'bankStatsListProvider returns empty list when no banks exist',
+    () async {
+      final stats = await container.read(bankStatsListProvider.future);
+      expect(stats, isEmpty);
+    },
+  );
 
   // ── Test 2 ──
   test('bankStatsListProvider returns one BankStats entry when one bank '
@@ -127,11 +135,7 @@ void main() {
       name: 'Test Bank',
       questionCount: 3,
     );
-    await _insertQuestion(
-      db: db,
-      questionId: 'q-1',
-      bankId: 'bank-1',
-    );
+    await _insertQuestion(db: db, questionId: 'q-1', bankId: 'bank-1');
 
     final stats = await container.read(bankStatsListProvider.future);
     expect(stats.length, 1);
@@ -144,62 +148,55 @@ void main() {
   });
 
   // ── Test 3 ──
-  test('bankStatsListProvider returns correct correctRate when attempts exist',
-      () async {
-    await _insertBank(
-      db: db,
-      bankId: 'bank-1',
-      name: 'Test Bank',
-      questionCount: 5,
-    );
-    await _insertQuestion(
-      db: db,
-      questionId: 'q-1',
-      bankId: 'bank-1',
-    );
-    await _insertQuestion(
-      db: db,
-      questionId: 'q-2',
-      bankId: 'bank-1',
-    );
+  test(
+    'bankStatsListProvider returns correct correctRate when attempts exist',
+    () async {
+      await _insertBank(
+        db: db,
+        bankId: 'bank-1',
+        name: 'Test Bank',
+        questionCount: 5,
+      );
+      await _insertQuestion(db: db, questionId: 'q-1', bankId: 'bank-1');
+      await _insertQuestion(db: db, questionId: 'q-2', bankId: 'bank-1');
 
-    // 2 correct, 2 incorrect → 4 total, rate = 0.5
-    await _insertAttempt(
-      db: db,
-      questionId: 'q-1',
-      isCorrect: true,
-      mode: 'random',
-    );
-    await _insertAttempt(
-      db: db,
-      questionId: 'q-1',
-      isCorrect: false,
-      mode: 'random',
-    );
-    await _insertAttempt(
-      db: db,
-      questionId: 'q-2',
-      isCorrect: true,
-      mode: 'review',
-    );
-    await _insertAttempt(
-      db: db,
-      questionId: 'q-2',
-      isCorrect: false,
-      mode: 'review',
-    );
+      // 2 correct, 2 incorrect → 4 total, rate = 0.5
+      await _insertAttempt(
+        db: db,
+        questionId: 'q-1',
+        isCorrect: true,
+        mode: 'random',
+      );
+      await _insertAttempt(
+        db: db,
+        questionId: 'q-1',
+        isCorrect: false,
+        mode: 'random',
+      );
+      await _insertAttempt(
+        db: db,
+        questionId: 'q-2',
+        isCorrect: true,
+        mode: 'review',
+      );
+      await _insertAttempt(
+        db: db,
+        questionId: 'q-2',
+        isCorrect: false,
+        mode: 'review',
+      );
 
-    final stats = await container.read(bankStatsListProvider.future);
-    expect(stats.length, 1);
-    expect(stats.first.totalAttempts, 4);
-    expect(stats.first.correctCount, 2);
-    expect(stats.first.correctRate, 0.5);
-    expect(stats.first.correctRateDisplay, '50%');
-  });
+      final stats = await container.read(bankStatsListProvider.future);
+      expect(stats.length, 1);
+      expect(stats.first.totalAttempts, 4);
+      expect(stats.first.correctCount, 2);
+      expect(stats.first.correctRate, 0.5);
+      expect(stats.first.correctRateDisplay, '50%');
+    },
+  );
 
   // ── Test 4 ──
-  test(
-      'bankStatsListProvider includes per-mode breakdown: random attempts '
+  test('bankStatsListProvider includes per-mode breakdown: random attempts '
       'count, correct count', () async {
     await _insertBank(
       db: db,
@@ -207,11 +204,7 @@ void main() {
       name: 'Per-Mode Bank',
       questionCount: 2,
     );
-    await _insertQuestion(
-      db: db,
-      questionId: 'q-1',
-      bankId: 'bank-1',
-    );
+    await _insertQuestion(db: db, questionId: 'q-1', bankId: 'bank-1');
 
     // 3 random attempts: 2 correct, 1 wrong
     await _insertAttempt(
@@ -241,8 +234,7 @@ void main() {
   });
 
   // ── Test 5 ──
-  test(
-      'bankStatsListProvider per-mode breakdown shows correct split across '
+  test('bankStatsListProvider per-mode breakdown shows correct split across '
       'modes (random vs review vs spotcheck)', () async {
     await _insertBank(
       db: db,
@@ -250,21 +242,9 @@ void main() {
       name: 'Mixed Mode Bank',
       questionCount: 3,
     );
-    await _insertQuestion(
-      db: db,
-      questionId: 'q-1',
-      bankId: 'bank-1',
-    );
-    await _insertQuestion(
-      db: db,
-      questionId: 'q-2',
-      bankId: 'bank-1',
-    );
-    await _insertQuestion(
-      db: db,
-      questionId: 'q-3',
-      bankId: 'bank-1',
-    );
+    await _insertQuestion(db: db, questionId: 'q-1', bankId: 'bank-1');
+    await _insertQuestion(db: db, questionId: 'q-2', bankId: 'bank-1');
+    await _insertQuestion(db: db, questionId: 'q-3', bankId: 'bank-1');
 
     // Mode: random — 5 attempts (3 correct)
     for (var i = 0; i < 5; i++) {
@@ -307,8 +287,9 @@ void main() {
     expect(reviewMode.correctCount, 2);
     expect(reviewMode.correctRate, closeTo(2.0 / 3.0, 0.001));
 
-    final spotcheckMode =
-        stats.first.modes.firstWhere((m) => m.mode == 'spotcheck');
+    final spotcheckMode = stats.first.modes.firstWhere(
+      (m) => m.mode == 'spotcheck',
+    );
     expect(spotcheckMode.attempts, 2);
     expect(spotcheckMode.correctCount, 0);
     expect(spotcheckMode.correctRate, 0.0);
@@ -358,8 +339,11 @@ void main() {
     const review = ModeBreakdown(mode: 'review', attempts: 5, correctCount: 3);
     expect(review.displayName, '错题复习');
 
-    const spotcheck =
-        ModeBreakdown(mode: 'spotcheck', attempts: 2, correctCount: 0);
+    const spotcheck = ModeBreakdown(
+      mode: 'spotcheck',
+      attempts: 2,
+      correctCount: 0,
+    );
     expect(spotcheck.displayName, '错题抽查');
 
     const unknown = ModeBreakdown(mode: 'other', attempts: 1, correctCount: 1);
@@ -367,38 +351,28 @@ void main() {
   });
 
   // ── Test 9 ──
-  test('bankStatsListProvider includes activeLedgerCount from LedgerRepository',
-      () async {
-    await _insertBank(
-      db: db,
-      bankId: 'bank-1',
-      name: 'Ledger Test Bank',
-      questionCount: 3,
-    );
-    await _insertQuestion(
-      db: db,
-      questionId: 'q-1',
-      bankId: 'bank-1',
-    );
-    await _insertQuestion(
-      db: db,
-      questionId: 'q-2',
-      bankId: 'bank-1',
-    );
-    await _insertQuestion(
-      db: db,
-      questionId: 'q-3',
-      bankId: 'bank-1',
-    );
+  test(
+    'bankStatsListProvider includes activeLedgerCount from LedgerRepository',
+    () async {
+      await _insertBank(
+        db: db,
+        bankId: 'bank-1',
+        name: 'Ledger Test Bank',
+        questionCount: 3,
+      );
+      await _insertQuestion(db: db, questionId: 'q-1', bankId: 'bank-1');
+      await _insertQuestion(db: db, questionId: 'q-2', bankId: 'bank-1');
+      await _insertQuestion(db: db, questionId: 'q-3', bankId: 'bank-1');
 
-    // q-1 and q-2 are active wrong questions (not mastered)
-    await _insertLedgerEntry(db: db, questionId: 'q-1');
-    await _insertLedgerEntry(db: db, questionId: 'q-2');
-    // q-3 is mastered
-    await _insertLedgerEntry(db: db, questionId: 'q-3', mastered: true);
+      // q-1 and q-2 are active wrong questions (not mastered)
+      await _insertLedgerEntry(db: db, questionId: 'q-1');
+      await _insertLedgerEntry(db: db, questionId: 'q-2');
+      // q-3 is mastered
+      await _insertLedgerEntry(db: db, questionId: 'q-3', mastered: true);
 
-    final stats = await container.read(bankStatsListProvider.future);
-    expect(stats.length, 1);
-    expect(stats.first.activeLedgerCount, 2);
-  });
+      final stats = await container.read(bankStatsListProvider.future);
+      expect(stats.length, 1);
+      expect(stats.first.activeLedgerCount, 2);
+    },
+  );
 }

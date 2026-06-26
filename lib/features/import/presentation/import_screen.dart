@@ -34,11 +34,7 @@ class ImportScreen extends ConsumerStatefulWidget {
 class _ImportScreenState extends ConsumerState<ImportScreen> {
   /// 支持的桌面端文件扩展名（用于拖放验证）
   // Note: 'doc' is not supported — pandoc only handles docx.
-  static const _supportedExtensions = [
-    'docx',
-    'pdf',
-    'json',
-  ];
+  static const _supportedExtensions = ['docx', 'pdf', 'json'];
 
   /// 拖放悬停状态——控制视觉反馈覆盖层的显隐
   bool _isDragOver = false;
@@ -58,9 +54,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         : _buildAndroidLayout(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('导入题库'),
-      ),
+      appBar: AppBar(title: const Text('导入题库')),
       body: body,
     );
   }
@@ -94,10 +88,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 560),
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: body,
-                      ),
+                      child: ListView(shrinkWrap: true, children: body),
                     ),
                   ),
                 ),
@@ -107,11 +98,10 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                   child: Text(
                     '或将文件拖放到窗口任意位置',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.6),
-                        ),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
+                    ),
                   ),
                 ),
               ],
@@ -123,10 +113,9 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primaryContainer
-                      .withOpacity(0.15),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withOpacity(0.15),
                   border: Border.all(
                     color: Theme.of(context).colorScheme.primary,
                     width: 2,
@@ -145,7 +134,8 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                       const SizedBox(height: 12),
                       Text(
                         '释放以导入',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
                               color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.w600,
                             ),
@@ -154,11 +144,10 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                       Text(
                         '支持 .docx / .pdf / .json',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.7),
-                            ),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.7),
+                        ),
                       ),
                     ],
                   ),
@@ -208,8 +197,11 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                         color: Colors.white.withAlpha(40),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.cloud_upload_rounded,
-                          color: Colors.white, size: 26),
+                      child: const Icon(
+                        Icons.cloud_upload_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -218,9 +210,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                         children: [
                           Text(
                             '导入题库',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
+                            style: Theme.of(context).textTheme.titleLarge
                                 ?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
@@ -229,12 +219,8 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                           const SizedBox(height: 2),
                           Text(
                             '选择文件格式开始导入',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: Colors.white.withAlpha(200),
-                                ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: Colors.white.withAlpha(200)),
                           ),
                         ],
                       ),
@@ -252,8 +238,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   }
 
   /// 构建格式图块列表
-  List<Widget> _buildTileList(BuildContext context,
-      {required bool isDesktop}) {
+  List<Widget> _buildTileList(BuildContext context, {required bool isDesktop}) {
     final cs = Theme.of(context).colorScheme;
     if (isDesktop) {
       return [
@@ -284,8 +269,11 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                   color: Colors.white.withAlpha(40),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.cloud_upload_rounded,
-                    color: Colors.white, size: 26),
+                child: const Icon(
+                  Icons.cloud_upload_rounded,
+                  color: Colors.white,
+                  size: 26,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -295,16 +283,16 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                     Text(
                       '导入题库',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '选择文件格式或拖放到窗口',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white.withAlpha(200),
-                          ),
+                        color: Colors.white.withAlpha(200),
+                      ),
                     ),
                   ],
                 ),
@@ -381,10 +369,9 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     Set<String> extensions,
     String dialogTitle,
   ) async {
-    final picked = await ref.read(filePickerServiceProvider).pickFile(
-          allowedExtensions: extensions,
-          dialogTitle: dialogTitle,
-        );
+    final picked = await ref
+        .read(filePickerServiceProvider)
+        .pickFile(allowedExtensions: extensions, dialogTitle: dialogTitle);
     if (picked == null) return; // 用户取消
     await _onFileSelected(context, picked);
   }

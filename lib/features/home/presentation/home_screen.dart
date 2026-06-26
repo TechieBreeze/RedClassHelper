@@ -48,8 +48,7 @@ class HomeScreen extends StatelessWidget {
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxW ?? double.infinity),
               child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                    horizontal: hPad, vertical: 20),
+                padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -61,7 +60,9 @@ class HomeScreen extends StatelessWidget {
                         final wrong =
                             ref.watch(wrongQuestionsProvider).value ?? 0;
                         final totalQ = banks.fold<int>(
-                            0, (s, b) => s + b.totalQuestions);
+                          0,
+                          (s, b) => s + b.totalQuestions,
+                        );
                         return _HeroBanner(
                           bankCount: banks.length,
                           questionCount: totalQ,
@@ -90,14 +91,12 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     Consumer(
                       builder: (context, ref, _) {
-                        final banksAsync =
-                            ref.watch(bankPickListProvider);
+                        final banksAsync = ref.watch(bankPickListProvider);
                         return banksAsync.when(
                           loading: () => _LoadingBanks(),
                           error: (e, _) => _ErrorBanks(
                             msg: e.toString(),
-                            onRetry: () =>
-                                ref.invalidate(bankPickListProvider),
+                            onRetry: () => ref.invalidate(bankPickListProvider),
                           ),
                           data: (banks) {
                             if (banks.isEmpty) {
@@ -182,9 +181,7 @@ class _HeroBanner extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             '每天复习一点点，考试轻松过',
-            style: tt.bodyMedium?.copyWith(
-              color: Colors.white.withAlpha(200),
-            ),
+            style: tt.bodyMedium?.copyWith(color: Colors.white.withAlpha(200)),
           ),
           const SizedBox(height: 20),
           Row(
@@ -230,15 +227,15 @@ class _HeroStat extends StatelessWidget {
         Text(
           value,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: valueColor ?? Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
+            color: valueColor ?? Colors.white,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         Text(
           label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: Colors.white.withAlpha(highlight ? 220 : 170),
-              ),
+            color: Colors.white.withAlpha(highlight ? 220 : 170),
+          ),
         ),
       ],
     );
@@ -347,8 +344,7 @@ class _ActionCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
                 children: [
                   Container(
@@ -358,8 +354,7 @@ class _ActionCard extends StatelessWidget {
                       color: Colors.white.withAlpha(40),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(data.icon,
-                        color: Colors.white, size: 26),
+                    child: Icon(data.icon, color: Colors.white, size: 26),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -369,9 +364,7 @@ class _ActionCard extends StatelessWidget {
                       children: [
                         Text(
                           data.title,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
+                          style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w700,
@@ -380,12 +373,8 @@ class _ActionCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           data.subtitle,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(
-                                color: Colors.white.withAlpha(200),
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.white.withAlpha(200)),
                         ),
                       ],
                     ),
@@ -393,7 +382,9 @@ class _ActionCard extends StatelessWidget {
                   if (data.badge != null && data.badge! > 0)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withAlpha(40),
                         borderRadius: BorderRadius.circular(12),
@@ -408,8 +399,11 @@ class _ActionCard extends StatelessWidget {
                       ),
                     ),
                   if (data.badge == null || data.badge == 0)
-                    const Icon(Icons.arrow_forward_ios_rounded,
-                        color: Colors.white70, size: 16),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: Colors.white70,
+                      size: 16,
+                    ),
                 ],
               ),
             ),
@@ -425,11 +419,7 @@ class _ActionCard extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.title,
-    this.action,
-    this.onAction,
-  });
+  const _SectionTitle({required this.title, this.action, this.onAction});
   final String title;
   final String? action;
   final VoidCallback? onAction;
@@ -440,9 +430,9 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
         const Spacer(),
         if (action != null && onAction != null)
@@ -471,8 +461,7 @@ class _BankRow extends StatelessWidget {
     return HoverableCard(
       onTap: () => context.push('/bank/${bank.id}'),
       child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
             Container(
@@ -486,8 +475,11 @@ class _BankRow extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(Icons.menu_book_rounded,
-                  size: 22, color: cs.onPrimaryContainer),
+              child: Icon(
+                Icons.menu_book_rounded,
+                size: 22,
+                color: cs.onPrimaryContainer,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -496,20 +488,18 @@ class _BankRow extends StatelessWidget {
                 children: [
                   Text(
                     bank.name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${item.totalQuestions} 题 · ${p.basename(bank.source)}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: cs.onSurface.withAlpha(150)),
+                    '${item.totalQuestions} 题 · ${p.basename(bank.source ?? bank.name)}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: cs.onSurface.withAlpha(150),
+                    ),
                   ),
                 ],
               ),
@@ -517,8 +507,7 @@ class _BankRow extends StatelessWidget {
             if (item.activeWrongCount > 0)
               Container(
                 margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: cs.errorContainer,
                   borderRadius: BorderRadius.circular(8),
@@ -532,8 +521,7 @@ class _BankRow extends StatelessWidget {
                   ),
                 ),
               ),
-            Icon(Icons.chevron_right_rounded,
-                color: cs.outline, size: 20),
+            Icon(Icons.chevron_right_rounded, color: cs.outline, size: 20),
           ],
         ),
       ),
@@ -554,17 +542,15 @@ class _EmptyBank extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 32),
         child: Column(
           children: [
-            Icon(Icons.library_add_rounded,
-                size: 44, color: cs.outline),
+            Icon(Icons.library_add_rounded, size: 44, color: cs.outline),
             const SizedBox(height: 12),
-            Text('还没有题库',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text('还没有题库', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 4),
             Text(
               '导入 .docx / .pdf / .json 开始复习',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: cs.onSurface.withAlpha(150),
-                  ),
+                color: cs.onSurface.withAlpha(150),
+              ),
             ),
             const SizedBox(height: 16),
             FilledButton.tonalIcon(
@@ -605,20 +591,22 @@ class _LoadingBanks extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                            width: 140,
-                            height: 14,
-                            decoration: BoxDecoration(
-                              color: cs.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(4),
-                            )),
+                          width: 140,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: cs.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Container(
-                            width: 100,
-                            height: 11,
-                            decoration: BoxDecoration(
-                              color: cs.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(4),
-                            )),
+                          width: 100,
+                          height: 11,
+                          decoration: BoxDecoration(
+                            color: cs.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -645,15 +633,19 @@ class _ErrorBanks extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Icon(Icons.error_outline,
-                size: 32, color: Theme.of(context).colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              size: 32,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 8),
-            Text('加载失败',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text('加载失败', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 4),
-            Text(msg,
-                style: Theme.of(context).textTheme.bodySmall,
-                textAlign: TextAlign.center),
+            Text(
+              msg,
+              style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: onRetry,
@@ -681,8 +673,7 @@ class _StatTile extends StatelessWidget {
     return HoverableCard(
       onTap: onTap,
       child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
             Container(
@@ -690,17 +681,17 @@ class _StatTile extends StatelessWidget {
               height: 42,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    cs.secondaryContainer,
-                    cs.secondary.withAlpha(60),
-                  ],
+                  colors: [cs.secondaryContainer, cs.secondary.withAlpha(60)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(Icons.insights_rounded,
-                  size: 22, color: cs.onSecondaryContainer),
+              child: Icon(
+                Icons.insights_rounded,
+                size: 22,
+                color: cs.onSecondaryContainer,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -709,26 +700,21 @@ class _StatTile extends StatelessWidget {
                 children: [
                   Text(
                     '数据统计',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '查看正确率与错题分布',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(
-                          color: cs.onSurface.withAlpha(150),
-                        ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: cs.onSurface.withAlpha(150),
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded,
-                color: cs.outline, size: 20),
+            Icon(Icons.chevron_right_rounded, color: cs.outline, size: 20),
           ],
         ),
       ),
@@ -763,9 +749,9 @@ class _HomeNavDrawer extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
               child: Text(
                 '红课复习',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             for (final item in _items)
@@ -788,7 +774,11 @@ class _HomeNavDrawer extends StatelessWidget {
 }
 
 class _NavItem {
-  const _NavItem({required this.route, required this.icon, required this.label});
+  const _NavItem({
+    required this.route,
+    required this.icon,
+    required this.label,
+  });
   final String route;
   final IconData icon;
   final String label;

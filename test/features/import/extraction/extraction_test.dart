@@ -29,9 +29,7 @@ bool _pdfiumAvailable() {
 void main() {
   group('DocxExtractor', () {
     test('extracts text from real .docx sample', () async {
-      final path = _samplePath(
-        '习近平新时代中国特色社会主义思想概论题库（2026年春季学期）5月28日修订.docx',
-      );
+      final path = _samplePath('习近平新时代中国特色社会主义思想概论题库（2026年春季学期）5月28日修订.docx');
 
       if (!File(path).existsSync()) {
         throw TestFailure('Sample file not found: $path');
@@ -55,8 +53,7 @@ void main() {
     });
 
     test('throws for non-ZIP file disguised as .docx', () async {
-      final tmpFile =
-          File('${Directory.systemTemp.path}/test_not_zip.docx');
+      final tmpFile = File('${Directory.systemTemp.path}/test_not_zip.docx');
       await tmpFile.writeAsString('not a zip file');
 
       try {
@@ -80,9 +77,7 @@ void main() {
         return;
       }
 
-      final path = _samplePath(
-        '《纲要》选择题（2026年5月最新修订版）.pdf',
-      );
+      final path = _samplePath('《纲要》选择题（2026年5月最新修订版）.pdf');
 
       if (!File(path).existsSync()) {
         throw TestFailure('Sample file not found: $path');
@@ -104,18 +99,13 @@ void main() {
 
   group('TextExtractor dispatcher', () {
     test('routes .docx to docx extractor', () async {
-      final path = _samplePath(
-        '习近平新时代中国特色社会主义思想概论题库（2026年春季学期）5月28日修订.docx',
-      );
+      final path = _samplePath('习近平新时代中国特色社会主义思想概论题库（2026年春季学期）5月28日修订.docx');
 
       if (!File(path).existsSync()) {
         throw TestFailure('Sample file not found: $path');
       }
 
-      final text = await extractText(
-        path,
-        fileExtension: '.docx',
-      );
+      final text = await extractText(path, fileExtension: '.docx');
       expect(text, isNotEmpty);
       expect(text, contains('A'));
     });
@@ -125,25 +115,18 @@ void main() {
         return; // PDFium not available in test env
       }
 
-      final path = _samplePath(
-        '《纲要》选择题（2026年5月最新修订版）.pdf',
-      );
+      final path = _samplePath('《纲要》选择题（2026年5月最新修订版）.pdf');
 
       if (!File(path).existsSync()) {
         throw TestFailure('Sample file not found: $path');
       }
 
-      final text = await extractText(
-        path,
-        fileExtension: '.pdf',
-      );
+      final text = await extractText(path, fileExtension: '.pdf');
       expect(text, isNotEmpty);
     });
 
     test('throws UnsupportedFormatException for .txt', () async {
-      final txtFile = File(
-        '${Directory.systemTemp.path}/test.txt',
-      );
+      final txtFile = File('${Directory.systemTemp.path}/test.txt');
       await txtFile.writeAsString('sample text');
 
       try {
@@ -159,9 +142,7 @@ void main() {
     });
 
     test('.doc extension requires pandoc resolvers', () async {
-      final docFile = File(
-        '${Directory.systemTemp.path}/test.doc',
-      );
+      final docFile = File('${Directory.systemTemp.path}/test.doc');
       await docFile.writeAsString('dummy');
 
       try {

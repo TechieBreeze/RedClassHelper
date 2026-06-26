@@ -21,8 +21,8 @@ part 'paths.g.dart';
 /// 系统中未找到 pandoc 时抛出的异常
 class PandocNotFoundException implements Exception {
   PandocNotFoundException()
-      : message =
-            '需要安装 pandoc 来导入 .doc 文件。下载地址：https://pandoc.org/installing.html';
+    : message =
+          '需要安装 pandoc 来导入 .doc 文件。下载地址：https://pandoc.org/installing.html';
 
   final String message;
 
@@ -46,11 +46,7 @@ class PathResolver {
       getApplicationDocumentsDirectory(), // D-16: models/cache/diagnostics
       getTemporaryDirectory(), // D-16: temp
     ]);
-    return PathResolver(
-      results[0],
-      results[1],
-      results[2],
-    );
+    return PathResolver(results[0], results[1], results[2]);
   }
 
   /// SQLite 数据库文件: getApplicationSupportDirectory()/redclass.db
@@ -65,7 +61,8 @@ class PathResolver {
   Future<Directory> get cacheDir => _ensureSubdir(_appDocs, 'cache');
 
   /// 诊断包导出: documents/diagnostics/
-  Future<Directory> get diagnosticsDir => _ensureSubdir(_appDocs, 'diagnostics');
+  Future<Directory> get diagnosticsDir =>
+      _ensureSubdir(_appDocs, 'diagnostics');
 
   /// 临时目录(下载中分片 / 解析中临时文件)
   String get tempDir => _temp.path;
@@ -106,10 +103,9 @@ class PathResolver {
   /// 检查命令行工具是否在 PATH 中可用
   static Future<bool> _commandExists(String command) async {
     try {
-      final result = await Process.run(
-        Platform.isWindows ? 'where' : 'which',
-        [command],
-      );
+      final result = await Process.run(Platform.isWindows ? 'where' : 'which', [
+        command,
+      ]);
       return result.exitCode == 0;
     } catch (_) {
       return false;
@@ -122,8 +118,7 @@ class PathResolver {
       final localAppData = Platform.environment['LOCALAPPDATA'] ?? '';
       return [
         r'C:\Program Files\Pandoc\pandoc.exe',
-        if (localAppData.isNotEmpty)
-          p.join(localAppData, r'Pandoc\pandoc.exe'),
+        if (localAppData.isNotEmpty) p.join(localAppData, r'Pandoc\pandoc.exe'),
         r'C:\Program Files (x86)\Pandoc\pandoc.exe',
       ];
     }

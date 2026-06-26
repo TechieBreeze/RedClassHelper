@@ -23,10 +23,14 @@ final RegExp _trueFalseCleanRE = RegExp(
 ///  "会议是（D）" → "会议是（）"
 ///  "资本是...价值。（对）" → "资本是...价值。（）"
 String _stripInlineAnswer(String stem) {
-  stem = stem.replaceAllMapped(_inlineAnswerCleanRE,
-      (m) => '${m.group(1)}${m.group(2)}');
-  stem = stem.replaceAllMapped(_trueFalseCleanRE,
-      (m) => '${m.group(1)}${m.group(2)}');
+  stem = stem.replaceAllMapped(
+    _inlineAnswerCleanRE,
+    (m) => '${m.group(1)}${m.group(2)}',
+  );
+  stem = stem.replaceAllMapped(
+    _trueFalseCleanRE,
+    (m) => '${m.group(1)}${m.group(2)}',
+  );
   return stem;
 }
 
@@ -54,10 +58,9 @@ Map<String, dynamic> bankToUserJson(
   final questionsMap = <String, dynamic>{};
   for (var i = 0; i < questions.length; i++) {
     final q = questions[i];
-    final optionsList =
-        (jsonDecode(q.optionsJson) as List).cast<Map<String, dynamic>>();
-    final correctList =
-        (jsonDecode(q.correctJson) as List).cast<String>();
+    final optionsList = (jsonDecode(q.optionsJson) as List)
+        .cast<Map<String, dynamic>>();
+    final correctList = (jsonDecode(q.correctJson) as List).cast<String>();
 
     final answerMap = <String, String>{};
     for (final opt in optionsList) {
@@ -74,11 +77,7 @@ Map<String, dynamic> bankToUserJson(
     };
   }
 
-  return {
-    'name': bank.name,
-    'version': '1.0',
-    'questions': questionsMap,
-  };
+  return {'name': bank.name, 'version': '1.0', 'questions': questionsMap};
 }
 
 /// Converts user JSON format back to DB entities for insertion.
@@ -101,9 +100,7 @@ Map<String, dynamic> bankToUserJson(
   // Validate top-level 'name'
   final name = json['name'];
   if (name is! String || name.isEmpty) {
-    throw const FormatException(
-      'JSON must contain a non-empty "name" field',
-    );
+    throw const FormatException('JSON must contain a non-empty "name" field');
   }
 
   // Validate 'version'
@@ -120,9 +117,7 @@ Map<String, dynamic> bankToUserJson(
   }
 
   // Sort keys numerically (not lexicographically) — Pitfall 2
-  final sortedKeys = questionsData.keys
-      .map((k) => int.parse(k))
-      .toList()
+  final sortedKeys = questionsData.keys.map((k) => int.parse(k)).toList()
     ..sort();
 
   final companions = <QuestionsCompanion>[];
@@ -136,9 +131,7 @@ Map<String, dynamic> bankToUserJson(
     // Validate 'key' — must match ^[A-H]+$
     final rawKey = qData['key'];
     if (rawKey is! String || !RegExp(r'^[A-H]+$').hasMatch(rawKey)) {
-      throw FormatException(
-        'Question $numKey has invalid key: $rawKey',
-      );
+      throw FormatException('Question $numKey has invalid key: $rawKey');
     }
 
     // Validate 'answer_type' — must be 0 or 1
@@ -159,10 +152,9 @@ Map<String, dynamic> bankToUserJson(
     );
 
     // Convert answer map to options array: {"A":"text"} → [{"key":"A","text":"text"}]
-    final optionsList = answerMap.entries.map((e) => {
-          'key': e.key,
-          'text': e.value,
-        }).toList();
+    final optionsList = answerMap.entries
+        .map((e) => {'key': e.key, 'text': e.value})
+        .toList();
 
     // Convert key string to array: "AC" → ["A","C"]
     final correctList = rawKey.split('').toList();
@@ -171,16 +163,18 @@ Map<String, dynamic> bankToUserJson(
     // 去掉旧格式可能残留的 "1. " 编号前缀
     final stem = (questionText is String ? questionText : '$questionText')
         .replaceFirst(RegExp(r'^\d+[.、．]\s*'), '');
-    companions.add(QuestionsCompanion.insert(
-      id: const Uuid().v4(),
-      bankId: bankId,
-      type: answerType == 1 ? 'multiple' : 'single',
-      stem: stem,
-      optionsJson: jsonEncode(optionsList),
-      correctJson: jsonEncode(correctList),
-      rawText: stem,
-      createdAt: DateTime.now(),
-    ));
+    companions.add(
+      QuestionsCompanion.insert(
+        id: const Uuid().v4(),
+        bankId: bankId,
+        type: answerType == 1 ? 'multiple' : 'single',
+        stem: stem,
+        optionsJson: jsonEncode(optionsList),
+        correctJson: jsonEncode(correctList),
+        rawText: stem,
+        createdAt: DateTime.now(),
+      ),
+    );
   }
 
   return (bankName: name, questions: companions);

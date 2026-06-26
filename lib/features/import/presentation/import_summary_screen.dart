@@ -46,9 +46,7 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
 
     // 统计题型分布
     final typeCounts = _countByType(state.candidates, state.confirmedIndices);
-    final fileName = state.files.isNotEmpty
-        ? state.files.first.name
-        : '未知文件';
+    final fileName = state.files.isNotEmpty ? state.files.first.name : '未知文件';
 
     return PopScope(
       canPop: false,
@@ -60,12 +58,7 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
         body: AdaptiveLayout(
           compact: (_) => KeyedSubtree(
             key: const Key('import_summary_vertical_layout'),
-            child: _buildVerticalLayout(
-              context,
-              state,
-              fileName,
-              typeCounts,
-            ),
+            child: _buildVerticalLayout(context, state, fileName, typeCounts),
           ),
           medium: (_) => KeyedSubtree(
             key: const Key('import_summary_vertical_layout'),
@@ -79,12 +72,7 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
           ),
           expanded: (_) => KeyedSubtree(
             key: const Key('import_summary_horizontal_layout'),
-            child: _buildHorizontalLayout(
-              context,
-              state,
-              fileName,
-              typeCounts,
-            ),
+            child: _buildHorizontalLayout(context, state, fileName, typeCounts),
           ),
         ),
       ),
@@ -114,10 +102,7 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: heroGradient(
-                      theme.colorScheme,
-                      theme.brightness,
-                    ),
+                    colors: heroGradient(theme.colorScheme, theme.brightness),
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -189,8 +174,9 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                 ),
               ),
               // ── Phase 3: 解析来源章节（D-09）──
-              if (state.parseSources.values
-                  .any((s) => s == ParseSource.llm || s == ParseSource.fallback))
+              if (state.parseSources.values.any(
+                (s) => s == ParseSource.llm || s == ParseSource.fallback,
+              ))
                 _buildParseSourceSection(context, state),
               // ── 跳过题目列表（D-09）──
               if (state.skippedCandidates.isNotEmpty) ...[
@@ -251,10 +237,7 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: heroGradient(
-                        theme.colorScheme,
-                        theme.brightness,
-                      ),
+                      colors: heroGradient(theme.colorScheme, theme.brightness),
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -332,7 +315,8 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                       ),
                     ),
                     if (state.parseSources.values.any(
-                        (s) => s == ParseSource.llm || s == ParseSource.fallback))
+                      (s) => s == ParseSource.llm || s == ParseSource.fallback,
+                    ))
                       _buildParseSourceSection(context, state),
                     if (state.skippedCandidates.isNotEmpty) ...[
                       const SizedBox(height: 24),
@@ -379,11 +363,7 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -392,20 +372,19 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.6),
-                    ),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.6),
+                ),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
                 style: monospace
                     ? Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontFamily: 'monospace',
-                          fontSize: 13,
-                        )
+                        fontFamily: 'monospace',
+                        fontSize: 13,
+                      )
                     : Theme.of(context).textTheme.bodyMedium,
               ),
             ],
@@ -425,11 +404,8 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
         Text(
           '题型分布',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withOpacity(0.6),
-              ),
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          ),
         ),
         const SizedBox(height: 8),
         ...typeCounts.entries.map(
@@ -464,8 +440,11 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.warning_amber_rounded,
-                    color: Colors.orange.shade700, size: 20),
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.orange.shade700,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   '⚠ 跳过 ${skipped.length} 题',
@@ -651,21 +630,19 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
               children: [
                 Row(
                   children: [
-                    Text(
-                      label,
-                      style: theme.textTheme.bodyMedium,
-                    ),
+                    Text(label, style: theme.textTheme.bodyMedium),
                     const SizedBox(width: 8),
                     Text(
                       '$count 题',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: color,
-                      ),
+                      style: theme.textTheme.labelLarge?.copyWith(color: color),
                     ),
                     if (showCheck) ...[
                       const SizedBox(width: 4),
-                      Icon(Icons.check_circle,
-                          size: 16, color: Theme.of(context).colorScheme.tertiary),
+                      Icon(
+                        Icons.check_circle,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.tertiary,
+                      ),
                     ],
                   ],
                 ),
@@ -695,8 +672,7 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
   Color _sourceColor(ParseSource source) {
     return switch (source) {
       ParseSource.llm => Colors.teal,
-      ParseSource.heuristic =>
-        Theme.of(context).colorScheme.secondary,
+      ParseSource.heuristic => Theme.of(context).colorScheme.secondary,
       ParseSource.fallback => Colors.amber.shade700,
     };
   }

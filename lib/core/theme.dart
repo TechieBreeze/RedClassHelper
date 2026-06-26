@@ -21,7 +21,11 @@ Color heroShadowColor(ColorScheme cs, Brightness brightness) {
 }
 
 /// 构造 App 全局 ThemeData
-ThemeData buildAppTheme(Brightness brightness, ColorScheme? dynamicScheme, {AppColorScheme colorScheme = AppColorScheme.teal}) {
+ThemeData buildAppTheme(
+  Brightness brightness,
+  ColorScheme? dynamicScheme, {
+  AppColorScheme colorScheme = AppColorScheme.teal,
+}) {
   final seedColor = seedColorForScheme(colorScheme);
   final scheme = ColorScheme.fromSeed(
     seedColor: seedColor,
@@ -112,7 +116,11 @@ ColorScheme _darkSchemeFor(AppColorScheme scheme) {
   };
 }
 
-ThemeData _buildThemeData(ColorScheme scheme, Brightness brightness, AppColorScheme colorScheme) {
+ThemeData _buildThemeData(
+  ColorScheme scheme,
+  Brightness brightness,
+  AppColorScheme colorScheme,
+) {
   final base = brightness == Brightness.dark
       ? Typography.whiteMountainView
       : Typography.blackMountainView;
@@ -141,9 +149,7 @@ ThemeData _buildThemeData(ColorScheme scheme, Brightness brightness, AppColorSch
       elevation: 1,
       margin: EdgeInsets.zero,
       color: effectiveScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: ButtonStyle(
@@ -164,14 +170,10 @@ ThemeData _buildThemeData(ColorScheme scheme, Brightness brightness, AppColorSch
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ButtonStyle(
-        mouseCursor: _clickCursor,
-      ),
+      style: ButtonStyle(mouseCursor: _clickCursor),
     ),
     iconButtonTheme: IconButtonThemeData(
-      style: ButtonStyle(
-        mouseCursor: _clickCursor,
-      ),
+      style: ButtonStyle(mouseCursor: _clickCursor),
     ),
     listTileTheme: ListTileThemeData(
       mouseCursor: WidgetStateProperty.all(SystemMouseCursors.click),
@@ -190,4 +192,3 @@ ThemeData _buildThemeData(ColorScheme scheme, Brightness brightness, AppColorSch
     ),
   );
 }
-

@@ -42,9 +42,7 @@ void main() {
 
   group('Pipeline integration', () {
     test('extract + parse .docx sample yields valid candidates', () async {
-      final path = _samplePath(
-        '习近平新时代中国特色社会主义思想概论题库（2026年春季学期）5月28日修订.docx',
-      );
+      final path = _samplePath('习近平新时代中国特色社会主义思想概论题库（2026年春季学期）5月28日修订.docx');
 
       if (!File(path).existsSync()) {
         throw TestFailure('Sample .docx not found: $path');
@@ -56,10 +54,7 @@ void main() {
       expect(text.length, greaterThan(500));
 
       // Phase 2: 解析
-      final candidates = parser.parse(
-        text,
-        bankName: '集成测试题库',
-      );
+      final candidates = parser.parse(text, bankName: '集成测试题库');
       expect(candidates, isNotEmpty);
 
       // 验证候选结构
@@ -77,8 +72,9 @@ void main() {
       expect(withType.length, greaterThanOrEqualTo(1));
 
       // 验证解析器输出可以持久化
-      final validCandidates =
-          candidates.where((c) => c.candidateType != CandidateType.unknown);
+      final validCandidates = candidates.where(
+        (c) => c.candidateType != CandidateType.unknown,
+      );
 
       if (validCandidates.isNotEmpty) {
         // 测试 DB 插入（不创建 ParseJob 避免 FK 约束）
@@ -109,9 +105,7 @@ void main() {
           return;
         }
 
-        final path = _samplePath(
-          '《纲要》选择题（2026年5月最新修订版）.pdf',
-        );
+        final path = _samplePath('《纲要》选择题（2026年5月最新修订版）.pdf');
 
         if (!File(path).existsSync()) {
           throw TestFailure('Sample .pdf not found: $path');
@@ -123,10 +117,7 @@ void main() {
         expect(text.length, greaterThan(500));
 
         // Phase 2: 解析
-        final candidates = parser.parse(
-          text,
-          bankName: 'PDF 测试题库',
-        );
+        final candidates = parser.parse(text, bankName: 'PDF 测试题库');
         expect(candidates, isNotEmpty);
 
         // 验证题型分布

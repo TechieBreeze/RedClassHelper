@@ -33,12 +33,14 @@ class QuizSessionPersistence {
       'questionIds': questions.map((q) => q.id).toList(),
       'currentIndex': currentIndex,
       'answers': answers
-          .map((a) => {
-                'questionId': a.questionId,
-                'givenAnswer': a.givenAnswer,
-                'isCorrect': a.isCorrect,
-                'elapsedMs': a.elapsedMs,
-              })
+          .map(
+            (a) => {
+              'questionId': a.questionId,
+              'givenAnswer': a.givenAnswer,
+              'isCorrect': a.isCorrect,
+              'elapsedMs': a.elapsedMs,
+            },
+          )
           .toList(),
       'startTime': startTime.toIso8601String(),
       'bankName': bankName,
@@ -61,16 +63,15 @@ class QuizSessionPersistence {
     try {
       final data = jsonDecode(raw) as Map<String, dynamic>;
       final savedMode = reviewModeFromString(data['mode'] as String);
-      final questionIds =
-          (data['questionIds'] as List).cast<String>();
+      final questionIds = (data['questionIds'] as List).cast<String>();
       final currentIndex = data['currentIndex'] as int;
 
       // 从数据库重建题目列表（保持保存时的顺序）
       final questions = <Question>[];
       for (final id in questionIds) {
-        final q = await (db.select(db.questions)
-          ..where((q) => q.id.equals(id))
-        ).getSingleOrNull();
+        final q = await (db.select(
+          db.questions,
+        )..where((q) => q.id.equals(id))).getSingleOrNull();
         if (q != null) questions.add(q);
       }
 
@@ -89,9 +90,9 @@ class QuizSessionPersistence {
       }).toList();
 
       // 加载题库名称
-      final bank = await (db.select(db.questionBanks)
-        ..where((b) => b.id.equals(bankId))
-      ).getSingleOrNull();
+      final bank = await (db.select(
+        db.questionBanks,
+      )..where((b) => b.id.equals(bankId))).getSingleOrNull();
 
       final startTime = DateTime.parse(data['startTime'] as String);
       final elapsed = DateTime.now().difference(startTime).inSeconds;

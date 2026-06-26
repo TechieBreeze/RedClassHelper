@@ -26,9 +26,7 @@ class HeuristicParser {
 
   /// 选项标签（空格分隔）：行首 "A 选项文本"（无点号），需上下文验证
   /// 支持半角 [A-H] 和全角 [Ａ-Ｈ] 字母
-  static final RegExp _choiceLabelSpaceRE = RegExp(
-    r'^\s*([A-HＡ-Ｈ])\s+(.*)$',
-  );
+  static final RegExp _choiceLabelSpaceRE = RegExp(r'^\s*([A-HＡ-Ｈ])\s+(.*)$');
 
   /// 答案行：答案：A / 参考答案：ABC 等
   static final RegExp _answerLineRE = RegExp(
@@ -103,12 +101,14 @@ class HeuristicParser {
     for (final block in blocks) {
       final candidate = _parseBlock(block, inlineFormat: !hasQuestionNumbers);
       if (candidate != null) {
-        candidates.add(candidate.copyWith(
-          metadata: {
-            ...candidate.metadata,
-            if (bankName.isNotEmpty) 'bankName': bankName,
-          },
-        ));
+        candidates.add(
+          candidate.copyWith(
+            metadata: {
+              ...candidate.metadata,
+              if (bankName.isNotEmpty) 'bankName': bankName,
+            },
+          ),
+        );
       }
     }
     return candidates;
@@ -193,9 +193,9 @@ class HeuristicParser {
       if (trimmed.isEmpty) {
         tags.add(_LineTag.empty);
       } else if (_choiceLabelRE.hasMatch(trimmed) ||
-                 _inlineChoiceRE.hasMatch(trimmed) ||
-                 _choiceLabelSpaceRE.hasMatch(trimmed) ||
-                 _inlineChoiceSpaceRE.allMatches(trimmed).length >= 2) {
+          _inlineChoiceRE.hasMatch(trimmed) ||
+          _choiceLabelSpaceRE.hasMatch(trimmed) ||
+          _inlineChoiceSpaceRE.allMatches(trimmed).length >= 2) {
         tags.add(_LineTag.option);
       } else if (_answerLineRE.hasMatch(trimmed)) {
         tags.add(_LineTag.answer);
@@ -233,11 +233,7 @@ class HeuristicParser {
     for (var i = 0; i < lines.length; i++) {
       if (tags[i] == _LineTag.empty) {
         if (blockStart >= 0) {
-          blocks.add(_Block(
-            lines.sublist(blockStart, i),
-            blockStart,
-            i - 1,
-          ));
+          blocks.add(_Block(lines.sublist(blockStart, i), blockStart, i - 1));
           blockStart = -1;
         }
         continue;
@@ -245,11 +241,7 @@ class HeuristicParser {
 
       if (isQuestionStart[i]) {
         if (blockStart >= 0) {
-          blocks.add(_Block(
-            lines.sublist(blockStart, i),
-            blockStart,
-            i - 1,
-          ));
+          blocks.add(_Block(lines.sublist(blockStart, i), blockStart, i - 1));
         }
         blockStart = i;
       } else if (blockStart < 0 && tags[i] != _LineTag.empty) {
@@ -259,11 +251,9 @@ class HeuristicParser {
     }
 
     if (blockStart >= 0) {
-      blocks.add(_Block(
-        lines.sublist(blockStart),
-        blockStart,
-        lines.length - 1,
-      ));
+      blocks.add(
+        _Block(lines.sublist(blockStart), blockStart, lines.length - 1),
+      );
     }
 
     return blocks;
@@ -308,7 +298,10 @@ class HeuristicParser {
     final explanation = _extractExplanation(lines);
     final candidateType = _determineType(cleanTitle, options, answer);
     final confidence = _calculateConfidence(
-      candidateType, options, answer, explanation,
+      candidateType,
+      options,
+      answer,
+      explanation,
     );
 
     return ParseCandidate(
@@ -387,8 +380,7 @@ class HeuristicParser {
     var afterNumber = firstLine.substring(numberMatch.end).trim();
     // Strip leading ornamental punctuation (e.g. stray fullwidth dot
     // left over from merged blocks across page breaks).
-    afterNumber =
-        afterNumber.replaceFirst(RegExp(r'^[.、．]+'), '').trim();
+    afterNumber = afterNumber.replaceFirst(RegExp(r'^[.、．]+'), '').trim();
     final titleLines = <String>[];
 
     // 同行的点号分隔选项：从题干中切掉
@@ -401,7 +393,9 @@ class HeuristicParser {
 
     // 同行的空格分隔选项：从题干中切掉
     // e.g. "...以（ D ）为主线 A 马克思主义理论  B ..." → title ends before "A 马克思"
-    final firstInlineSpace = _inlineChoiceSpaceRE.allMatches(afterNumber).toList();
+    final firstInlineSpace = _inlineChoiceSpaceRE
+        .allMatches(afterNumber)
+        .toList();
     if (firstInlineSpace.length >= 2) {
       // 检查第一个匹配是否在括号内（答案字母）—— 如果是则不截断
       if (!_isInsideBrackets(afterNumber, firstInlineSpace.first.start)) {
@@ -450,7 +444,8 @@ class HeuristicParser {
       // 如果有待补全的选项标签：当前行是它的内容
       // （除非是答案/解析/题号行 — 那些应丢弃 pending 并按标准处理）
       if (pendingLabel != null) {
-        final isStructuralLine = _answerLineRE.hasMatch(line) ||
+        final isStructuralLine =
+            _answerLineRE.hasMatch(line) ||
             _explanationLineRE.hasMatch(line) ||
             _sectionHeaderRE.hasMatch(line) ||
             RegExp(r'^\d').hasMatch(line);
@@ -532,8 +527,7 @@ class HeuristicParser {
           !_sectionHeaderRE.hasMatch(line) &&
           !RegExp(r'^[A-HA-Ｈ]').hasMatch(line) &&
           !RegExp(r'^\d').hasMatch(line)) {
-        options[options.length - 1] =
-            '${options[options.length - 1]} $line';
+        options[options.length - 1] = '${options[options.length - 1]} $line';
       }
     }
     return options;
@@ -582,15 +576,23 @@ class HeuristicParser {
       if (i > 0) {
         final prev = line[i - 1];
         final prevCode = prev.codeUnitAt(0);
-        final isPrevWhitespace = prevCode == 0x20 ||
+        final isPrevWhitespace =
+            prevCode == 0x20 ||
             prevCode == 0x09 ||
             (prevCode >= 0x2000 && prevCode <= 0x200A) ||
             prevCode == 0x3000;
         final isPrevPunct =
-            prev == '.' || prev == '、' || prev == '．' ||
-            prev == '。' || prev == '，' || prev == '；' ||
-            prev == '：' || prev == '！' || prev == '？' ||
-            prev == ')' || prev == '）';
+            prev == '.' ||
+            prev == '、' ||
+            prev == '．' ||
+            prev == '。' ||
+            prev == '，' ||
+            prev == '；' ||
+            prev == '：' ||
+            prev == '！' ||
+            prev == '？' ||
+            prev == ')' ||
+            prev == '）';
         if (!isPrevWhitespace && !isPrevPunct) continue;
       }
       // 后续字符：可选分隔符 + 非空白
@@ -657,8 +659,10 @@ class HeuristicParser {
     var totalLabels = 0;
     for (final rawLine in lines) {
       final line = rawLine.trim();
-      if (line.isEmpty || _answerLineRE.hasMatch(line) ||
-          _explanationLineRE.hasMatch(line)) continue;
+      if (line.isEmpty ||
+          _answerLineRE.hasMatch(line) ||
+          _explanationLineRE.hasMatch(line))
+        continue;
       // 使用位置扫描代替正则，自动跳过括号内字母
       final positions = _findInlineLabelPositions(line);
       if (positions.length >= 2) {
@@ -706,8 +710,7 @@ class HeuristicParser {
           !_sectionHeaderRE.hasMatch(line) &&
           !RegExp(r'^[A-HA-Ｈ]').hasMatch(line) &&
           !RegExp(r'^\d').hasMatch(line)) {
-        options[options.length - 1] =
-            '${options[options.length - 1]} $line';
+        options[options.length - 1] = '${options[options.length - 1]} $line';
       }
     }
     return options;

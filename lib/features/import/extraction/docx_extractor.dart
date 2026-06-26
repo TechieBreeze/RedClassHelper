@@ -148,15 +148,22 @@ Map<int, _NumDef> _parseNumbering(Archive archive) {
     if (lvl == null) continue;
 
     final startEl = _childElement(lvl, 'start');
-    final start = int.tryParse(startEl != null ? _attr(startEl, 'val') ?? '' : '') ?? 1;
+    final start =
+        int.tryParse(startEl != null ? _attr(startEl, 'val') ?? '' : '') ?? 1;
 
     final fmtEl = _childElement(lvl, 'numFmt');
     final format = fmtEl != null ? _attr(fmtEl, 'val') ?? 'decimal' : 'decimal';
 
     final lvlTextEl = _childElement(lvl, 'lvlText');
-    final lvlText = lvlTextEl != null ? _attr(lvlTextEl, 'val') ?? '%1.' : '%1.';
+    final lvlText = lvlTextEl != null
+        ? _attr(lvlTextEl, 'val') ?? '%1.'
+        : '%1.';
 
-    abstractDefs[absId] = _NumDef(start: start, format: format, lvlText: lvlText);
+    abstractDefs[absId] = _NumDef(
+      start: start,
+      format: format,
+      lvlText: lvlText,
+    );
   }
 
   // 解析 num → abstractNum 映射
@@ -167,7 +174,9 @@ Map<int, _NumDef> _parseNumbering(Archive archive) {
     if (numId == null) continue;
 
     final absRef = _childElement(numEl, 'abstractNumId');
-    final absId = int.tryParse(absRef != null ? _attr(absRef, 'val') ?? '' : '');
+    final absId = int.tryParse(
+      absRef != null ? _attr(absRef, 'val') ?? '' : '',
+    );
     if (absId != null && abstractDefs.containsKey(absId)) {
       numDefs[numId] = abstractDefs[absId]!;
     }
@@ -196,7 +205,21 @@ String _formatNumber(int n, _NumDef def) {
 
 String _toRoman(int n) {
   const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
-  const symbols = ['m', 'cm', 'd', 'cd', 'c', 'xc', 'l', 'xl', 'x', 'ix', 'v', 'iv', 'i'];
+  const symbols = [
+    'm',
+    'cm',
+    'd',
+    'cd',
+    'c',
+    'xc',
+    'l',
+    'xl',
+    'x',
+    'ix',
+    'v',
+    'iv',
+    'i',
+  ];
   final buf = StringBuffer();
   for (var i = 0; i < values.length; i++) {
     while (n >= values[i]) {
@@ -218,5 +241,9 @@ class _NumDef {
   final int start;
   final String format;
   final String lvlText;
-  const _NumDef({required this.start, required this.format, required this.lvlText});
+  const _NumDef({
+    required this.start,
+    required this.format,
+    required this.lvlText,
+  });
 }

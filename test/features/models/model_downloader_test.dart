@@ -147,123 +147,111 @@ void main() {
       },
     );
 
-    test(
-      'SHA-256 mismatch throws DownloadVerificationException',
-      () async {
-        final server = _TestServer();
-        final testContent = List<int>.generate(512, (i) => i % 256);
-        await server.start(content: testContent);
+    test('SHA-256 mismatch throws DownloadVerificationException', () async {
+      final server = _TestServer();
+      final testContent = List<int>.generate(512, (i) => i % 256);
+      await server.start(content: testContent);
 
-        final destPath = '${tempDir.path}/test.gguf';
+      final destPath = '${tempDir.path}/test.gguf';
 
-        final downloader = ModelDownloader(
-          url: server.uri.toString(),
-          destPath: destPath,
-          expectedSha256:
-              '0000000000000000000000000000000000000000000000000000000000000000',
-        );
+      final downloader = ModelDownloader(
+        url: server.uri.toString(),
+        destPath: destPath,
+        expectedSha256:
+            '0000000000000000000000000000000000000000000000000000000000000000',
+      );
 
-        try {
-          await downloader.startDownload();
-          fail('Expected DownloadVerificationException to be thrown');
-        } on DownloadVerificationException {
-          // Expected
-        }
-
-        await server.stop();
-      },
-    );
-
-    test(
-      'progress callback receives bytesDownloaded',
-      () async {
-        final server = _TestServer();
-        final testContent = List<int>.generate(2048, (i) => i % 256);
-        await server.start(content: testContent);
-
-        final destPath = '${tempDir.path}/test.gguf';
-        final expectedHash = sha256OfBytes(testContent);
-        int callbackCount = 0;
-
-        final downloader = ModelDownloader(
-          url: server.uri.toString(),
-          destPath: destPath,
-          expectedSha256: expectedHash,
-          onProgress: (progress) {
-            callbackCount++;
-            expect(progress.bytesDownloaded, greaterThanOrEqualTo(0));
-          },
-        );
-
+      try {
         await downloader.startDownload();
+        fail('Expected DownloadVerificationException to be thrown');
+      } on DownloadVerificationException {
+        // Expected
+      }
 
-        expect(callbackCount, greaterThanOrEqualTo(1));
+      await server.stop();
+    });
 
-        await server.stop();
-      },
-    );
+    test('progress callback receives bytesDownloaded', () async {
+      final server = _TestServer();
+      final testContent = List<int>.generate(2048, (i) => i % 256);
+      await server.start(content: testContent);
 
-    test(
-      'Network error (404) throws DownloadNetworkException',
-      () async {
-        final server = _TestServer();
-        await server.start(content: [1, 2, 3]);
-        server.set404(true);
+      final destPath = '${tempDir.path}/test.gguf';
+      final expectedHash = sha256OfBytes(testContent);
+      int callbackCount = 0;
 
-        final destPath = '${tempDir.path}/test.gguf';
+      final downloader = ModelDownloader(
+        url: server.uri.toString(),
+        destPath: destPath,
+        expectedSha256: expectedHash,
+        onProgress: (progress) {
+          callbackCount++;
+          expect(progress.bytesDownloaded, greaterThanOrEqualTo(0));
+        },
+      );
 
-        final downloader = ModelDownloader(
-          url: server.uri.toString(),
-          destPath: destPath,
-          expectedSha256: 'any-hash',
-        );
+      await downloader.startDownload();
 
-        try {
-          await downloader.startDownload();
-          fail('Expected DownloadNetworkException to be thrown');
-        } on DownloadNetworkException {
-          // Expected
-        }
+      expect(callbackCount, greaterThanOrEqualTo(1));
 
-        await server.stop();
-      },
-    );
+      await server.stop();
+    });
 
-    test(
-      'cancel() during download cleans up partial file',
-      () async {
-        final server = _TestServer();
-        // Large content with delay for cancellable download
-        final testContent = List<int>.generate(512 * 1024, (i) => i % 256);
-        server.setDelay(200);
-        await server.start(content: testContent);
+    test('Network error (404) throws DownloadNetworkException', () async {
+      final server = _TestServer();
+      await server.start(content: [1, 2, 3]);
+      server.set404(true);
 
-        final destPath = '${tempDir.path}/test.gguf';
-        final expectedHash = sha256OfBytes(testContent);
+      final destPath = '${tempDir.path}/test.gguf';
 
-        final downloader = ModelDownloader(
-          url: server.uri.toString(),
-          destPath: destPath,
-          expectedSha256: expectedHash,
-        );
+      final downloader = ModelDownloader(
+        url: server.uri.toString(),
+        destPath: destPath,
+        expectedSha256: 'any-hash',
+      );
 
-        // Start download and cancel after a short delay
-        final downloadFuture = downloader.startDownload();
-        // Wait for the download to actually start
-        await Future.delayed(const Duration(milliseconds: 300));
-        downloader.cancel();
+      try {
+        await downloader.startDownload();
+        fail('Expected DownloadNetworkException to be thrown');
+      } on DownloadNetworkException {
+        // Expected
+      }
 
-        // The download should throw/cancel
-        try {
-          await downloadFuture;
-        } catch (_) {
-          // Expected — cancelled
-        }
+      await server.stop();
+    });
 
-        // Partial file may or may not exist — the important thing is
-        // that cancel() doesn't crash and the download future resolves
-        await server.stop();
-      },
-    );
+    test('cancel() during download cleans up partial file', () async {
+      final server = _TestServer();
+      // Large content with delay for cancellable download
+      final testContent = List<int>.generate(512 * 1024, (i) => i % 256);
+      server.setDelay(200);
+      await server.start(content: testContent);
+
+      final destPath = '${tempDir.path}/test.gguf';
+      final expectedHash = sha256OfBytes(testContent);
+
+      final downloader = ModelDownloader(
+        url: server.uri.toString(),
+        destPath: destPath,
+        expectedSha256: expectedHash,
+      );
+
+      // Start download and cancel after a short delay
+      final downloadFuture = downloader.startDownload();
+      // Wait for the download to actually start
+      await Future.delayed(const Duration(milliseconds: 300));
+      downloader.cancel();
+
+      // The download should throw/cancel
+      try {
+        await downloadFuture;
+      } catch (_) {
+        // Expected — cancelled
+      }
+
+      // Partial file may or may not exist — the important thing is
+      // that cancel() doesn't crash and the download future resolves
+      await server.stop();
+    });
   });
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,16 +19,18 @@ Future<void> _insertBankAndQuestions({
   int questionCount = 3,
 }) async {
   final now = DateTime.now();
-  await db.into(db.questionBanks).insert(
-    QuestionBanksCompanion.insert(
-      id: bankId,
-      name: bankName,
-      source: source,
-      questionCount: questionCount,
-      createdAt: now,
-      updatedAt: now,
-    ),
-  );
+  await db
+      .into(db.questionBanks)
+      .insert(
+        QuestionBanksCompanion.insert(
+          id: bankId,
+          name: bankName,
+          source: Value(source),
+          questionCount: questionCount,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
   for (var i = 0; i < questionCount; i++) {
     final optionsList = [
       {'key': 'A', 'text': '选项A'},
@@ -35,18 +38,20 @@ Future<void> _insertBankAndQuestions({
       {'key': 'C', 'text': '选项C'},
       {'key': 'D', 'text': '选项D'},
     ];
-    await db.into(db.questions).insert(
-      QuestionsCompanion.insert(
-        id: 'q${bankId}_$i',
-        bankId: bankId,
-        type: i % 2 == 0 ? 'single' : 'multiple',
-        stem: 'Question text $i',
-        optionsJson: jsonEncode(optionsList),
-        correctJson: jsonEncode([i % 2 == 0 ? 'A' : 'AB']),
-        rawText: 'Question text $i',
-        createdAt: now,
-      ),
-    );
+    await db
+        .into(db.questions)
+        .insert(
+          QuestionsCompanion.insert(
+            id: 'q${bankId}_$i',
+            bankId: bankId,
+            type: i % 2 == 0 ? 'single' : 'multiple',
+            stem: 'Question text $i',
+            optionsJson: jsonEncode(optionsList),
+            correctJson: jsonEncode([i % 2 == 0 ? 'A' : 'AB']),
+            rawText: 'Question text $i',
+            createdAt: now,
+          ),
+        );
   }
 }
 
@@ -64,8 +69,7 @@ void main() {
   // ═══════════════════════════════════════════════════════════════
   // Test 1: BankDetailScreen renders bank name in AppBar
   // ═══════════════════════════════════════════════════════════════
-  testWidgets('BankDetailScreen renders bank name in AppBar',
-      (tester) async {
+  testWidgets('BankDetailScreen renders bank name in AppBar', (tester) async {
     await _insertBankAndQuestions(
       db: db,
       bankId: 'b1',
@@ -76,9 +80,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          appDatabaseProvider.overrideWith((ref) async => db),
-        ],
+        overrides: [appDatabaseProvider.overrideWith((ref) async => db)],
         child: MaterialApp.router(routerConfig: appRouter),
       ),
     );
@@ -91,8 +93,9 @@ void main() {
   // ═══════════════════════════════════════════════════════════════
   // Test 2: BankDetailScreen shows question count in info card
   // ═══════════════════════════════════════════════════════════════
-  testWidgets('BankDetailScreen shows question count in info card',
-      (tester) async {
+  testWidgets('BankDetailScreen shows question count in info card', (
+    tester,
+  ) async {
     await _insertBankAndQuestions(
       db: db,
       bankId: 'b1',
@@ -103,9 +106,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          appDatabaseProvider.overrideWith((ref) async => db),
-        ],
+        overrides: [appDatabaseProvider.overrideWith((ref) async => db)],
         child: MaterialApp.router(routerConfig: appRouter),
       ),
     );
@@ -128,9 +129,7 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          appDatabaseProvider.overrideWith((ref) async => db),
-        ],
+        overrides: [appDatabaseProvider.overrideWith((ref) async => db)],
         child: MaterialApp.router(routerConfig: appRouter),
       ),
     );
@@ -142,20 +141,15 @@ void main() {
   // ═══════════════════════════════════════════════════════════════
   // Test 4: BankDetailScreen renders "导出 JSON" FilledButton
   // ═══════════════════════════════════════════════════════════════
-  testWidgets('BankDetailScreen renders "导出 JSON" FilledButton',
-      (tester) async {
-    await _insertBankAndQuestions(
-      db: db,
-      bankId: 'b1',
-      bankName: '题库A',
-    );
+  testWidgets('BankDetailScreen renders "导出 JSON" FilledButton', (
+    tester,
+  ) async {
+    await _insertBankAndQuestions(db: db, bankId: 'b1', bankName: '题库A');
     appRouter.go('/bank/b1');
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          appDatabaseProvider.overrideWith((ref) async => db),
-        ],
+        overrides: [appDatabaseProvider.overrideWith((ref) async => db)],
         child: MaterialApp.router(routerConfig: appRouter),
       ),
     );
@@ -167,20 +161,13 @@ void main() {
   // ═══════════════════════════════════════════════════════════════
   // Test 5: BankDetailScreen renders "开始复习" FilledButton
   // ═══════════════════════════════════════════════════════════════
-  testWidgets('BankDetailScreen renders "开始复习" FilledButton',
-      (tester) async {
-    await _insertBankAndQuestions(
-      db: db,
-      bankId: 'b1',
-      bankName: '题库A',
-    );
+  testWidgets('BankDetailScreen renders "开始复习" FilledButton', (tester) async {
+    await _insertBankAndQuestions(db: db, bankId: 'b1', bankName: '题库A');
     appRouter.go('/bank/b1');
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          appDatabaseProvider.overrideWith((ref) async => db),
-        ],
+        overrides: [appDatabaseProvider.overrideWith((ref) async => db)],
         child: MaterialApp.router(routerConfig: appRouter),
       ),
     );
@@ -193,36 +180,36 @@ void main() {
   // Test 6: BankDetailScreen shows loading indicator when DB not yet ready
   // ═══════════════════════════════════════════════════════════════
   testWidgets(
-      'BankDetailScreen shows loading indicator when DB not yet ready',
-      (tester) async {
-    final completer = Completer<AppDatabase>();
-    appRouter.go('/bank/b1');
+    'BankDetailScreen shows loading indicator when DB not yet ready',
+    (tester) async {
+      final completer = Completer<AppDatabase>();
+      appRouter.go('/bank/b1');
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          appDatabaseProvider.overrideWith((ref) => completer.future),
-        ],
-        child: MaterialApp.router(routerConfig: appRouter),
-      ),
-    );
-    await tester.pump();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWith((ref) => completer.future),
+          ],
+          child: MaterialApp.router(routerConfig: appRouter),
+        ),
+      );
+      await tester.pump();
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-  });
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    },
+  );
 
   // ═══════════════════════════════════════════════════════════════
   // Test 7: BankDetailScreen shows error when bank not found
   // ═══════════════════════════════════════════════════════════════
-  testWidgets('BankDetailScreen shows error when bank not found',
-      (tester) async {
+  testWidgets('BankDetailScreen shows error when bank not found', (
+    tester,
+  ) async {
     appRouter.go('/bank/nonexistent');
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          appDatabaseProvider.overrideWith((ref) async => db),
-        ],
+        overrides: [appDatabaseProvider.overrideWith((ref) async => db)],
         child: MaterialApp.router(routerConfig: appRouter),
       ),
     );
@@ -234,20 +221,13 @@ void main() {
   // ═══════════════════════════════════════════════════════════════
   // Test 8: Tapping "开始复习" navigates to /quiz/pick/random
   // ═══════════════════════════════════════════════════════════════
-  testWidgets('Tapping "开始复习" navigates to /quiz/pick/random',
-      (tester) async {
-    await _insertBankAndQuestions(
-      db: db,
-      bankId: 'b1',
-      bankName: '题库A',
-    );
+  testWidgets('Tapping "开始复习" navigates to /quiz/pick/random', (tester) async {
+    await _insertBankAndQuestions(db: db, bankId: 'b1', bankName: '题库A');
     appRouter.go('/bank/b1');
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          appDatabaseProvider.overrideWith((ref) async => db),
-        ],
+        overrides: [appDatabaseProvider.overrideWith((ref) async => db)],
         child: MaterialApp.router(routerConfig: appRouter),
       ),
     );

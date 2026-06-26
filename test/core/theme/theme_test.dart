@@ -45,14 +45,14 @@ void main() {
     });
   });
 
-  group('buildDynamicTheme (D-23 alias)', () {
+  group('buildAppTheme light/dark brightness propagation (D-23)', () {
     test('light mode + null dynamic returns light theme', () {
-      final theme = buildDynamicTheme(Brightness.light, null);
+      final theme = buildAppTheme(Brightness.light, null);
       expect(theme.colorScheme.brightness, Brightness.light);
     });
 
     test('dark mode + null dynamic returns dark theme', () {
-      final theme = buildDynamicTheme(Brightness.dark, null);
+      final theme = buildAppTheme(Brightness.dark, null);
       expect(theme.colorScheme.brightness, Brightness.dark);
     });
   });

@@ -33,9 +33,7 @@ void main() {
       );
 
       return ProviderScope(
-        overrides: [
-          installedModelsProvider.overrideWith(fake),
-        ],
+        overrides: [installedModelsProvider.overrideWith(fake)],
         child: const MaterialApp(
           home: Scaffold(body: Center(child: Text('Behind dialog'))),
         ),
@@ -83,8 +81,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
     });
 
-    testWidgets('tapping LLM card selects it when models installed',
-        (tester) async {
+    testWidgets('tapping LLM card selects it when models installed', (
+      tester,
+    ) async {
       await showParserDialog(tester, hasModels: true);
 
       // LLM card should be enabled
@@ -111,8 +110,9 @@ void main() {
       expect(find.text('请先下载模型。前往 设置 → 模型管理下载'), findsOneWidget);
     });
 
-    testWidgets('"取消" button returns null and dismisses dialog',
-        (tester) async {
+    testWidgets('"取消" button returns null and dismisses dialog', (
+      tester,
+    ) async {
       await showParserDialog(tester, hasModels: false);
 
       await tester.tap(find.text('取消'));
@@ -135,8 +135,9 @@ void main() {
       expect(find.text('选择解析方式'), findsOneWidget);
     });
 
-    testWidgets('LLM card is not disabled when models installed',
-        (tester) async {
+    testWidgets('LLM card is not disabled when models installed', (
+      tester,
+    ) async {
       await showParserDialog(tester, hasModels: true);
 
       // No disabled text should appear

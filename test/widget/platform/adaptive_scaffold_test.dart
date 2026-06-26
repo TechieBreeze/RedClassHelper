@@ -6,32 +6,36 @@ import 'package:redclass/core/widgets/adaptive_scaffold.dart';
 
 void main() {
   testWidgets('compact shows AppBar with drawer', (t) async {
-    await t.pumpWidget(MaterialApp(
-      home: AdaptiveScaffold(
-        title: 'T',
-        body: const Text('B'),
-        drawer: const Text('D'),
-        info: PlatformInfo.forTesting(
-          platform: AppPlatform.android,
-          shortestSide: 400,
+    await t.pumpWidget(
+      MaterialApp(
+        home: AdaptiveScaffold(
+          title: 'T',
+          body: const Text('B'),
+          drawer: const Text('D'),
+          info: PlatformInfo.forTesting(
+            platform: AppPlatform.android,
+            shortestSide: 400,
+          ),
         ),
       ),
-    ));
+    );
     expect(find.byType(AppBar), findsOneWidget);
   });
 
   testWidgets('expanded renders drawer inline as side rail', (t) async {
-    await t.pumpWidget(MaterialApp(
-      home: AdaptiveScaffold(
-        title: 'T',
-        body: const Text('B'),
-        drawer: const Text('D'),
-        info: PlatformInfo.forTesting(
-          platform: AppPlatform.windows,
-          shortestSide: 1200,
+    await t.pumpWidget(
+      MaterialApp(
+        home: AdaptiveScaffold(
+          title: 'T',
+          body: const Text('B'),
+          drawer: const Text('D'),
+          info: PlatformInfo.forTesting(
+            platform: AppPlatform.windows,
+            shortestSide: 1200,
+          ),
         ),
       ),
-    ));
+    );
     expect(find.byType(AppBar), findsOneWidget);
     expect(find.text('D'), findsOneWidget);
   });

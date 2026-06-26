@@ -12,6 +12,7 @@ import '../parsing/llm/canonicalizer.dart';
 import '../parsing/parse_candidate.dart';
 import '../providers/import_notifier.dart';
 import '../providers/import_state.dart';
+import '../../../core/platform/responsive.dart';
 import '../../../core/theme.dart';
 
 /// 导入完成摘要页——展示导入结果后引导用户开始复习。
@@ -42,7 +43,6 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(importNotifierProvider);
-    final theme = Theme.of(context);
 
     // 统计题型分布
     final typeCounts = _countByType(state.candidates, state.confirmedIndices);
@@ -57,129 +57,312 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
           title: const Text('导入完成 ✓'),
           automaticallyImplyLeading: false,
         ),
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // ── 渐变 Hero ──
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: heroGradient(
-                          theme.colorScheme,
-                          theme.brightness,
-                        ),
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: theme.colorScheme.primary.withAlpha(50),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        const Icon(
-                          Icons.check_circle_rounded,
-                          size: 56,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          '成功导入 ${state.committedCount} 道题',
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+        body: AdaptiveLayout(
+          compact: (_) => KeyedSubtree(
+            key: const Key('import_summary_vertical_layout'),
+            child: _buildVerticalLayout(
+              context,
+              state,
+              fileName,
+              typeCounts,
+            ),
+          ),
+          medium: (_) => KeyedSubtree(
+            key: const Key('import_summary_vertical_layout'),
+            child: _buildVerticalLayout(
+              context,
+              state,
+              fileName,
+              typeCounts,
+              maxWidth: 600,
+            ),
+          ),
+          expanded: (_) => KeyedSubtree(
+            key: const Key('import_summary_horizontal_layout'),
+            child: _buildHorizontalLayout(
+              context,
+              state,
+              fileName,
+              typeCounts,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-                  // ── 详情卡片 ──
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildInfoRow(
-                            context,
-                            icon: Icons.library_books,
-                            label: '题库名称',
-                            value: state.bankName,
-                          ),
-                          const Divider(height: 16),
-                          _buildInfoRow(
-                            context,
-                            icon: Icons.insert_drive_file_outlined,
-                            label: '源文件',
-                            value: fileName,
-                          ),
-                          const Divider(height: 16),
-                          if (state.bankId.isNotEmpty)
+  /// Compact / medium layout: vertical column with optional max-width cap.
+  Widget _buildVerticalLayout(
+    BuildContext context,
+    ImportState state,
+    String fileName,
+    Map<String, int> typeCounts, {
+    double? maxWidth,
+  }) {
+    final theme = Theme.of(context);
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth ?? double.infinity),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── 渐变 Hero ──
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: heroGradient(
+                      theme.colorScheme,
+                      theme.brightness,
+                    ),
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withAlpha(50),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      size: 56,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '成功导入 ${state.committedCount} 道题',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ── 详情卡片 ──
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInfoRow(
+                        context,
+                        icon: Icons.library_books,
+                        label: '题库名称',
+                        value: state.bankName,
+                      ),
+                      const Divider(height: 16),
+                      _buildInfoRow(
+                        context,
+                        icon: Icons.insert_drive_file_outlined,
+                        label: '源文件',
+                        value: fileName,
+                      ),
+                      const Divider(height: 16),
+                      if (state.bankId.isNotEmpty)
+                        _buildInfoRow(
+                          context,
+                          icon: Icons.tag,
+                          label: '题库 ID',
+                          value: state.bankId,
+                          monospace: true,
+                        ),
+                      if (typeCounts.isNotEmpty) ...[
+                        const Divider(height: 16),
+                        _buildTypeBreakdown(context, typeCounts),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              // ── Phase 3: 解析来源章节（D-09）──
+              if (state.parseSources.values
+                  .any((s) => s == ParseSource.llm || s == ParseSource.fallback))
+                _buildParseSourceSection(context, state),
+              // ── 跳过题目列表（D-09）──
+              if (state.skippedCandidates.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                _buildSkippedSection(context),
+              ],
+              const SizedBox(height: 32),
+
+              // ── CTA 按钮 ──
+              FilledButton.icon(
+                onPressed: () {
+                  final bankId = state.bankId;
+                  ref.read(importNotifierProvider.notifier).reset();
+                  context.go('/quiz/$bankId/random');
+                },
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('开始复习'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () {
+                  ref.read(importNotifierProvider.notifier).reset();
+                  context.go('/');
+                },
+                child: const Text('返回首页'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Expanded layout: 2-column (hero on left, details + CTA on right).
+  Widget _buildHorizontalLayout(
+    BuildContext context,
+    ImportState state,
+    String fileName,
+    Map<String, int> typeCounts,
+  ) {
+    final theme = Theme.of(context);
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 960),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Left: hero gradient card ──
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: Container(
+                  width: 320,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: heroGradient(
+                        theme.colorScheme,
+                        theme.brightness,
+                      ),
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.colorScheme.primary.withAlpha(50),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        size: 56,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '成功导入 ${state.committedCount} 道题',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 32),
+
+              // ── Right: details + parse sources + skipped + CTA ──
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             _buildInfoRow(
                               context,
-                              icon: Icons.tag,
-                              label: '题库 ID',
-                              value: state.bankId,
-                              monospace: true,
+                              icon: Icons.library_books,
+                              label: '题库名称',
+                              value: state.bankName,
                             ),
-                          if (typeCounts.isNotEmpty) ...[
                             const Divider(height: 16),
-                            _buildTypeBreakdown(context, typeCounts),
+                            _buildInfoRow(
+                              context,
+                              icon: Icons.insert_drive_file_outlined,
+                              label: '源文件',
+                              value: fileName,
+                            ),
+                            const Divider(height: 16),
+                            if (state.bankId.isNotEmpty)
+                              _buildInfoRow(
+                                context,
+                                icon: Icons.tag,
+                                label: '题库 ID',
+                                value: state.bankId,
+                                monospace: true,
+                              ),
+                            if (typeCounts.isNotEmpty) ...[
+                              const Divider(height: 16),
+                              _buildTypeBreakdown(context, typeCounts),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                  // ── Phase 3: 解析来源章节（D-09）──
-                  if (state.parseSources.values
-                      .any((s) => s == ParseSource.llm || s == ParseSource.fallback))
-                    _buildParseSourceSection(context, state),
-                  // ── 跳过题目列表（D-09）──
-                  if (state.skippedCandidates.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    _buildSkippedSection(context),
-                  ],
-                  const SizedBox(height: 32),
-
-                  // ── CTA 按钮 ──
-                  FilledButton.icon(
-                    onPressed: () {
-                      final bankId = state.bankId;
-                      ref.read(importNotifierProvider.notifier).reset();
-                      context.go('/quiz/$bankId/random');
-                    },
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('开始复习'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
+                    if (state.parseSources.values.any(
+                        (s) => s == ParseSource.llm || s == ParseSource.fallback))
+                      _buildParseSourceSection(context, state),
+                    if (state.skippedCandidates.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      _buildSkippedSection(context),
+                    ],
+                    const SizedBox(height: 32),
+                    FilledButton.icon(
+                      onPressed: () {
+                        final bankId = state.bankId;
+                        ref.read(importNotifierProvider.notifier).reset();
+                        context.go('/quiz/$bankId/random');
+                      },
+                      icon: const Icon(Icons.play_arrow),
+                      label: const Text('开始复习'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton(
-                    onPressed: () {
-                      ref.read(importNotifierProvider.notifier).reset();
-                      context.go('/');
-                    },
-                    child: const Text('返回首页'),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () {
+                        ref.read(importNotifierProvider.notifier).reset();
+                        context.go('/');
+                      },
+                      child: const Text('返回首页'),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

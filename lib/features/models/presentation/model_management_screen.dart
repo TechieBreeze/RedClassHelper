@@ -3,29 +3,36 @@
 // 3 sections: installed models, recommended catalog, custom models.
 // Uses ModelCard, DownloadProgressWidget, and showAddModelDialog from widgets/.
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/platform/platform_guard.dart';
+import '../../../core/platform/platform_info.dart';
 import '../providers/model_catalog_provider.dart';
 import '../providers/model_download_provider.dart';
 import '../providers/installed_models_provider.dart';
 import '../widgets/model_card.dart';
 import '../widgets/add_model_dialog.dart';
+import 'widgets/llm_unsupported_banner.dart';
 
-/// Full model management center (desktop-only).
+/// Full model management center.
 ///
 /// Route: /settings/models
+///
+/// Reachable on mobile (banner explains desktop-only requirement), but the
+/// interactive controls (download, delete, add custom) are gated by
+/// [UnsupportedFeatureGuard] and render as disabled buttons with tooltips.
 class ModelManagementScreen extends ConsumerWidget {
-  const ModelManagementScreen({super.key});
+  const ModelManagementScreen({super.key, this.info});
+
+  /// Optional [PlatformInfo] override. When non-null, forwarded to the
+  /// [LlmUnsupportedBanner] and used by descendant guards. Tests pass an
+  /// explicit value to avoid depending on the host platform reported by
+  /// `dart:io`.
+  final PlatformInfo? info;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!(Platform.isWindows || Platform.isLinux)) {
-      return _platformUnavailable(context);
-    }
-
     final installedAsync = ref.watch(installedModelsProvider);
     final catalog = ref.watch(modelCatalogProvider);
     final activeDownload = ref.watch(modelDownloadProvider);
@@ -38,92 +45,107 @@ class ModelManagementScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('模型管理')),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          final EdgeInsets padding;
-          final double? maxWidth;
-          if (width < 600) {
-            padding = const EdgeInsets.symmetric(horizontal: 16);
-            maxWidth = null;
-          } else if (width < 840) {
-            padding = const EdgeInsets.symmetric(horizontal: 24);
-            maxWidth = null;
-          } else {
-            padding = const EdgeInsets.symmetric(horizontal: 32);
-            maxWidth = 720;
-          }
-          return Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: maxWidth ?? double.infinity,
-              ),
-              child: SingleChildScrollView(
-                padding: padding.add(const EdgeInsets.symmetric(vertical: 24)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // ── Section 1: Installed Models ──
-                    const _SectionHeader('已安装模型'),
-                    const SizedBox(height: 16),
-                    _InstalledSection(
-                      installedAsync: installedAsync,
-                      installedIds: installedIds,
+      body: Column(
+        children: [
+          LlmUnsupportedBanner(info: info),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final EdgeInsets padding;
+                final double? maxWidth;
+                if (width < 600) {
+                  padding = const EdgeInsets.symmetric(horizontal: 16);
+                  maxWidth = null;
+                } else if (width < 840) {
+                  padding = const EdgeInsets.symmetric(horizontal: 24);
+                  maxWidth = null;
+                } else {
+                  padding = const EdgeInsets.symmetric(horizontal: 32);
+                  maxWidth = 720;
+                }
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: maxWidth ?? double.infinity,
                     ),
-                    const SizedBox(height: 32),
-
-                    // ── Section 2: Recommended Models ──
-                    const _SectionHeader('推荐模型'),
-                    const SizedBox(height: 16),
-                    ...catalog.map(
-                      (model) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: ModelCard(
-                          model: model,
-                          isInstalled: installedIds.contains(
-                            '${model.id}.gguf',
+                    child: SingleChildScrollView(
+                      padding: padding.add(
+                        const EdgeInsets.symmetric(vertical: 24),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // ── Section 1: Installed Models ──
+                          const _SectionHeader('已安装模型'),
+                          const SizedBox(height: 16),
+                          _InstalledSection(
+                            installedAsync: installedAsync,
+                            installedIds: installedIds,
                           ),
-                          activeDownload: activeDownload,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
+                          const SizedBox(height: 32),
 
-                    // ── Section 3: Custom Models ──
-                    const _SectionHeader('自定义模型'),
-                    const SizedBox(height: 16),
-                    _AddModelCard(
-                      onTap: () async {
-                        final result = await showAddModelDialog(context);
-                        if (result != null && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('已添加模型：${result.name}')),
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    // Show custom models (installed but not in catalog)
-                    ..._customModels(
-                      installedAsync.asData?.value ?? const [],
-                      catalogIds,
-                    ).map(
-                      (model) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _CustomModelCard(
-                          fileName: model.fileName,
-                          sizeBytes: model.sizeBytes,
-                          onDelete: () =>
-                              _showCustomDeleteDialog(context, ref, model),
-                        ),
+                          // ── Section 2: Recommended Models ──
+                          const _SectionHeader('推荐模型'),
+                          const SizedBox(height: 16),
+                          ...catalog.map(
+                            (model) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: ModelCard(
+                                model: model,
+                                isInstalled: installedIds.contains(
+                                  '${model.id}.gguf',
+                                ),
+                                activeDownload: activeDownload,
+                                info: info,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // ── Section 3: Custom Models ──
+                          const _SectionHeader('自定义模型'),
+                          const SizedBox(height: 16),
+                          _AddModelCard(
+                            onTap: () async {
+                              final result = await showAddModelDialog(context);
+                              if (result != null && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('已添加模型：${result.name}'),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          // Show custom models (installed but not in catalog)
+                          ..._customModels(
+                            installedAsync.asData?.value ?? const [],
+                            catalogIds,
+                          ).map(
+                            (model) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _CustomModelCard(
+                                fileName: model.fileName,
+                                sizeBytes: model.sizeBytes,
+                                onDelete: () => _showCustomDeleteDialog(
+                                  context,
+                                  ref,
+                                  model,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -163,13 +185,6 @@ class ModelManagementScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-
-  static Widget _platformUnavailable(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('模型管理')),
-      body: const Center(child: Text('模型管理仅在桌面端可用')),
     );
   }
 }
@@ -323,32 +338,32 @@ class _AddModelCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              const Icon(Icons.add, size: 28),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '添加模型',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '通过 URL 或本地文件添加自定义 .gguf 模型',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                const Icon(Icons.add, size: 28),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '添加模型',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '通过 URL 或本地文件添加自定义 .gguf 模型',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right),
-            ],
+                const Icon(Icons.chevron_right),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -396,12 +411,25 @@ class _CustomModelCard extends StatelessWidget {
               backgroundColor: Colors.green.shade100,
             ),
             const SizedBox(width: 8),
-            TextButton(
-              onPressed: onDelete,
-              style: TextButton.styleFrom(
-                foregroundColor: theme.colorScheme.error,
+            UnsupportedFeatureGuard(
+              requiresDesktop: true,
+              fallback: const Tooltip(
+                message: '桌面端功能',
+                child: TextButton(
+                  onPressed: null,
+                  style: ButtonStyle(
+                    foregroundColor: WidgetStatePropertyAll(Colors.grey),
+                  ),
+                  child: Text('删除'),
+                ),
               ),
-              child: const Text('删除'),
+              child: TextButton(
+                onPressed: onDelete,
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
+                ),
+                child: const Text('删除'),
+              ),
             ),
           ],
         ),

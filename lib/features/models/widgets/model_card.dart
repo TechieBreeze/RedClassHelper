@@ -6,6 +6,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/platform/platform_guard.dart';
+import '../../../core/platform/platform_info.dart';
 import '../providers/model_catalog_provider.dart';
 import '../providers/model_download_provider.dart';
 import 'download_progress.dart';
@@ -19,12 +21,17 @@ class ModelCard extends ConsumerWidget {
     required this.model,
     this.isInstalled = false,
     this.activeDownload,
+    this.info,
     super.key,
   });
 
   final ModelInfo model;
   final bool isInstalled;
   final ActiveDownload? activeDownload;
+
+  /// Optional [PlatformInfo] override forwarded to descendant guards so the
+  /// catalog matches the platform branching expected by the caller.
+  final PlatformInfo? info;
 
   bool get _isDownloadingThis =>
       activeDownload != null &&
@@ -73,10 +80,7 @@ class ModelCard extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        model.name,
-                        style: theme.textTheme.titleMedium,
-                      ),
+                      Text(model.name, style: theme.textTheme.titleMedium),
                       const SizedBox(height: 4),
                       _TierBadge(tier: model.tier),
                     ],
@@ -85,10 +89,7 @@ class ModelCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              model.description,
-              style: theme.textTheme.bodyMedium,
-            ),
+            Text(model.description, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 4),
             Text(
               '${model.sizeDisplay} · ${model.ramRequirement}',
@@ -117,12 +118,20 @@ class ModelCard extends ConsumerWidget {
             ),
           ),
           const Spacer(),
-          TextButton(
-            onPressed: () => _showDeleteDialog(context, ref),
-            style: TextButton.styleFrom(
-              foregroundColor: theme.colorScheme.error,
+          UnsupportedFeatureGuard(
+            requiresDesktop: true,
+            info: info,
+            fallback: const Tooltip(
+              message: '桌面端功能',
+              child: TextButton(onPressed: null, child: Text('删除')),
             ),
-            child: const Text('删除'),
+            child: TextButton(
+              onPressed: () => _showDeleteDialog(context, ref),
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.error,
+              ),
+              child: const Text('删除'),
+            ),
           ),
         ],
       );
@@ -175,8 +184,7 @@ class ModelCard extends ConsumerWidget {
             alignment: Alignment.centerRight,
             child: OutlinedButton(
               onPressed: () =>
-                  ref.read(modelDownloadProvider.notifier)
-                      .startDownload(model),
+                  ref.read(modelDownloadProvider.notifier).startDownload(model),
               child: const Text('重新下载'),
             ),
           ),
@@ -187,13 +195,26 @@ class ModelCard extends ConsumerWidget {
     // Idle (not installed, not downloading, or another downloading)
     return Align(
       alignment: Alignment.centerRight,
-      child: FilledButton.icon(
-        onPressed: _isAnotherDownloading
-            ? null
-            : () =>
-                ref.read(modelDownloadProvider.notifier).startDownload(model),
-        icon: const Icon(Icons.download, size: 18),
-        label: Text(_isAnotherDownloading ? '等待中' : '下载'),
+      child: UnsupportedFeatureGuard(
+        requiresDesktop: true,
+        info: info,
+        fallback: Tooltip(
+          message: '桌面端功能',
+          child: FilledButton.icon(
+            onPressed: null,
+            icon: const Icon(Icons.download, size: 18),
+            label: Text(_isAnotherDownloading ? '等待中' : '下载'),
+          ),
+        ),
+        child: FilledButton.icon(
+          onPressed: _isAnotherDownloading
+              ? null
+              : () => ref
+                    .read(modelDownloadProvider.notifier)
+                    .startDownload(model),
+          icon: const Icon(Icons.download, size: 18),
+          label: Text(_isAnotherDownloading ? '等待中' : '下载'),
+        ),
       ),
     );
   }
@@ -234,25 +255,25 @@ class _TierBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final (String label, Color background, Color foreground) = switch (tier) {
       ModelTier.recommended => (
-          '推荐',
-          Theme.of(context).colorScheme.primaryContainer,
-          Theme.of(context).colorScheme.onPrimaryContainer,
-        ),
+        '推荐',
+        Theme.of(context).colorScheme.primaryContainer,
+        Theme.of(context).colorScheme.onPrimaryContainer,
+      ),
       ModelTier.fast => (
-          '快速',
-          Theme.of(context).colorScheme.tertiaryContainer,
-          Theme.of(context).colorScheme.onTertiaryContainer,
-        ),
+        '快速',
+        Theme.of(context).colorScheme.tertiaryContainer,
+        Theme.of(context).colorScheme.onTertiaryContainer,
+      ),
       ModelTier.experimental => (
-          '实验',
-          Colors.deepOrange.shade100,
-          Colors.deepOrange.shade700,
-        ),
+        '实验',
+        Colors.deepOrange.shade100,
+        Colors.deepOrange.shade700,
+      ),
       ModelTier.custom => (
-          '自定义',
-          Theme.of(context).colorScheme.surfaceContainerHighest,
-          Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
+        '自定义',
+        Theme.of(context).colorScheme.surfaceContainerHighest,
+        Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
     };
 
     return Container(
@@ -263,9 +284,9 @@ class _TierBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: foreground,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: foreground),
       ),
     );
   }

@@ -5,41 +5,43 @@ import 'package:redclass/core/platform/platform_guard.dart';
 import 'package:redclass/core/platform/platform_info.dart';
 
 void main() {
-  testWidgets(
-    'shows child when requiresDesktop and platform is windows',
-    (tester) async {
-      await tester.pumpWidget(MaterialApp(
+  testWidgets('shows child when requiresDesktop and platform is windows', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
         home: UnsupportedFeatureGuard(
           requiresDesktop: true,
           info: PlatformInfo.forTesting(
             platform: AppPlatform.windows,
             shortestSide: 1200,
           ),
-          child: const Text('CHILD'),
           fallback: const Text('FALLBACK'),
+          child: const Text('CHILD'),
         ),
-      ));
-      expect(find.text('CHILD'), findsOneWidget);
-      expect(find.text('FALLBACK'), findsNothing);
-    },
-  );
+      ),
+    );
+    expect(find.text('CHILD'), findsOneWidget);
+    expect(find.text('FALLBACK'), findsNothing);
+  });
 
-  testWidgets(
-    'shows fallback when requiresDesktop and platform is android',
-    (tester) async {
-      await tester.pumpWidget(MaterialApp(
+  testWidgets('shows fallback when requiresDesktop and platform is android', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
         home: UnsupportedFeatureGuard(
           requiresDesktop: true,
           info: PlatformInfo.forTesting(
             platform: AppPlatform.android,
             shortestSide: 400,
           ),
-          child: const Text('CHILD'),
           fallback: const Text('FALLBACK'),
+          child: const Text('CHILD'),
         ),
-      ));
-      expect(find.text('FALLBACK'), findsOneWidget);
-      expect(find.text('CHILD'), findsNothing);
-    },
-  );
+      ),
+    );
+    expect(find.text('FALLBACK'), findsOneWidget);
+    expect(find.text('CHILD'), findsNothing);
+  });
 }

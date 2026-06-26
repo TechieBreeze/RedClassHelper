@@ -6,8 +6,8 @@ class UnsupportedFeatureGuard extends StatelessWidget {
   const UnsupportedFeatureGuard({
     super.key,
     required this.requiresDesktop,
-    required this.child,
     required this.fallback,
+    required this.child,
     this.info,
   });
   final bool requiresDesktop;
@@ -22,8 +22,9 @@ class UnsupportedFeatureGuard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effective = info ?? PlatformInfo.fromContext(context);
-    final allowed =
-        requiresDesktop ? effective.isDesktop : !effective.isDesktop;
+    final allowed = requiresDesktop
+        ? effective.isDesktop
+        : !effective.isDesktop;
     return allowed ? child : fallback;
   }
 }

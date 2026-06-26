@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/platform/responsive.dart';
 import '../parsing/llm/canonicalizer.dart';
 import '../parsing/parse_candidate.dart';
 import '../providers/import_notifier.dart';
@@ -122,100 +123,37 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
         ),
         body: candidates.isEmpty
             ? _buildEmptyState(context)
-            : Column(
-                children: [
-                  // ── Phase 3: LLM 自动确认横幅（D-08）──
-                  if (_isLlmImport)
-                    _buildAutoConfirmBanner(context, confirmedIndices.length),
-
-                  // ── 题库名称编辑区（D-18 CJK 感知）──
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: TextField(
-                      controller: _bankNameController,
-                      decoration: InputDecoration(
-                        labelText: '题库名称',
-                        hintText: '输入题库名称',
-                        errorText: _bankNameError,
-                        helperText: '中文/全角=2字符，ASCII=1字符，上限100',
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      onChanged: (value) {
-                        setState(
-                            () => _bankNameError = _validateBankName(value));
-                        if (_bankNameError == null) {
-                          ref
-                              .read(importNotifierProvider.notifier)
-                              .setBankName(value.trim());
-                        }
-                      },
-                    ),
+            : AdaptiveLayout(
+                compact: (_) => KeyedSubtree(
+                  key: const Key('import_preview_vertical_layout'),
+                  child: _buildVerticalLayout(
+                    context,
+                    state,
+                    candidates,
+                    confirmedIndices,
+                    filteredCandidates,
                   ),
-                  // ── 底部 Sheet：批量操作 + 题型筛选 ──
-                  _buildToolbar(context, confirmedIndices, candidates),
-                  // ── Phase 3: 解析来源摘要行 ──
-                  if (state.parseSources.isNotEmpty)
-                    _buildSourceSummary(context, state),
-                  // ── 候选列表 ──
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      itemCount: filteredCandidates.length,
-                      itemBuilder: (context, index) {
-                        final entry = filteredCandidates[index];
-                        final i = entry.key;
-                        final candidate = entry.value;
-                        final isConfirmed = confirmedIndices.contains(i);
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Parse source badge
-                              if (state.parseSources.containsKey(i))
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.only(bottom: 4, left: 4),
-                                  child: _ParseSourceBadge(
-                                    source: state.parseSources[i]!,
-                                  ),
-                                ),
-                              CandidateCard(
-                                candidate: candidate,
-                                index: i,
-                                total: candidates.length,
-                                isConfirmed: isConfirmed,
-                                onToggleConfirm: () {
-                                  ref
-                                      .read(importNotifierProvider.notifier)
-                                      .toggleCandidate(i);
-                                },
-                                onTypeChanged: (type) {
-                                  ref
-                                      .read(importNotifierProvider.notifier)
-                                      .setCandidateType(i, type);
-                                },
-                                onOptionsChanged: (options) {
-                                  ref
-                                      .read(importNotifierProvider.notifier)
-                                      .setCandidateOptions(i, options);
-                                },
-                                onAnswerChanged: (answer) {
-                                  ref
-                                      .read(importNotifierProvider.notifier)
-                                      .setCandidateAnswer(i, answer);
-                                },
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                ),
+                medium: (_) => KeyedSubtree(
+                  key: const Key('import_preview_vertical_layout'),
+                  child: _buildVerticalLayout(
+                    context,
+                    state,
+                    candidates,
+                    confirmedIndices,
+                    filteredCandidates,
+                    maxWidth: 720,
                   ),
-                ],
+                ),
+                expanded: (_) => KeyedSubtree(
+                  key: const Key('import_preview_horizontal_layout'),
+                  child: _buildHorizontalLayout(
+                    context,
+                    state,
+                    candidates,
+                    confirmedIndices,
+                  ),
+                ),
               ),
       ),
     );
@@ -316,6 +254,229 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // ── Phase 4 响应式布局 (Task 15) ──
+
+  /// Compact / medium 共用的纵向布局。
+  ///
+  /// medium slot 传入 [maxWidth] 时，会在 Column 外再包一层
+  /// `Center > ConstrainedBox(maxWidth: ...)`，让平板用户拥有舒适的阅读宽度。
+  /// compact slot 传 null，保持原 mobile 行为不变。
+  Widget _buildVerticalLayout(
+    BuildContext context,
+    ImportState state,
+    List<ParseCandidate> candidates,
+    Set<int> confirmedIndices,
+    List<MapEntry<int, ParseCandidate>> filteredCandidates, {
+    double? maxWidth,
+  }) {
+    final content = Column(
+      children: [
+        // ── Phase 3: LLM 自动确认横幅（D-08）──
+        if (_isLlmImport)
+          _buildAutoConfirmBanner(context, confirmedIndices.length),
+
+        // ── 题库名称编辑区（D-18 CJK 感知）──
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: TextField(
+            controller: _bankNameController,
+            decoration: InputDecoration(
+              labelText: '题库名称',
+              hintText: '输入题库名称',
+              errorText: _bankNameError,
+              helperText: '中文/全角=2字符，ASCII=1字符，上限100',
+              border: const OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: (value) {
+              setState(() => _bankNameError = _validateBankName(value));
+              if (_bankNameError == null) {
+                ref
+                    .read(importNotifierProvider.notifier)
+                    .setBankName(value.trim());
+              }
+            },
+          ),
+        ),
+        // ── 底部 Sheet：批量操作 + 题型筛选 ──
+        _buildToolbar(context, confirmedIndices, candidates),
+        // ── Phase 3: 解析来源摘要行 ──
+        if (state.parseSources.isNotEmpty)
+          _buildSourceSummary(context, state),
+        // ── 候选列表（移动端纵向滚动）──
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 8),
+            itemCount: filteredCandidates.length,
+            itemBuilder: (context, index) {
+              final entry = filteredCandidates[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _buildCandidateColumn(
+                  context,
+                  state,
+                  entry.key,
+                  entry.value,
+                  confirmedIndices,
+                  candidates.length,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+
+    if (maxWidth == null) return content;
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: content,
+      ),
+    );
+  }
+
+  /// Expanded 专用横向布局：hero 段保持 960 上限，候选列表换成 2 列 Wrap 网格。
+  Widget _buildHorizontalLayout(
+    BuildContext context,
+    ImportState state,
+    List<ParseCandidate> candidates,
+    Set<int> confirmedIndices,
+  ) {
+    final filtered = _filterType == null
+        ? candidates.asMap().entries.toList()
+        : candidates
+            .asMap()
+            .entries
+            .where((e) => e.value.candidateType == _filterType)
+            .toList();
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 960),
+        child: Column(
+          children: [
+            // ── Phase 3: LLM 自动确认横幅（D-08）──
+            if (_isLlmImport)
+              _buildAutoConfirmBanner(context, confirmedIndices.length),
+
+            // ── 题库名称编辑区（D-18 CJK 感知）──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: TextField(
+                controller: _bankNameController,
+                decoration: InputDecoration(
+                  labelText: '题库名称',
+                  hintText: '输入题库名称',
+                  errorText: _bankNameError,
+                  helperText: '中文/全角=2字符，ASCII=1字符，上限100',
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (value) {
+                  setState(() => _bankNameError = _validateBankName(value));
+                  if (_bankNameError == null) {
+                    ref
+                        .read(importNotifierProvider.notifier)
+                        .setBankName(value.trim());
+                  }
+                },
+              ),
+            ),
+            // ── 底部 Sheet：批量操作 + 题型筛选 ──
+            _buildToolbar(context, confirmedIndices, candidates),
+            // ── Phase 3: 解析来源摘要行 ──
+            if (state.parseSources.isNotEmpty)
+              _buildSourceSummary(context, state),
+            // ── 候选列表（桌面端 2 列 Wrap 网格）──
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        for (final entry in filtered)
+                          SizedBox(
+                            width: (constraints.maxWidth - 12) / 2,
+                            child: _buildCandidateColumn(
+                              context,
+                              state,
+                              entry.key,
+                              entry.value,
+                              confirmedIndices,
+                              candidates.length,
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 单个候选的内容块：解析来源徽章 + CandidateCard。
+  ///
+  /// 纵向 slot (ListView itemBuilder) 与横向 slot (Wrap children) 共享同一棵 widget 树，
+  /// 保证两端的视觉/交互完全一致。
+  Widget _buildCandidateColumn(
+    BuildContext context,
+    ImportState state,
+    int index,
+    ParseCandidate candidate,
+    Set<int> confirmedIndices,
+    int totalCount,
+  ) {
+    final isConfirmed = confirmedIndices.contains(index);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Parse source badge
+        if (state.parseSources.containsKey(index))
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4, left: 4),
+            child: _ParseSourceBadge(
+              source: state.parseSources[index]!,
+            ),
+          ),
+        CandidateCard(
+          candidate: candidate,
+          index: index,
+          total: totalCount,
+          isConfirmed: isConfirmed,
+          onToggleConfirm: () {
+            ref.read(importNotifierProvider.notifier).toggleCandidate(index);
+          },
+          onTypeChanged: (type) {
+            ref
+                .read(importNotifierProvider.notifier)
+                .setCandidateType(index, type);
+          },
+          onOptionsChanged: (options) {
+            ref
+                .read(importNotifierProvider.notifier)
+                .setCandidateOptions(index, options);
+          },
+          onAnswerChanged: (answer) {
+            ref
+                .read(importNotifierProvider.notifier)
+                .setCandidateAnswer(index, answer);
+          },
+        ),
+      ],
     );
   }
 

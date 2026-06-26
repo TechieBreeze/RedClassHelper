@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/color_scheme_provider.dart';
+import '../../../core/platform/responsive.dart';
 import '../../../core/theme_mode_provider.dart';
 import '../../quiz/models/quiz_settings.dart';
 import '../../quiz/providers/quiz_settings_provider.dart';
@@ -25,170 +26,377 @@ class SettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('设置')),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          final double hPad;
-          final double? maxW;
-          if (width < 600) {
-            hPad = 16;
-            maxW = null;
-          } else if (width < 840) {
-            hPad = 24;
-            maxW = null;
-          } else {
-            hPad = 32;
-            maxW = 720;
-          }
-          return Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxW ?? double.infinity),
-              child: ListView(
-                padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 20),
+      body: AdaptiveLayout(
+        compact: (_) => KeyedSubtree(
+          key: const Key('settings_vertical_layout'),
+          child: _buildVerticalLayout(
+            ref,
+            context,
+            isDesktop: isDesktop,
+            themeMode: themeMode,
+            appColorScheme: appColorScheme,
+            settings: settings,
+            cs: cs,
+            hPad: 16,
+          ),
+        ),
+        medium: (_) => KeyedSubtree(
+          key: const Key('settings_vertical_layout'),
+          child: _buildVerticalLayout(
+            ref,
+            context,
+            isDesktop: isDesktop,
+            themeMode: themeMode,
+            appColorScheme: appColorScheme,
+            settings: settings,
+            cs: cs,
+            hPad: 24,
+            maxWidth: 720,
+          ),
+        ),
+        expanded: (_) => KeyedSubtree(
+          key: const Key('settings_horizontal_layout'),
+          child: _buildHorizontalLayout(
+            ref,
+            context,
+            isDesktop: isDesktop,
+            themeMode: themeMode,
+            appColorScheme: appColorScheme,
+            settings: settings,
+            cs: cs,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Compact / medium layout: vertical ListView with optional max-width cap.
+  Widget _buildVerticalLayout(
+    WidgetRef ref,
+    BuildContext context, {
+    required bool isDesktop,
+    required ThemeMode themeMode,
+    required AppColorScheme appColorScheme,
+    required QuizSettings settings,
+    required ColorScheme cs,
+    required double hPad,
+    double? maxWidth,
+  }) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth ?? double.infinity),
+        child: ListView(
+          padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 20),
+          children: [
+            // ── 外观 ──
+            _SectionCard(
+              title: '外观',
+              icon: Icons.palette_outlined,
+              children: [
+                _ThemeTile(
+                  title: '跟随系统',
+                  subtitle: '自动匹配亮色/暗色',
+                  icon: Icons.brightness_auto_rounded,
+                  mode: ThemeMode.system,
+                  selected: themeMode == ThemeMode.system,
+                  onTap: () => ref
+                      .read(themeModeProvider.notifier)
+                      .setThemeMode(ThemeMode.system),
+                ),
+                _ThemeTile(
+                  title: '亮色模式',
+                  subtitle: '始终使用浅色主题',
+                  icon: Icons.light_mode_rounded,
+                  mode: ThemeMode.light,
+                  selected: themeMode == ThemeMode.light,
+                  onTap: () => ref
+                      .read(themeModeProvider.notifier)
+                      .setThemeMode(ThemeMode.light),
+                ),
+                _ThemeTile(
+                  title: '暗色模式',
+                  subtitle: '始终使用深色主题',
+                  icon: Icons.dark_mode_rounded,
+                  mode: ThemeMode.dark,
+                  selected: themeMode == ThemeMode.dark,
+                  onTap: () => ref
+                      .read(themeModeProvider.notifier)
+                      .setThemeMode(ThemeMode.dark),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+            // ── 主题色 ──
+            _SectionCard(
+              title: '主题色',
+              icon: Icons.brush_outlined,
+              children: [
+                _ColorSchemeTile(
+                  title: '青绿',
+                  colors: const [Color(0xFF00897B), Color(0xFF80CBC4)],
+                  selected: appColorScheme == AppColorScheme.teal,
+                  onTap: () => ref
+                      .read(appColorSchemeProvider.notifier)
+                      .setColorScheme(AppColorScheme.teal),
+                ),
+                _ColorSchemeTile(
+                  title: '蓝紫',
+                  colors: const [Color(0xFF5C6BC0), Color(0xFF9FA8DA)],
+                  selected: appColorScheme == AppColorScheme.bluePurple,
+                  onTap: () => ref
+                      .read(appColorSchemeProvider.notifier)
+                      .setColorScheme(AppColorScheme.bluePurple),
+                ),
+              ],
+            ),
+
+            if (isDesktop) ...[
+              const SizedBox(height: 16),
+              // ── 答题设置 ──
+              _SectionCard(
+                title: '答题设置',
+                icon: Icons.quiz_outlined,
                 children: [
-                  // ── 外观 ──
-                  _SectionCard(
-                    title: '外观',
-                    icon: Icons.palette_outlined,
-                    children: [
-                      _ThemeTile(
-                        title: '跟随系统',
-                        subtitle: '自动匹配亮色/暗色',
-                        icon: Icons.brightness_auto_rounded,
-                        mode: ThemeMode.system,
-                        selected: themeMode == ThemeMode.system,
-                        onTap: () => ref
-                            .read(themeModeProvider.notifier)
-                            .setThemeMode(ThemeMode.system),
+                  ListTile(
+                    title: const Text('点击即提交'),
+                    subtitle: const Text('关闭后需点击按钮确认答案'),
+                    mouseCursor: MouseCursor.defer,
+                    trailing: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: Switch(
+                        value: settings.submitMode == QuizSubmitMode.instant,
+                        onChanged: (v) => ref
+                            .read(quizSettingsProvider.notifier)
+                            .setSubmitMode(v
+                                ? QuizSubmitMode.instant
+                                : QuizSubmitMode.confirm),
                       ),
-                      _ThemeTile(
-                        title: '亮色模式',
-                        subtitle: '始终使用浅色主题',
-                        icon: Icons.light_mode_rounded,
-                        mode: ThemeMode.light,
-                        selected: themeMode == ThemeMode.light,
-                        onTap: () => ref
-                            .read(themeModeProvider.notifier)
-                            .setThemeMode(ThemeMode.light),
-                      ),
-                      _ThemeTile(
-                        title: '暗色模式',
-                        subtitle: '始终使用深色主题',
-                        icon: Icons.dark_mode_rounded,
-                        mode: ThemeMode.dark,
-                        selected: themeMode == ThemeMode.dark,
-                        onTap: () => ref
-                            .read(themeModeProvider.notifier)
-                            .setThemeMode(ThemeMode.dark),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-                  // ── 主题色 ──
-                  _SectionCard(
-                    title: '主题色',
-                    icon: Icons.brush_outlined,
-                    children: [
-                      _ColorSchemeTile(
-                        title: '青绿',
-                        colors: const [Color(0xFF00897B), Color(0xFF80CBC4)],
-                        selected: appColorScheme == AppColorScheme.teal,
-                        onTap: () => ref
-                            .read(appColorSchemeProvider.notifier)
-                            .setColorScheme(AppColorScheme.teal),
-                      ),
-                      _ColorSchemeTile(
-                        title: '蓝紫',
-                        colors: const [Color(0xFF5C6BC0), Color(0xFF9FA8DA)],
-                        selected: appColorScheme == AppColorScheme.bluePurple,
-                        onTap: () => ref
-                            .read(appColorSchemeProvider.notifier)
-                            .setColorScheme(AppColorScheme.bluePurple),
-                      ),
-                    ],
-                  ),
-
-                  if (isDesktop) ...[
-                    const SizedBox(height: 16),
-                    // ── 答题设置 ──
-                    _SectionCard(
-                      title: '答题设置',
-                      icon: Icons.quiz_outlined,
-                    children: [
-                        ListTile(
-                          title: const Text('点击即提交'),
-                          subtitle:
-                              const Text('关闭后需点击按钮确认答案'),
-                          mouseCursor: MouseCursor.defer,
-                          trailing: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: Switch(
-                              value: settings.submitMode == QuizSubmitMode.instant,
-                              onChanged: (v) => ref
-                                  .read(quizSettingsProvider.notifier)
-                                  .setSubmitMode(v
-                                      ? QuizSubmitMode.instant
-                                      : QuizSubmitMode.confirm),
-                            ),
-                          ),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        ListTile(
-                          title: const Text('自动翻题'),
-                          subtitle:
-                              const Text('关闭后需手动点击或按键跳转'),
-                          mouseCursor: MouseCursor.defer,
-                          trailing: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: Switch(
-                              value:
-                                  settings.advanceMode == QuizAdvanceMode.auto,
-                              onChanged: (v) => ref
-                                  .read(quizSettingsProvider.notifier)
-                                  .setAdvanceMode(v
-                                      ? QuizAdvanceMode.auto
-                                      : QuizAdvanceMode.manual),
-                            ),
-                          ),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                    ],
                     ),
-                  ],
-
-                  const SizedBox(height: 16),
-                  // ── 模型管理 ──
-                  _SectionCard(
-                    title: '高级',
-                    icon: Icons.tune,
-                    children: [
-                      _HoverableListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: cs.tertiaryContainer,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(Icons.psychology_rounded,
-                              color: cs.onTertiaryContainer, size: 22),
-                        ),
-                        title: const Text('模型管理'),
-                        subtitle: const Text('查看已安装模型、下载推荐模型'),
-                        trailing:
-                            Icon(Icons.chevron_right_rounded, color: cs.outline),
-                        onTap: () => context.push('/settings/models'),
-                      ),
-                    ],
+                    contentPadding: EdgeInsets.zero,
                   ),
-                  const SizedBox(height: 32),
+                  ListTile(
+                    title: const Text('自动翻题'),
+                    subtitle: const Text('关闭后需手动点击或按键跳转'),
+                    mouseCursor: MouseCursor.defer,
+                    trailing: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: Switch(
+                        value:
+                            settings.advanceMode == QuizAdvanceMode.auto,
+                        onChanged: (v) => ref
+                            .read(quizSettingsProvider.notifier)
+                            .setAdvanceMode(v
+                                ? QuizAdvanceMode.auto
+                                : QuizAdvanceMode.manual),
+                      ),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                  ),
                 ],
               ),
+            ],
+
+            const SizedBox(height: 16),
+            // ── 模型管理 ──
+            _SectionCard(
+              title: '高级',
+              icon: Icons.tune,
+              children: [
+                _HoverableListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: cs.tertiaryContainer,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.psychology_rounded,
+                        color: cs.onTertiaryContainer, size: 22),
+                  ),
+                  title: const Text('模型管理'),
+                  subtitle: const Text('查看已安装模型、下载推荐模型'),
+                  trailing:
+                      Icon(Icons.chevron_right_rounded, color: cs.outline),
+                  onTap: () => context.push('/settings/models'),
+                ),
+              ],
             ),
-          );
-        },
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Expanded layout: 2-column (外观 + 主题色 on left, 答题设置 + 高级 on right).
+  Widget _buildHorizontalLayout(
+    WidgetRef ref,
+    BuildContext context, {
+    required bool isDesktop,
+    required ThemeMode themeMode,
+    required AppColorScheme appColorScheme,
+    required QuizSettings settings,
+    required ColorScheme cs,
+  }) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 960),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Left: 外观 + 主题色 ──
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SectionCard(
+                      title: '外观',
+                      icon: Icons.palette_outlined,
+                      children: [
+                        _ThemeTile(
+                          title: '跟随系统',
+                          subtitle: '自动匹配亮色/暗色',
+                          icon: Icons.brightness_auto_rounded,
+                          mode: ThemeMode.system,
+                          selected: themeMode == ThemeMode.system,
+                          onTap: () => ref
+                              .read(themeModeProvider.notifier)
+                              .setThemeMode(ThemeMode.system),
+                        ),
+                        _ThemeTile(
+                          title: '亮色模式',
+                          subtitle: '始终使用浅色主题',
+                          icon: Icons.light_mode_rounded,
+                          mode: ThemeMode.light,
+                          selected: themeMode == ThemeMode.light,
+                          onTap: () => ref
+                              .read(themeModeProvider.notifier)
+                              .setThemeMode(ThemeMode.light),
+                        ),
+                        _ThemeTile(
+                          title: '暗色模式',
+                          subtitle: '始终使用深色主题',
+                          icon: Icons.dark_mode_rounded,
+                          mode: ThemeMode.dark,
+                          selected: themeMode == ThemeMode.dark,
+                          onTap: () => ref
+                              .read(themeModeProvider.notifier)
+                              .setThemeMode(ThemeMode.dark),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      title: '主题色',
+                      icon: Icons.brush_outlined,
+                      children: [
+                        _ColorSchemeTile(
+                          title: '青绿',
+                          colors: const [Color(0xFF00897B), Color(0xFF80CBC4)],
+                          selected: appColorScheme == AppColorScheme.teal,
+                          onTap: () => ref
+                              .read(appColorSchemeProvider.notifier)
+                              .setColorScheme(AppColorScheme.teal),
+                        ),
+                        _ColorSchemeTile(
+                          title: '蓝紫',
+                          colors: const [Color(0xFF5C6BC0), Color(0xFF9FA8DA)],
+                          selected: appColorScheme == AppColorScheme.bluePurple,
+                          onTap: () => ref
+                              .read(appColorSchemeProvider.notifier)
+                              .setColorScheme(AppColorScheme.bluePurple),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+
+              // ── Right: 答题设置 (if isDesktop) + 高级 ──
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (isDesktop) ...[
+                      _SectionCard(
+                        title: '答题设置',
+                        icon: Icons.quiz_outlined,
+                        children: [
+                          ListTile(
+                            title: const Text('点击即提交'),
+                            subtitle: const Text('关闭后需点击按钮确认答案'),
+                            mouseCursor: MouseCursor.defer,
+                            trailing: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: Switch(
+                                value: settings.submitMode ==
+                                    QuizSubmitMode.instant,
+                                onChanged: (v) => ref
+                                    .read(quizSettingsProvider.notifier)
+                                    .setSubmitMode(v
+                                        ? QuizSubmitMode.instant
+                                        : QuizSubmitMode.confirm),
+                              ),
+                            ),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          ListTile(
+                            title: const Text('自动翻题'),
+                            subtitle: const Text('关闭后需手动点击或按键跳转'),
+                            mouseCursor: MouseCursor.defer,
+                            trailing: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: Switch(
+                                value: settings.advanceMode ==
+                                    QuizAdvanceMode.auto,
+                                onChanged: (v) => ref
+                                    .read(quizSettingsProvider.notifier)
+                                    .setAdvanceMode(v
+                                        ? QuizAdvanceMode.auto
+                                        : QuizAdvanceMode.manual),
+                              ),
+                            ),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    _SectionCard(
+                      title: '高级',
+                      icon: Icons.tune,
+                      children: [
+                        _HoverableListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: cs.tertiaryContainer,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(Icons.psychology_rounded,
+                                color: cs.onTertiaryContainer, size: 22),
+                          ),
+                          title: const Text('模型管理'),
+                          subtitle: const Text('查看已安装模型、下载推荐模型'),
+                          trailing: Icon(Icons.chevron_right_rounded,
+                              color: cs.outline),
+                          onTap: () => context.push('/settings/models'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -35,6 +35,9 @@ models/*.gguf
 # Android Kotlin error logs
 android/.kotlin/
 
+# Local Android asset backups (e.g., launcher icon replacement safety copies)
+android/app/src/main/res/_icon_backup/
+
 # Example documents (real exam papers)
 doc/example/
 

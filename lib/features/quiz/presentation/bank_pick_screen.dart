@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/nav/safe_nav.dart';
+
 import '../../../core/theme.dart';
 import '../../../core/widgets/hoverable_card.dart';
 import '../providers/bank_pick_provider.dart';
@@ -188,7 +190,7 @@ class _PickBankCard extends StatelessWidget {
     final bank = item.bank;
 
     return HoverableCard(
-      onTap: item.isEmpty ? null : () => context.go('/quiz/${bank.id}/$mode'),
+      onTap: item.isEmpty ? null : () => context.safePush('/quiz/${bank.id}/$mode'),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(

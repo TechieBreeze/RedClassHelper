@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/nav/safe_nav.dart';
+
 import '../models/quiz_session_state.dart';
 import '../models/review_mode.dart';
 import '../providers/quiz_session_controller.dart';
@@ -196,7 +198,10 @@ class QuizSummaryScreen extends ConsumerWidget {
                             ref.invalidate(
                               quizSessionControllerProvider(bankId, mode),
                             );
-                            context.go('/quiz/$bankId/$mode');
+                            if (context.canPop()) {
+                              context.pop();
+                            }
+                            context.safePush('/quiz/$bankId/$mode');
                           },
                           child: const Text('再来一轮'),
                         ),

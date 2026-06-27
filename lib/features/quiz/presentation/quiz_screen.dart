@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/nav/safe_nav.dart';
+
 import 'package:redclass/data/db/database.dart';
 
 import '../../../core/platform/platform_info.dart';
@@ -208,7 +210,7 @@ class QuizScreen extends ConsumerWidget {
         (session.totalQuestions ?? 0) > 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
-          context.go('/quiz/$bankId/$mode/summary');
+          context.safePush('/quiz/$bankId/$mode/summary');
         }
       });
       return Scaffold(

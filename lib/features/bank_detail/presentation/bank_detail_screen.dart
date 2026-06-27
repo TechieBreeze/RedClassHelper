@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../core/nav/safe_nav.dart';
+
 import '../../../core/platform/responsive.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/hoverable_card.dart';
@@ -408,7 +410,7 @@ class BankDetailScreen extends ConsumerWidget {
 
   Widget _buildStartReviewCard(BuildContext context, ColorScheme cs) {
     return HoverableCard(
-      onTap: () => context.go('/quiz/$bankId/random'),
+      onTap: () => context.safePush('/quiz/$bankId/random'),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(

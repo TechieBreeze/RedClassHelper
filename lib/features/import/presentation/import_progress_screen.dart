@@ -6,6 +6,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -67,26 +68,44 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
   }
 
   void _startImport() {
-    if (_filePath == null) return;
-
-    // If ImportScreen already started the parse (Phase 3 desktop flow),
-    // don't re-initialize. Just resume watching progress.
     final currentState = ref.read(importNotifierProvider);
+
+    // If ImportScreen already started the parse (normal mobile + desktop flow),
+    // don't re-initialize. Just resume watching progress.
     if (currentState.phase != ImportPhase.idle) {
-      _stuckTimer?.cancel();
-      _stuckTimer = Timer(const Duration(seconds: 10), () {
-        if (mounted) {
-          setState(() => _showStuckMessage = true);
-        }
-      });
+      _startStuckTimer();
       return;
     }
 
-    // Phase 2 behavior: start import from scratch
-    final file = File(_filePath!);
-    final stat = file.statSync();
     final notifier = ref.read(importNotifierProvider.notifier);
 
+    // Preferred path: state.files already populated by ImportScreen.receiveFiles
+    // (covers both desktop PickedPathFile and mobile PickedBytesFile sources).
+    if (currentState.files.isNotEmpty) {
+      notifier.extractAndParse();
+      _startStuckTimer();
+      return;
+    }
+
+    // Fallback only valid for desktop deep-link to /import/progress.
+    // On mobile, _filePath from GoRouterState.extra is just the basename,
+    // so File.existsSync() would always fail. Surface a clear error instead
+    // of misleadingly saying "file doesn't exist".
+    if (!kIsWeb && Platform.isAndroid) {
+      notifier.setError('导入状态丢失，请返回题库列表重新导入');
+      return;
+    }
+    if (_filePath == null) {
+      notifier.setError('文件路径缺失，无法导入');
+      return;
+    }
+    final file = File(_filePath!);
+    if (!file.existsSync()) {
+      notifier.setError('文件不存在或无法访问: $_filePath');
+      return;
+    }
+
+    final stat = file.statSync();
     notifier.pickFiles([
       ImportFile.fromPath(
         path: _filePath!,
@@ -94,10 +113,11 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
         sizeBytes: stat.size,
       ),
     ]);
-
     notifier.extractAndParse();
+    _startStuckTimer();
+  }
 
-    // 10 秒卡住定时器
+  void _startStuckTimer() {
     _stuckTimer?.cancel();
     _stuckTimer = Timer(const Duration(seconds: 10), () {
       if (mounted) {
@@ -141,11 +161,16 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(importNotifierProvider);
 
-    // 自动导航到下一屏（Phase 2 heuristic parse complete）
+    // 自动导航到下一屏（Phase 2 heuristic parse complete 或 JSON fast-track 完成）
     ref.listen(importNotifierProvider, (prev, next) {
       if (next.isEditing && next.hasCandidates && next.jobId.isNotEmpty) {
         if (mounted) {
           context.go('/import/preview/${next.jobId}');
+        }
+      } else if (next.isDone && next.committedCount > 0 && next.jobId.isNotEmpty) {
+        // JSON 快速通道直接进入 done 状态，跳过 preview
+        if (mounted) {
+          context.go('/import/summary/${next.jobId}');
         }
       }
     });

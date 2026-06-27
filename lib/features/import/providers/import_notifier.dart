@@ -37,7 +37,12 @@ final importNotifierProvider = importProvider;
 /// 导入管道 Notifier。
 ///
 /// 通过 Riverpod 管理导入全流程状态，依赖 PathResolver 和 AppDatabase。
-@riverpod
+///
+/// keepAlive: ImportScreen 接收文件后通过 GoRouter 跳转到 ImportProgressScreen，
+/// 此时 ImportScreen 出栈。若 provider 默认 autoDispose，状态会随 ImportScreen
+/// 销毁一起清空，导致 progress_screen 看到 phase=idle, files=0，进而走入
+/// desktop-only 的 fallback 分支（File.existsSync(basename) 永远失败）。
+@Riverpod(keepAlive: true)
 class ImportNotifier extends _$ImportNotifier {
   final HeuristicParser _parser = HeuristicParser();
   final Uuid _uuid = const Uuid();
@@ -603,6 +608,11 @@ class ImportNotifier extends _$ImportNotifier {
   /// 重置管道
   void reset() {
     state = const ImportState();
+  }
+
+  /// 设置错误信息（用于 UI 层在状态管道外报告错误，例如文件路径缺失）。
+  void setError(String message) {
+    state = state.copyWith(phase: ImportPhase.idle, error: message);
   }
 
   // ── LLM 解析辅助方法 ──

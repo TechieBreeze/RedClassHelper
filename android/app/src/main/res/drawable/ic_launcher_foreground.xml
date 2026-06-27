@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive icon foreground layer (108×108dp viewport).
+  Source PNG (ic_launcher_logo.png, 192×192) already has ~7.5% internal padding
+  around the red Q+arrow logo (~85% fill).
+  An 18dp inset on each side places the logo inside the 66% safe zone
+  (the central 72dp area that survives launcher masking).
+  Effective logo = ~85% × (1 - 18dp×2 / 108dp) ≈ 60% of viewport.
+-->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_launcher_logo"
+    android:inset="18dp" />

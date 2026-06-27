@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:redclass/core/theme.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('buildAppTheme (D-22, D-23)', () {
     test('light + null dynamic returns non-null ThemeData with M3', () {
       final theme = buildAppTheme(Brightness.light, null);

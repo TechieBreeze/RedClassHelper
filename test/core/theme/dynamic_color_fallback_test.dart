@@ -4,6 +4,7 @@ import 'package:redclass/core/color_scheme_provider.dart';
 import 'package:redclass/core/theme.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('dynamic_color fallback chain (D-20, RESEARCH.md Pitfall 7)', () {
     test('null dynamicScheme falls back to ColorScheme.fromSeed', () {
       // In test environment, dynamic_color is not initialized, so the

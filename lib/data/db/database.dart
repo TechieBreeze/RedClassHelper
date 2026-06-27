@@ -57,12 +57,16 @@ class AppDatabase extends _$AppDatabase {
           oldName: 'question_banks',
           newName: 'question_banks',
           ddl: _questionBanksV2Ddl,
+          columns: 'id, name, source, question_count, created_at, updated_at',
         );
         await _recreateTableNullable(
           m,
           oldName: 'parse_jobs',
           newName: 'parse_jobs',
           ddl: _parseJobsV2Ddl,
+          columns:
+              'id, source_path, status, progress, result_count, '
+              'error_message, created_at, updated_at',
         );
       }
     },
@@ -76,20 +80,26 @@ class AppDatabase extends _$AppDatabase {
   ///
   /// SQLite 不支持 `ALTER COLUMN ... DROP NOT NULL`，因此采用
   /// rename → create new → copy → drop old 的等价操作。
+  ///
+  /// [columns] 是 v1 与 v2 共享的列清单（逗号分隔）。v1 与 v2 必须列名一致——
+  /// 本函数只用于"仅改 nullable"的迁移；如果 v2 列名变了，应该单独写迁移。
   static Future<void> _recreateTableNullable(
     Migrator m, {
     required String oldName,
     required String newName,
     required String ddl,
+    required String columns,
   }) async {
     final old = '${oldName}_v1_old';
     final db = m.database;
+    // 防御性清理: 上次迁移如果在中途崩溃 (例如应用被强杀), 临时表
+    // {name}_v1_old 可能残留, 导致本次 ALTER TABLE RENAME 报 "already exists"。
+    await db.customStatement('DROP TABLE IF EXISTS $old');
     await db.customStatement('ALTER TABLE $oldName RENAME TO $old');
     await db.customStatement(ddl);
     await db.customStatement(
-      'INSERT INTO $newName (id, name, source, question_count, '
-      'created_at, updated_at) '
-      'SELECT id, name, source, question_count, created_at, updated_at '
+      'INSERT INTO $newName ($columns) '
+      'SELECT $columns '
       'FROM $old',
     );
     await db.customStatement('DROP TABLE $old');

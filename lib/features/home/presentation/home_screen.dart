@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path/path.dart' as p;
 
 import '../../../core/theme.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
@@ -82,42 +81,28 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 28),
 
-                    // ── 题库 ──
-                    _SectionTitle(
-                      title: '我的题库',
-                      action: '导入',
-                      onAction: () => context.push('/import'),
-                    ),
-                    const SizedBox(height: 12),
+                    // ── 题库 + 统计 入口 ──
                     Consumer(
                       builder: (context, ref, _) {
                         final banksAsync = ref.watch(bankPickListProvider);
-                        return banksAsync.when(
-                          loading: () => _LoadingBanks(),
-                          error: (e, _) => _ErrorBanks(
-                            msg: e.toString(),
-                            onRetry: () => ref.invalidate(bankPickListProvider),
-                          ),
-                          data: (banks) {
-                            if (banks.isEmpty) {
-                              return const _EmptyBank();
-                            }
-                            return Column(
-                              children: [
-                                for (final b in banks) ...[
-                                  _BankRow(item: b),
-                                  const SizedBox(height: 8),
-                                ],
-                              ],
-                            );
-                          },
+                        final bankCount = banksAsync.value?.length ?? 0;
+                        final questionCount = banksAsync.value?.fold<int>(
+                              0,
+                              (s, b) => s + b.totalQuestions,
+                            ) ??
+                            0;
+                        return Column(
+                          children: [
+                            _BanksEntryTile(
+                              bankCount: bankCount,
+                              questionCount: questionCount,
+                            ),
+                            const SizedBox(height: 12),
+                            _StatTile(onTap: () => context.push('/stats')),
+                          ],
                         );
                       },
                     ),
-                    const SizedBox(height: 24),
-
-                    // ── 统计入口 ──
-                    _StatTile(onTap: () => context.push('/stats')),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -171,12 +156,23 @@ class _HeroBanner extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '继续加油 💪',
-            style: tt.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                '继续加油',
+                style: tt.headlineSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.local_fire_department_rounded,
+                color: Colors.white,
+                size: 26,
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(
@@ -415,51 +411,26 @@ class _ActionCard extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  Section Title
+//  题库入口卡 (主页只显示入口，列表跳转 /banks)
 // ══════════════════════════════════════════════════════════════
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title, this.action, this.onAction});
-  final String title;
-  final String? action;
-  final VoidCallback? onAction;
+class _BanksEntryTile extends StatelessWidget {
+  const _BanksEntryTile({
+    required this.bankCount,
+    required this.questionCount,
+  });
+
+  final int bankCount;
+  final int questionCount;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const Spacer(),
-        if (action != null && onAction != null)
-          TextButton.icon(
-            onPressed: onAction,
-            icon: const Icon(Icons.add, size: 18),
-            label: Text(action!),
-          ),
-      ],
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-//  题库卡片
-// ══════════════════════════════════════════════════════════════
-
-class _BankRow extends StatelessWidget {
-  const _BankRow({required this.item});
-  final BankPickItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final bank = item.bank;
     final cs = Theme.of(context).colorScheme;
+    final subtitle = bankCount == 0
+        ? '导入题库开始复习'
+        : '$bankCount 个题库 · 共 $questionCount 道题';
     return HoverableCard(
-      onTap: () => context.push('/bank/${bank.id}'),
+      onTap: () => context.push('/banks'),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -476,7 +447,7 @@ class _BankRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
-                Icons.menu_book_rounded,
+                Icons.library_books_rounded,
                 size: 22,
                 color: cs.onPrimaryContainer,
               ),
@@ -487,16 +458,14 @@ class _BankRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    bank.name,
+                    '我的题库',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${item.totalQuestions} 题 · ${p.basename(bank.source ?? bank.name)}',
+                    subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: cs.onSurface.withAlpha(150),
                     ),
@@ -504,154 +473,7 @@ class _BankRow extends StatelessWidget {
                 ],
               ),
             ),
-            if (item.activeWrongCount > 0)
-              Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: cs.errorContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${item.activeWrongCount} 错',
-                  style: TextStyle(
-                    color: cs.onErrorContainer,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
             Icon(Icons.chevron_right_rounded, color: cs.outline, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyBank extends StatelessWidget {
-  const _EmptyBank();
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return HoverableCard(
-      onTap: () => context.push('/import'),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 32),
-        child: Column(
-          children: [
-            Icon(Icons.library_add_rounded, size: 44, color: cs.outline),
-            const SizedBox(height: 12),
-            Text('还没有题库', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(
-              '导入 .docx / .pdf / .json 开始复习',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: cs.onSurface.withAlpha(150),
-              ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton.tonalIcon(
-              onPressed: () => context.push('/import'),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('导入题库'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LoadingBanks extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        for (var i = 0; i < 2; i++) ...[
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: cs.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 140,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: cs.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          width: 100,
-                          height: 11,
-                          decoration: BoxDecoration(
-                            color: cs.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-      ],
-    );
-  }
-}
-
-class _ErrorBanks extends StatelessWidget {
-  const _ErrorBanks({required this.msg, required this.onRetry});
-  final String msg;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 32,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 8),
-            Text('加载失败', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(
-              msg,
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('重试'),
-            ),
           ],
         ),
       ),
@@ -731,6 +553,7 @@ class _HomeNavDrawer extends StatelessWidget {
 
   static const _items = <_NavItem>[
     _NavItem(route: '/', icon: Icons.home_outlined, label: '首页'),
+    _NavItem(route: '/banks', icon: Icons.library_books_outlined, label: '我的题库'),
     _NavItem(route: '/import', icon: Icons.upload_file_outlined, label: '导入题库'),
     _NavItem(route: '/stats', icon: Icons.insights_outlined, label: '数据统计'),
     _NavItem(route: '/settings', icon: Icons.settings_outlined, label: '设置'),

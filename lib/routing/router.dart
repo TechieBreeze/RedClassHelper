@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/bank_detail/presentation/bank_detail_screen.dart';
+import '../features/banks/presentation/banks_list_screen.dart';
 import '../features/bookmarks/presentation/bookmarks_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/import/presentation/import_preview_screen.dart';
@@ -34,6 +35,11 @@ final GoRouter appRouter = GoRouter(
       path: '/bank/:id',
       builder: (BuildContext context, GoRouterState state) =>
           BankDetailScreen(bankId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/banks',
+      builder: (BuildContext context, GoRouterState state) =>
+          const BanksListScreen(),
     ),
     GoRoute(
       path: '/quiz',

@@ -1,8 +1,5 @@
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
 
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,13 +16,6 @@ class BankPickerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!(Platform.isWindows || Platform.isLinux) && !kIsWeb) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('选择题库')),
-        body: const Center(child: Text('答题功能仅支持桌面端 (Windows/Linux)')),
-      );
-    }
-
     final bankListAsync = ref.watch(bankPickListProvider);
     final modeEnum = reviewModeFromString(mode);
     final cs = Theme.of(context).colorScheme;

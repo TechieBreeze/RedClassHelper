@@ -165,12 +165,16 @@ class _ImportProgressScreenState extends ConsumerState<ImportProgressScreen> {
     ref.listen(importNotifierProvider, (prev, next) {
       if (next.isEditing && next.hasCandidates && next.jobId.isNotEmpty) {
         if (mounted) {
-          context.go('/import/preview/${next.jobId}');
+          // pushReplacement: 把 progress 从栈里替换掉，但保留 /import 在下面，
+          // 这样 preview 关闭时能 pop 回 /import（tab-like 导航）。
+          context.pushReplacement('/import/preview/${next.jobId}');
         }
-      } else if (next.isDone && next.committedCount > 0 && next.jobId.isNotEmpty) {
+      } else if (next.isDone &&
+          next.committedCount > 0 &&
+          next.jobId.isNotEmpty) {
         // JSON 快速通道直接进入 done 状态，跳过 preview
         if (mounted) {
-          context.go('/import/summary/${next.jobId}');
+          context.pushReplacement('/import/summary/${next.jobId}');
         }
       }
     });

@@ -480,10 +480,24 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
 
   Future<void> _onDiscard(BuildContext context) async {
     final confirmed = await _showExitDialog();
-    if (confirmed == true && context.mounted) {
-      ref.read(importNotifierProvider.notifier).reset();
-      context.go('/');
+    if (confirmed != true || !context.mounted) return;
+
+    final state = ref.read(importNotifierProvider);
+
+    // 场景 A: 重审已导入的题库 (state.phase == done)
+    //   preview 是从 summary 的"手动编辑"push 进来的，
+    //   summary 在栈里。pop 回 summary，不重置 state (DB 里的题库不受影响)。
+    if (state.phase == ImportPhase.done) {
+      context.pop();
+      return;
     }
+
+    // 场景 B: 正常取消正在编辑的导入
+    //   preview 是从 progress pushReplacement 进来的，/import 在栈里。
+    //   先重置 state，再 pop 回 /import——保留 tab 结构，
+    //   /import 上的 AppBar automaticallyImplyLeading 会出现返回箭头。
+    ref.read(importNotifierProvider.notifier).reset();
+    context.pop();
   }
 
   Future<bool?> _showExitDialog() async {
@@ -527,7 +541,10 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
 
       final state = ref.read(importNotifierProvider);
       if (state.isDone && mounted) {
-        context.go('/import/summary/${state.jobId}');
+        // 保存：用 pushReplacement 把 preview 替换成 summary，
+        // 保留 /import 在栈里。summary 的 canPop=false 会阻止 pop 回 preview，
+        // 但底下的栈结构对"返回主页"按钮和未来可能的深度链接保留语义。
+        context.pushReplacement('/import/summary/${state.jobId}');
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

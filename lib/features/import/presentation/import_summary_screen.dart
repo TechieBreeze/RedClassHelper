@@ -6,7 +6,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path/path.dart' as p;
 
 import '../parsing/llm/canonicalizer.dart';
 import '../parsing/parse_candidate.dart';
@@ -48,32 +47,26 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
     final typeCounts = _countByType(state.candidates, state.confirmedIndices);
     final fileName = state.files.isNotEmpty ? state.files.first.name : '未知文件';
 
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('导入完成 ✓'),
-          automaticallyImplyLeading: false,
+    return Scaffold(
+      appBar: AppBar(title: const Text('导入完成 ✓')),
+      body: AdaptiveLayout(
+        compact: (_) => KeyedSubtree(
+          key: const Key('import_summary_vertical_layout'),
+          child: _buildVerticalLayout(context, state, fileName, typeCounts),
         ),
-        body: AdaptiveLayout(
-          compact: (_) => KeyedSubtree(
-            key: const Key('import_summary_vertical_layout'),
-            child: _buildVerticalLayout(context, state, fileName, typeCounts),
+        medium: (_) => KeyedSubtree(
+          key: const Key('import_summary_vertical_layout'),
+          child: _buildVerticalLayout(
+            context,
+            state,
+            fileName,
+            typeCounts,
+            maxWidth: 600,
           ),
-          medium: (_) => KeyedSubtree(
-            key: const Key('import_summary_vertical_layout'),
-            child: _buildVerticalLayout(
-              context,
-              state,
-              fileName,
-              typeCounts,
-              maxWidth: 600,
-            ),
-          ),
-          expanded: (_) => KeyedSubtree(
-            key: const Key('import_summary_horizontal_layout'),
-            child: _buildHorizontalLayout(context, state, fileName, typeCounts),
-          ),
+        ),
+        expanded: (_) => KeyedSubtree(
+          key: const Key('import_summary_horizontal_layout'),
+          child: _buildHorizontalLayout(context, state, fileName, typeCounts),
         ),
       ),
     );
@@ -190,7 +183,9 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                 onPressed: () {
                   final bankId = state.bankId;
                   ref.read(importNotifierProvider.notifier).reset();
-                  context.go('/quiz/$bankId/random');
+                  // 开始复习：用 push 把 quiz 叠在 summary 上方，
+                  // quiz 关闭时 pop 回 summary（tab-like 导航）。
+                  context.push('/quiz/$bankId/random');
                 },
                 icon: const Icon(Icons.play_arrow),
                 label: const Text('开始复习'),
@@ -327,7 +322,8 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                       onPressed: () {
                         final bankId = state.bankId;
                         ref.read(importNotifierProvider.notifier).reset();
-                        context.go('/quiz/$bankId/random');
+                        // 开始复习：用 push 叠在 summary 上方（tab-like 导航）。
+                        context.push('/quiz/$bankId/random');
                       },
                       icon: const Icon(Icons.play_arrow),
                       label: const Text('开始复习'),
@@ -511,8 +507,9 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                     ),
                     TextButton(
                       onPressed: () {
-                        // 手动编辑：导航回预览页
-                        context.go('/import/preview/${state.jobId}');
+                        // 手动编辑：用 push 把 preview 叠在 summary 上方，
+                        // preview 关闭时 pop 回 summary（tab-like 导航）。
+                        context.push('/import/preview/${state.jobId}');
                       },
                       child: const Text('手动编辑'),
                     ),

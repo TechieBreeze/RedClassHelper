@@ -9,6 +9,7 @@
 .pub-cache/
 .pub/
 build/
+release/
 pubspec.lock
 
 # Generated code (regenerate with: dart run build_runner build)

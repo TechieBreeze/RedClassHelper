@@ -79,7 +79,16 @@ class AppDatabase extends _$AppDatabase {
   /// 将指定表重建为给定 DDL，并保留旧数据。
   ///
   /// SQLite 不支持 `ALTER COLUMN ... DROP NOT NULL`，因此采用
-  /// rename → create new → copy → drop old 的等价操作。
+  /// create new (different name) → copy → drop old → rename new 的等价操作。
+  ///
+  /// **重要**：必须先创建"新表"，最后再 rename 到原名。如果先 RENAME 旧表，
+  /// SQLite 会自动更新子表的外键引用（如 `questions.bank_id REFERENCES
+  /// question_banks` → `REFERENCES question_banks_v1_old`），重建完后
+  /// `_v1_old` 被 DROP，子表 FK 指向不存在的表 → INSERT 校验报
+  /// "no such table: main.question_banks_v1_old"。
+  ///
+  /// 当前顺序让 FK 文本始终是 `REFERENCES 原表名`，最终 RENAME 后
+  /// 立即匹配，无需刷新 FK 元数据。
   ///
   /// [columns] 是 v1 与 v2 共享的列清单（逗号分隔）。v1 与 v2 必须列名一致——
   /// 本函数只用于"仅改 nullable"的迁移；如果 v2 列名变了，应该单独写迁移。
@@ -90,19 +99,34 @@ class AppDatabase extends _$AppDatabase {
     required String ddl,
     required String columns,
   }) async {
-    final old = '${oldName}_v1_old';
+    final staging = '${newName}_v2_new';
+    final oldLegacy = '${oldName}_v1_old';
     final db = m.database;
-    // 防御性清理: 上次迁移如果在中途崩溃 (例如应用被强杀), 临时表
-    // {name}_v1_old 可能残留, 导致本次 ALTER TABLE RENAME 报 "already exists"。
-    await db.customStatement('DROP TABLE IF EXISTS $old');
-    await db.customStatement('ALTER TABLE $oldName RENAME TO $old');
-    await db.customStatement(ddl);
+    // 防御性清理 1：清理当前迁移可能残留的 staging 表。
+    // 上次迁移如果在中途崩溃 (例如应用被强杀), {name}_v2_new 可能残留。
+    await db.customStatement('DROP TABLE IF EXISTS $staging');
+    // 防御性清理 2：清理旧版（破坏性）迁移残留的 _v1_old 表。
+    // 老版本用 "先 RENAME 再 CREATE" 的顺序，崩溃时会留下 _v1_old；
+    // 新顺序下 _v1_old 不会再产生，但用户的库可能已残留 —— 安全地清掉。
+    await db.customStatement('DROP TABLE IF EXISTS $oldLegacy');
+
+    // 1. 用 v2 schema 创建临时表（名字不同，不影响子表 FK 引用）
     await db.customStatement(
-      'INSERT INTO $newName ($columns) '
-      'SELECT $columns '
-      'FROM $old',
+      ddl.replaceFirst('CREATE TABLE $newName', 'CREATE TABLE $staging'),
     );
-    await db.customStatement('DROP TABLE $old');
+
+    // 2. 从旧表复制数据
+    await db.customStatement(
+      'INSERT INTO $staging ($columns) '
+      'SELECT $columns '
+      'FROM $oldName',
+    );
+
+    // 3. 删除旧表
+    await db.customStatement('DROP TABLE $oldName');
+
+    // 4. 临时表改名为最终表名（子表 FK 文本已经是 REFERENCES 原表名，无需更新）
+    await db.customStatement('ALTER TABLE $staging RENAME TO $newName');
   }
 
   static const _questionBanksV2Ddl = '''

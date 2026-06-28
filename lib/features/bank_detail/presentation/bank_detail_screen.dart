@@ -30,12 +30,20 @@ const int kExpandedMainFlex = 3;
 const int kExpandedSidebarFlex = 2;
 
 /// 题库详情页
-class BankDetailScreen extends ConsumerWidget {
+class BankDetailScreen extends ConsumerStatefulWidget {
   const BankDetailScreen({super.key, required this.bankId});
   final String bankId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BankDetailScreen> createState() => _BankDetailScreenState();
+}
+
+class _BankDetailScreenState extends ConsumerState<BankDetailScreen> {
+  // ignore: prefer_final_fields
+  bool _isDeleting = false;
+
+  @override
+  Widget build(BuildContext context) {
     final dbAsync = ref.watch(appDatabaseProvider);
     return dbAsync.when(
       loading: () => Scaffold(
@@ -59,11 +67,11 @@ class BankDetailScreen extends ConsumerWidget {
           ),
         ),
       ),
-      data: (db) => _buildContent(context, ref, db),
+      data: (db) => _buildContent(context, db),
     );
   }
 
-  Widget _buildContent(BuildContext context, WidgetRef ref, AppDatabase db) {
+  Widget _buildContent(BuildContext context, AppDatabase db) {
     return FutureBuilder<({QuestionBank bank, List<Question> questions})>(
       future: _loadBankData(db),
       builder: (context, snapshot) {
@@ -80,7 +88,7 @@ class BankDetailScreen extends ConsumerWidget {
           );
         }
         final (:bank, :questions) = snapshot.data!;
-        return _buildScaffold(context, ref, bank, questions);
+        return _buildScaffold(context, bank, questions);
       },
     );
   }
@@ -90,16 +98,15 @@ class BankDetailScreen extends ConsumerWidget {
   ) async {
     final bank = await (db.select(
       db.questionBanks,
-    )..where((b) => b.id.equals(bankId))).getSingle();
+    )..where((b) => b.id.equals(widget.bankId))).getSingle();
     final questions = await (db.select(
       db.questions,
-    )..where((q) => q.bankId.equals(bankId))).get();
+    )..where((q) => q.bankId.equals(widget.bankId))).get();
     return (bank: bank, questions: questions);
   }
 
   Scaffold _buildScaffold(
     BuildContext context,
-    WidgetRef ref,
     QuestionBank bank,
     List<Question> questions,
   ) {
@@ -123,7 +130,6 @@ class BankDetailScreen extends ConsumerWidget {
           key: const Key('bank_detail_vertical_layout'),
           child: _buildVerticalLayout(
             ctx,
-            ref,
             bank,
             questions,
             singleCount,
@@ -134,7 +140,6 @@ class BankDetailScreen extends ConsumerWidget {
           key: const Key('bank_detail_vertical_layout'),
           child: _buildVerticalLayout(
             ctx,
-            ref,
             bank,
             questions,
             singleCount,
@@ -146,7 +151,6 @@ class BankDetailScreen extends ConsumerWidget {
           key: const Key('bank_detail_horizontal_layout'),
           child: _buildHorizontalLayout(
             ctx,
-            ref,
             bank,
             questions,
             singleCount,
@@ -164,7 +168,6 @@ class BankDetailScreen extends ConsumerWidget {
   /// null for compact (full-width on phones).
   Widget _buildVerticalLayout(
     BuildContext context,
-    WidgetRef ref,
     QuestionBank bank,
     List<Question> questions,
     int singleCount,
@@ -183,7 +186,7 @@ class BankDetailScreen extends ConsumerWidget {
           multiCount,
         ),
         const SizedBox(height: 24),
-        _buildActionsSection(context, ref, bank, questions),
+        _buildActionsSection(context, bank, questions),
       ],
     );
     if (maxWidth == null) return listView;
@@ -200,7 +203,6 @@ class BankDetailScreen extends ConsumerWidget {
   /// Left (main flex): hero + actions. Right (sidebar flex): type breakdown.
   Widget _buildHorizontalLayout(
     BuildContext context,
-    WidgetRef ref,
     QuestionBank bank,
     List<Question> questions,
     int singleCount,
@@ -219,7 +221,7 @@ class BankDetailScreen extends ConsumerWidget {
               children: [
                 _buildHeroBanner(context, bank, questions, contentPadding: 24),
                 const SizedBox(height: 28),
-                _buildActionsSection(context, ref, bank, questions),
+                _buildActionsSection(context, bank, questions),
               ],
             ),
           ),
@@ -386,7 +388,6 @@ class BankDetailScreen extends ConsumerWidget {
   /// both layouts.
   Widget _buildActionsSection(
     BuildContext context,
-    WidgetRef ref,
     QuestionBank bank,
     List<Question> questions,
   ) {
@@ -403,14 +404,16 @@ class BankDetailScreen extends ConsumerWidget {
         const SizedBox(height: 10),
         _buildStartReviewCard(context, cs),
         const SizedBox(height: 8),
-        _buildExportJsonCard(context, ref, cs, bank, questions),
+        _buildExportJsonCard(context, cs, bank, questions),
+        const SizedBox(height: 8),
+        _buildDeleteCard(context, cs, bank),
       ],
     );
   }
 
   Widget _buildStartReviewCard(BuildContext context, ColorScheme cs) {
     return HoverableCard(
-      onTap: () => context.safePush('/quiz/$bankId/random'),
+      onTap: () => context.safePush('/quiz/${widget.bankId}/random'),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -462,13 +465,12 @@ class BankDetailScreen extends ConsumerWidget {
 
   Widget _buildExportJsonCard(
     BuildContext context,
-    WidgetRef ref,
     ColorScheme cs,
     QuestionBank bank,
     List<Question> questions,
   ) {
     return HoverableCard(
-      onTap: () => _exportJson(context, ref, bank, questions),
+      onTap: () => _exportJson(context, bank, questions),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -514,9 +516,74 @@ class BankDetailScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildDeleteCard(
+    BuildContext context,
+    ColorScheme cs,
+    QuestionBank bank,
+  ) {
+    return HoverableCard(
+      onTap: _isDeleting ? null : () => _showDeleteConfirmDialog(context, bank),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: cs.errorContainer,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.delete_outline_rounded,
+                color: cs.onErrorContainer,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '删除题库',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: cs.error,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '删除全部题目、错题、记录（不可撤销）',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: cs.onSurface.withAlpha(150),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_isDeleting)
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Icon(Icons.chevron_right_rounded, color: cs.outline, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Stub — real dialog + delete logic implemented in Task 6.
+  void _showDeleteConfirmDialog(BuildContext context, QuestionBank bank) {
+    // Intentionally empty for Task 5; Task 6 will add the confirm dialog
+    // and wire `_performDelete`.
+  }
+
   Future<void> _exportJson(
     BuildContext context,
-    WidgetRef ref,
     QuestionBank bank,
     List<Question> questions,
   ) async {

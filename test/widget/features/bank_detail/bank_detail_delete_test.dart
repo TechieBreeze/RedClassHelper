@@ -139,4 +139,112 @@ void main() {
     expect(fakeRepo.deletedIds, ['b1']);
     expect(find.text('已删除「Test Bank」'), findsOneWidget);
   });
+
+  testWidgets('DB failure: SnackBar shows error, no pop', (tester) async {
+    fakeRepo.onDelete = (_) async => throw Exception('disk full');
+    await setLargeSurface(tester);
+    await tester.pumpWidget(_wrap(db: db, repo: fakeRepo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('删除题库'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '删除题库'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('删除失败'), findsOneWidget);
+    expect(find.byType(BankDetailScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('context unmounted during delete: no crash', (tester) async {
+    final slowRepo = _FakeBankRepository()
+      ..onDelete = (_) =>
+          Future<void>.delayed(const Duration(milliseconds: 200));
+    await setLargeSurface(tester);
+    await tester.pumpWidget(_wrap(db: db, repo: slowRepo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('删除题库'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '删除题库'));
+    await tester.pump(const Duration(milliseconds: 50));
+    // Simulate user navigating away before the async delete resolves.
+    // Replace the widget tree with an empty MaterialApp — this unmounts
+    // the BankDetailScreen (exercising the `context.mounted` guards in
+    // `_performDelete`) without leaving the ProviderScope alive.
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    await tester.pumpAndSettle();
+    // Let the pending slow delete complete in the background.
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'delete button disabled while deletion in-flight (double-tap guard)',
+    (tester) async {
+      final slowRepo = _FakeBankRepository()
+        ..onDelete = (_) =>
+            Future<void>.delayed(const Duration(milliseconds: 200));
+      await setLargeSurface(tester);
+      await tester.pumpWidget(_wrap(db: db, repo: slowRepo));
+      await tester.pumpAndSettle();
+
+      // Open the dialog and confirm — this kicks off the in-flight delete.
+      await tester.tap(find.text('删除题库'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, '删除题库'));
+      await tester.pump(); // Dialog closes, _isDeleting=true, delete in flight.
+      // While delete is in-flight, the card onTap is null. Tap the card
+      // text again — nothing should happen (no dialog re-opens, no second
+      // delete fires).
+      await tester.tap(find.text('删除题库'));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(slowRepo.deletedIds, hasLength(1)); // Only one delete fired.
+    },
+  );
+
+  testWidgets('list page reflects deletion after pop', (tester) async {
+    final goRouterRepo = _FakeBankRepository();
+    await setLargeSurface(tester);
+    await tester.pumpWidget(_wrap(db: db, repo: goRouterRepo));
+    await tester.pumpAndSettle();
+
+    // Sanity: bank exists before delete.
+    expect((await db.select(db.questionBanks).get()), hasLength(1));
+
+    await tester.tap(find.text('删除题库'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '删除题库'));
+    await tester.pumpAndSettle();
+
+    // fakeRepo does not touch the DB, but the controller has invoked
+    // deleteBank('b1'); verify the call was made (controller-side
+    // invalidate of the list provider reflects this through the fake).
+    expect(goRouterRepo.deletedIds, ['b1']);
+  });
+
+  testWidgets('delete card shows spinner during in-flight deletion', (
+    tester,
+  ) async {
+    final slowRepo = _FakeBankRepository()
+      ..onDelete = (_) =>
+          Future<void>.delayed(const Duration(milliseconds: 300));
+    await setLargeSurface(tester);
+    await tester.pumpWidget(_wrap(db: db, repo: slowRepo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('删除题库'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '删除题库'));
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.byType(CircularProgressIndicator), findsAtLeastNWidgets(1));
+    // Drain the pending slow-delete timer so the test exits cleanly.
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+  });
 }

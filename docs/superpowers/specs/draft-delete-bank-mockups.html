@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>题库删除交互方案对比 — RedClass</title>
+<style>
+  :root {
+    --primary: #c62828;
+    --primary-container: #fde0e0;
+    --on-primary: #ffffff;
+    --on-primary-container: #410d0d;
+    --surface: #ffffff;
+    --surface-container: #f7f2f2;
+    --surface-container-highest: #efe9e9;
+    --outline: #857373;
+    --error: #ba1a1a;
+    --on-error: #ffffff;
+    --error-container: #ffdad6;
+    --on-error-container: #410002;
+    --shadow: 0 1px 2px rgba(0,0,0,.05), 0 1px 3px rgba(0,0,0,.05);
+    --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.05);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #faf6f6;
+    color: #201a1a;
+    line-height: 1.5;
+  }
+  h1 { margin: 0 0 8px; font-size: 22px; }
+  .subtitle { color: var(--outline); margin: 0 0 24px; font-size: 13px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 1320px;
+    margin: 0 auto;
+  }
+  .option {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+  .option h2 {
+    margin: 0 0 4px; font-size: 15px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .badge {
+    background: var(--primary-container);
+    color: var(--on-primary-container);
+    font-size: 10px; padding: 2px 8px;
+    border-radius: 999px; font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .badge.rec { background: #d2f8d2; color: #0d4f12; }
+  .option .summary {
+    color: var(--outline); font-size: 12px;
+    margin: 0 0 14px;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 320px; height: 580px;
+    margin: 0 auto;
+    background: var(--surface-container);
+    border-radius: 28px;
+    border: 8px solid #2a2020;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 12px 24px rgba(0,0,0,.08);
+  }
+  .phone .statusbar {
+    height: 22px; padding: 6px 16px 0;
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: #444; font-weight: 600;
+  }
+  .phone .appbar {
+    height: 52px; padding: 12px 8px;
+    background: var(--surface);
+    display: flex; align-items: center;
+    border-bottom: 1px solid var(--surface-container-highest);
+  }
+  .phone .appbar .title {
+    flex: 1; text-align: center;
+    font-weight: 600; font-size: 16px;
+  }
+  .phone .appbar .icon {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--outline);
+  }
+  .phone .body {
+    height: calc(100% - 74px);
+    overflow: hidden;
+    position: relative;
+    background: var(--surface-container);
+  }
+  .row {
+    background: var(--surface);
+    margin: 10px 12px;
+    border-radius: 12px;
+    padding: 14px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: var(--shadow);
+  }
+  .row .avatar {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary-container), rgba(198,40,40,.18));
+    display: flex; align-items: center; justify-content: center;
+    color: var(--primary); font-size: 22px;
+  }
+  .row .text { flex: 1; min-width: 0; }
+  .row .text .title {
+    font-weight: 600; font-size: 14px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .row .text .meta {
+    font-size: 11px; color: var(--outline);
+    margin-top: 2px;
+  }
+  .row .badge-w {
+    background: var(--error-container);
+    color: var(--on-error-container);
+    padding: 3px 8px; border-radius: 8px;
+    font-size: 11px; font-weight: 700;
+  }
+  .row .chev { color: var(--outline); font-size: 18px; }
+
+  /* Bottom sheet */
+  .sheet-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,.4);
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  .sheet {
+    width: 100%;
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    padding: 12px 0 20px;
+    animation: slide .25s ease-out;
+  }
+  @keyframes slide { from { transform: translateY(100%);} to { transform: translateY(0);} }
+  .sheet .grabber {
+    width: 36px; height: 4px;
+    background: var(--outline-variant, #d8d2d2);
+    border-radius: 2px; margin: 6px auto 12px;
+  }
+  .sheet .header {
+    padding: 0 20px 8px;
+    font-weight: 700; font-size: 15px;
+    color: var(--on-surface);
+  }
+  .sheet .item {
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 14px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .sheet .item:hover { background: var(--surface-container); }
+  .sheet .item .ico {
+    width: 22px; text-align: center; color: var(--outline);
+  }
+  .sheet .item.danger { color: var(--error); }
+  .sheet .item.danger .ico { color: var(--error); }
+  .sheet .divider {
+    height: 1px; background: var(--surface-container-highest);
+    margin: 6px 0;
+  }
+
+  /* Dismissible swipe */
+  .swipe-wrap {
+    position: relative;
+    overflow: hidden;
+    margin: 10px 12px;
+    border-radius: 12px;
+  }
+  .swipe-action {
+    position: absolute; top: 0; right: 0; bottom: 0;
+    width: 110px;
+    background: var(--error); color: var(--on-error);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 4px;
+    font-size: 12px; font-weight: 600;
+  }
+  .swipe-action .ico { font-size: 20px; }
+  .row.slid {
+    transform: translateX(-110px);
+    transition: transform .25s ease-out;
+    margin: 0;
+    box-shadow: none;
+    border-radius: 12px 0 0 12px;
+  }
+
+  /* Confirm dialog */
+  .dialog {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,.4);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .dialog-card {
+    background: var(--surface);
+    border-radius: 24px;
+    padding: 24px;
+    width: 100%;
+    box-shadow: var(--shadow-md);
+  }
+  .dialog-card .ico {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--error-container); color: var(--error);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+  .dialog-card h3 { margin: 0 0 8px; font-size: 18px; }
+  .dialog-card p {
+    margin: 0 0 18px;
+    font-size: 13px; color: #4a3f3f;
+    line-height: 1.55;
+  }
+  .dialog-card p strong { color: var(--error); }
+  .dialog-card .actions {
+    display: flex; gap: 8px; justify-content: flex-end;
+  }
+  .dialog-card button {
+    padding: 10px 18px; border-radius: 999px;
+    border: none; font-size: 13px; font-weight: 600;
+    cursor: pointer;
+  }
+  .dialog-card .cancel {
+    background: transparent; color: var(--primary);
+  }
+  .dialog-card .delete {
+    background: var(--error); color: var(--on-error);
+  }
+  .dialog-card .cancel:hover { background: var(--primary-container); }
+
+  /* SnackBar */
+  .snackbar {
+    position: absolute; left: 12px; right: 12px; bottom: 16px;
+    background: #322b2b; color: #fff;
+    padding: 12px 14px; border-radius: 10px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px;
+    box-shadow: var(--shadow-md);
+  }
+  .snackbar .label { flex: 1; }
+  .snackbar .undo {
+    color: #a8d8ff; font-weight: 700;
+    text-transform: uppercase; font-size: 12px;
+  }
+
+  /* Detail screen card (Option B/Backup) */
+  .option .phone .actions-section {
+    padding: 16px;
+  }
+  .action-card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 8px;
+    box-shadow: var(--shadow);
+  }
+  .action-card .icobox {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .action-card.start .icobox {
+    background: linear-gradient(135deg, var(--primary), rgba(198,40,40,.78));
+    color: var(--on-primary);
+  }
+  .action-card.export .icobox { background: #e8def8; color: #4a3f9e; }
+  .action-card.delete .icobox { background: var(--error-container); color: var(--error); }
+  .action-card .text { flex: 1; }
+  .action-card .text .t { font-weight: 600; font-size: 14px; }
+  .action-card .text .s { font-size: 11px; color: var(--outline); margin-top: 2px; }
+  .action-card .chev { color: var(--outline); }
+  .action-card.delete { color: var(--error); }
+  .action-card.delete .text .t { color: var(--error); }
+
+  /* Section heading */
+  .option .phone .section-label {
+    padding: 14px 16px 6px;
+    font-size: 14px; font-weight: 700;
+  }
+
+  .notes {
+    margin-top: 14px;
+    font-size: 12px; color: var(--outline);
+    border-top: 1px dashed var(--surface-container-highest);
+    padding-top: 10px;
+  }
+  .notes b { color: #201a1a; }
+</style>
+</head>
+<body>
+  <h1>题库删除交互方案对比</h1>
+  <p class="subtitle">3 个候选交互形态，按选项顺序排列。下方为移动端 (320×580) 真实比例预览。</p>
+
+  <div class="grid">
+    <!-- ============ Option 1: 长按底部菜单 ============ -->
+    <div class="option">
+      <h2>方案 A：长按 → 底部菜单 <span class="badge rec">推荐</span></h2>
+      <p class="summary">长按行弹出 ModalBottomSheet，含 [打开][导出 JSON][删除题库]</p>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>● ●</span></div>
+        <div class="appbar">
+          <div class="icon">←</div>
+          <div class="title">我的题库</div>
+          <div class="icon">＋</div>
+        </div>
+        <div class="body">
+          <div class="row">
+            <div class="avatar">📚</div>
+            <div class="text">
+              <div class="title">计算机网络期末</div>
+              <div class="meta">120 题 · network-final.pdf</div>
+            </div>
+            <div class="badge-w">3 错</div>
+            <div class="chev">›</div>
+          </div>
+          <div class="row" style="outline: 2px solid var(--primary);">
+            <div class="avatar">📚</div>
+            <div class="text">
+              <div class="title">高数习题集</div>
+              <div class="meta">85 题 · math.json</div>
+            </div>
+            <div class="chev">›</div>
+          </div>
+          <div class="row">
+            <div class="avatar">📚</div>
+            <div class="text">
+              <div class="title">英语词汇 5000</div>
+              <div class="meta">200 题 · vocab.json</div>
+            </div>
+            <div class="chev">›</div>
+          </div>
+
+          <div class="sheet-overlay">
+            <div class="sheet">
+              <div class="grabber"></div>
+              <div class="header">高数习题集</div>
+              <div class="item"><span class="ico">▶</span>打开</div>
+              <div class="item"><span class="ico">↑</span>导出 JSON</div>
+              <div class="divider"></div>
+              <div class="item danger"><span class="ico">🗑</span>删除题库</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="notes">
+        <b>优点：</b>动作可扩展（以后加"重命名"、"移动分组"都不改组件）；可发现性高；与 Material Design 习惯一致。<br>
+        <b>缺点：</b>比滑动多一步。
+      </p>
+    </div>
+
+    <!-- ============ Option 2: Dismissible 滑动删除 ============ -->
+    <div class="option">
+      <h2>方案 B：右滑 → 揭示删除</h2>
+      <p class="summary">Dismissible 滑动揭示红色"删除"动作，单步完成</p>
+      <div class="phone">
+        <div class="statusbar"><span>9:41</span><span>● ●</span></div>
+        <div class="appbar">
+          <div class="icon">←</div>
+          <div class="title">我的题库</div>
+          <div class="icon">＋</div>
+        </div>
+        <div class="body">
+          <div class="row">
+            <div class="avatar">📚</div>
+            <div class="text">
+              <div class="title">计算机网络期末</div>
+              <div class="meta">120 题 · network-final.pdf</div>
+            </div>
+            <div class="badge-w">3 错</div>
+            <div class="chev">›</div>
+          </div>
+          <div class="swipe-wrap">
+            <div class="swipe-action">
+              <div class="ico">🗑</div>
+              <div>删除</div>
+            </div>
+            <div class="row slid">
+              <div class="avatar">📚</div>
+              <div class="text">
+                <div class="title">高数习题集</div>
+                <div class="meta">85 题 · math.json</div>
+              </div>
+              <div class="chev">›</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="avatar">📚</div>
+            <div class="text">
+              <div class="title">英语词汇 5000</div>
+              <div class="meta">200 题 · vocab.json</div>
+            </div>
+            <div class="chev">›</div>
+          </div>
+
+          <div class="snackbar">
+            <span class="label">已删除「高数习题集」</span>
+            <span class="undo">撤销</span>
+          </div>
+        </div>
+      </div>
+      <p class="notes">
+        <b>优点：</b>最快速；SnackBar 撤销可挽救误删。<br>
+        <b>缺点：</b>只能做"删除"一个动作；导出仍要走详情页；移动端 SAF 用户可能从其他 App 切回时误滑。
+      </p>
+    </div>
+
+    <!-- ============ Option 3: 长按菜单 + 详情页备份 ============ -->
+    <div class="option">
+      <h2>方案 C：长按菜单 + 详情页备份</h2>
+      <p class="summary">列表行长按菜单为主；详情页保留红色"删除题库"卡片作为兜底</p>
+      <div class="phone" style="height: 680px;">
+        <div class="statusbar"><span>9:41</span><span>● ●</span></div>
+        <div class="appbar">
+          <div class="icon">←</div>
+          <div class="title">题库详情</div>
+          <div class="icon">···</div>
+        </div>
+        <div class="body">
+          <div class="section-label">高数习题集</div>
+          <div class="actions-section">
+            <div class="action-card start">
+              <div class="icobox">▶</div>
+              <div class="text">
+                <div class="t">开始复习</div>
+                <div class="s">乱序抽题，即时判分</div>
+              </div>
+              <div class="chev">›</div>
+            </div>
+            <div class="action-card export">
+              <div class="icobox">↑</div>
+              <div class="text">
+                <div class="t">导出 JSON</div>
+                <div class="s">分享给其他人导入使用</div>
+              </div>
+              <div class="chev">›</div>
+            </div>
+            <div class="action-card delete">
+              <div class="icobox">🗑</div>
+              <div class="text">
+                <div class="t">删除题库</div>
+                <div class="s">删除全部 85 道题、错题、记录</div>
+              </div>
+              <div class="chev">›</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="notes">
+        <b>优点：</b>发现性最强；删除按钮在"操作"区显眼位置。<br>
+        <b>缺点：</b>两处入口，必须共用同一逻辑（不能两份实现）；代码量最大。
+      </p>
+    </div>
+  </div>
+
+  <p style="max-width:1320px; margin: 28px auto 0; font-size: 13px; color: var(--outline);">
+    💡 提示：点击底部菜单的"删除题库"或详情页卡片，都会触发同一个确认对话框（见方案 A 中的 sheet 项）。Dialog 是统一的必经路径。
+  </p>
+</body>
+</html>

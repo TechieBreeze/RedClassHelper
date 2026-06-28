@@ -622,6 +622,14 @@ class ImportNotifier extends _$ImportNotifier {
     state = state.copyWith(phase: ImportPhase.idle, error: message);
   }
 
+  /// 清除当前错误信息（保留 phase、candidates、confirmedIndices 等状态）。
+  ///
+  /// 用于 UI 层在 SnackBar 显示完错误后清空错误，
+  /// 避免后续非错误状态变化（如输入框打字）再次触发 ref.listen 重复弹出。
+  void clearError() {
+    state = state.copyWith(clearError: true);
+  }
+
   // ── LLM 解析辅助方法 ──
 
   /// 单题启发式兜底解析（LLM 失败时调用）。

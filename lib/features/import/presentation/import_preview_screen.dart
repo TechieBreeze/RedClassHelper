@@ -70,6 +70,25 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     final candidates = state.candidates;
     final confirmedIndices = state.confirmedIndices;
 
+    // 监听 commitToDatabase / parse 抛出的异常（之前被静默吞掉，用户看到的
+    // 是"点保存没反应"）。错误信息以 SnackBar 形式弹出后立即清空，
+    // 避免非错误的状态变化（输入框打字、勾选候选）再次触发 ref.listen。
+    ref.listen<ImportState>(importNotifierProvider, (prev, next) {
+      final err = next.error;
+      if (err != null && err.isNotEmpty && prev?.error != err) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(err),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        ref.read(importNotifierProvider.notifier).clearError();
+      }
+    });
+
     // 题型筛选
     final filteredCandidates = _filterType == null
         ? candidates.asMap().entries.toList()

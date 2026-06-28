@@ -619,16 +619,11 @@ class _BankDetailScreenState extends ConsumerState<BankDetailScreen> {
     await _performDelete(context, bank);
   }
 
-  Future<void> _performDelete(
-    BuildContext context,
-    QuestionBank bank,
-  ) async {
+  Future<void> _performDelete(BuildContext context, QuestionBank bank) async {
     if (_isDeleting) return; // 防御：dialog 已确认，但避免 race
     setState(() => _isDeleting = true);
     try {
-      await ref
-          .read(bankDetailControllerProvider.notifier)
-          .deleteBank(bank.id);
+      await ref.read(bankDetailControllerProvider.notifier).deleteBank(bank.id);
       if (!context.mounted) return;
       context.safePop();
       if (!context.mounted) return;

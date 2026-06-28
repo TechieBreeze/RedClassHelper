@@ -30,4 +30,12 @@ extension SafeNavContext on BuildContext {
     if (!NavGuard.tryAcquire()) return Future<T?>.value(null);
     return push<T>(location, extra: extra);
   }
+
+  /// Safe pop — no-op if the route stack is empty (e.g. page was opened as
+  /// the initial route), preventing the "pop called on empty stack" crash.
+  void safePop<T>([T? result]) {
+    if (canPop()) {
+      pop<T>(result);
+    }
+  }
 }

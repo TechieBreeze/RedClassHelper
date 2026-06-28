@@ -14,6 +14,7 @@ import '../../../core/theme.dart';
 import '../../../core/widgets/hoverable_card.dart';
 import '../../../data/db/database.dart';
 import '../../export/services/json_export_service.dart';
+import '../application/bank_detail_controller.dart';
 
 /// Max content width on medium form-factor (tablets / narrow desktop windows).
 ///
@@ -406,7 +407,7 @@ class _BankDetailScreenState extends ConsumerState<BankDetailScreen> {
         const SizedBox(height: 8),
         _buildExportJsonCard(context, cs, bank, questions),
         const SizedBox(height: 8),
-        _buildDeleteCard(context, cs, bank),
+        _buildDeleteCard(context, cs, bank, questions.length),
       ],
     );
   }
@@ -520,9 +521,12 @@ class _BankDetailScreenState extends ConsumerState<BankDetailScreen> {
     BuildContext context,
     ColorScheme cs,
     QuestionBank bank,
+    int questionCount,
   ) {
     return HoverableCard(
-      onTap: _isDeleting ? null : () => _showDeleteConfirmDialog(context, bank),
+      onTap: _isDeleting
+          ? null
+          : () => _showDeleteConfirmDialog(context, bank, questionCount),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -576,10 +580,76 @@ class _BankDetailScreenState extends ConsumerState<BankDetailScreen> {
     );
   }
 
-  // Stub — real dialog + delete logic implemented in Task 6.
-  void _showDeleteConfirmDialog(BuildContext context, QuestionBank bank) {
-    // Intentionally empty for Task 5; Task 6 will add the confirm dialog
-    // and wire `_performDelete`.
+  // Shows the confirm dialog then triggers `_performDelete` on confirm.
+  Future<void> _showDeleteConfirmDialog(
+    BuildContext context,
+    QuestionBank bank,
+    int questionCount,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final cs = Theme.of(dialogContext).colorScheme;
+        return AlertDialog(
+          icon: Icon(Icons.warning_amber_rounded, color: cs.error, size: 32),
+          title: Text('删除「${bank.name}」？'),
+          content: Text(
+            '将一并删除 $questionCount 道题、错题、答题记录。\n\n'
+            '此操作不可撤销。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: cs.error,
+                foregroundColor: cs.onError,
+              ),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('删除题库'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return;
+    if (!context.mounted) return;
+    await _performDelete(context, bank);
+  }
+
+  Future<void> _performDelete(
+    BuildContext context,
+    QuestionBank bank,
+  ) async {
+    if (_isDeleting) return; // 防御：dialog 已确认，但避免 race
+    setState(() => _isDeleting = true);
+    try {
+      await ref
+          .read(bankDetailControllerProvider.notifier)
+          .deleteBank(bank.id);
+      if (!context.mounted) return;
+      context.safePop();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('已删除「${bank.name}」'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } on Exception catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('删除失败: $e'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
   }
 
   Future<void> _exportJson(

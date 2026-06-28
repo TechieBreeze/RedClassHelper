@@ -45,7 +45,7 @@ SnackBar 仅显示"已删除「X」"，不提供"撤销"按钮。
 
 ### 决策 4：新建 `BankRepository`
 
-不复用 `LedgerRepository`（后者语义为错题本），新建 `BankRepository` 封装题库 CRUD。当前只缺 `deleteBank`，未来 `renameBank` / `reorderBanks` / `groupBanks` 都放这里。
+不复用 `LedgerRepository`（后者语义为错题本）。注意：`LedgerRepository` 本身也不通过 Riverpod provider 注入，而是在 `lib/features/quiz/providers/bank_pick_provider.dart:37` 直接 `LedgerRepository(db)` 构造。我们用更规范的 `@Riverpod(keepAlive: true)` async provider 注册 `BankRepository`，未来其他题库操作（rename、reorder、group）也走这个 provider，保持注入一致性。
 
 ## 组件与文件改动
 
@@ -74,12 +74,14 @@ class BankRepositoryImpl implements BankRepository {
   }
 }
 
-@riverpod
-BankRepository bankRepository(Ref ref) {
-  final db = ref.watch(appDatabaseProvider).requireValue;
+@Riverpod(keepAlive: true)
+Future<BankRepository> bankRepository(Ref ref) async {
+  final db = await ref.watch(appDatabaseProvider.future);
   return BankRepositoryImpl(db);
 }
 ```
+
+`keepAlive: true`：BankRepository 是无状态包装层，构造一次即可复用，避免每次 watch 重新构造。
 
 **注意**：BankRepository 必须依赖 `appDatabaseProvider.value`（同步），但 Riverpod 的 `appDatabaseProvider` 是 `Future<AppDatabase>`。在 widget 调用层应使用：
 
@@ -116,6 +118,8 @@ class BankDetailController extends _$BankDetailController {
 }
 ```
 
+**防重复点击**：widget 层 (`_performDelete`) 应在调用 `deleteBank` 前 `setState(() => _isDeleting = true)`，将"删除题库"按钮 disable，避免快速双击触发两次事务。
+
 > 注：`BankDetailScreen.build` 当前没有拆出独立的 `bankDetailProvider` —— 直接在 widget 里调 `_loadBankData(db)` 加载数据。删除后 widget 本身会随 `safePop` 销毁，无需 invalidate 自身状态。只 invalidate `bankPickListProvider` 即可让列表页实时反映删除。
 
 ### 改动
@@ -144,7 +148,7 @@ group('BankRepository.deleteBank', () {
   late BankRepository repo;
 
   setUp(() async {
-    db = AppDatabase.openInMemoryDatabase();  // 见 ledger_repository_test.dart
+    db = AppDatabase.openInMemoryDatabase();  // 见 ledger_repository_test.dart:13
     repo = BankRepositoryImpl(db);
   });
 
@@ -165,25 +169,49 @@ group('BankRepository.deleteBank', () {
   });
 
   test('cascades to answer_attempts / bookmarks / wrong_ledger', () async {
-    // ...类似，验证三层级联
+    // 完整三层级联：插入 bank → question → answer_attempt + bookmark + wrong_ledger，
+    // 删除 bank，断言所有子表为空。
   });
 
-  test('rolls back on error (transaction integrity)', () async {
-    // Arrange: 模拟题目插入时抛异常（如 FK 约束）
-    // Act: 调用 deleteBank
-    // Assert: 题库仍然存在 (transaction 回滚)
+  test('empty bank (0 questions) deletes cleanly without FK violation', () async {
+    // 边界：插入空题库，删除应正常返回，无 FK 错误。
   });
 
-  test('throws when bank does not exist', () async {
-    expect(
-      () => repo.deleteBank('non-existent'),
-      throwsA(anything),
-    );
+  test('preserves orphan parse_jobs after bank deletion', () async {
+    // 不变量测试：插入题库 + 引用同一 source_path 的 parse_job（无 FK），
+    // 删除题库，断言 parse_job 仍存在。这条守住"不动 ParseJobs"的设计决策。
+  });
+
+  test('is idempotent for non-existent bankId', () async {
+    // drift 的 delete().go() 在无匹配行时返 0 不抛异常，视为幂等成功。
+    await expectLater(repo.deleteBank('non-existent'), completes);
+  });
+
+  test('runs inside a transaction', () async {
+    // 通过 spy / mock db.verify 验证 db.transaction(...) 被调用，
+    // 而非直接调用 db.delete().go()（防回归到无事务实现）。
   });
 });
 ```
 
+> 备注：drift 的 `delete().go()` 在无匹配行时**返回 0，不抛异常**。不要写 `throwsA(anything)`。
+
 #### `test/widget/features/bank_detail/bank_detail_delete_test.dart`
+
+**测试套件初始化**（参考 `test/widget/features/bank_detail/bank_detail_responsive_test.dart` 的 setUp）：
+
+```dart
+Widget _wrap({required Widget child, required AppDatabase db}) {
+  return ProviderScope(
+    overrides: [
+      appDatabaseProvider.overrideWith((_) async => db),
+    ],
+    child: MaterialApp(home: child),
+  );
+}
+```
+
+> 关键：`BankDetailScreen.build` 内部调 `_loadBankData(db)`，没有 `appDatabaseProvider` override 会抛 "no AppDatabase" 错误。这是 spec 初稿漏掉的关键点。
 
 覆盖：
 
@@ -193,6 +221,39 @@ testWidgets('opens confirm dialog on tap', (tester) async { ... });
 testWidgets('does not delete when dialog cancelled', (tester) async { ... });
 testWidgets('deletes and pops when confirmed', (tester) async { ... });
 testWidgets('shows SnackBar after deletion', (tester) async { ... });
+testWidgets('DB failure: shows error SnackBar, no pop, stays on page', (tester) async {
+  // override bankRepositoryProvider with fake that throws Exception
+  // 点确认删除 → 断言：SnackBar 显示 "删除失败: ..."；context 仍在详情页路由
+});
+testWidgets('context unmounted during delete: no crash', (tester) async {
+  // delete 进行中用 Navigator.pop 模拟用户返回；断言 tester.takeException() 为 null
+});
+testWidgets('list page reflects deletion after pop', (tester) async {
+  // 启动列表页 → 导航到详情页 → 删除 → 断言列表页不再包含该题库
+});
+testWidgets('delete button disabled while deletion in-flight (prevents double-tap)', (tester) async {
+  // mock repository 让 deleteBank 延迟 500ms 返回；
+  // 点确认后立即再点删除按钮，断言第二次点击无效（只调一次 repo.deleteBank）
+});
+```
+
+#### `test/unit/features/bank_detail/bank_detail_controller_test.dart`
+
+```dart
+test('deleteBank calls repo and invalidates bankPickListProvider', () async {
+  final container = ProviderContainer(overrides: [
+    bankRepositoryProvider.overrideWith((_) async => FakeBankRepository()),
+  ]);
+  addTearDown(container.dispose);
+
+  final controller = container.read(bankDetailControllerProvider.notifier);
+  await controller.deleteBank('test-id');
+
+  verify(() => fakeRepo.deleteBank('test-id')).called(1);
+  // bankPickListProvider 被 invalidate（重新 build 时会调 fake repo）
+  await container.read(bankPickListProvider.future);
+  verify(() => fakeRepo.deleteBank('test-id')).called(2);
+});
 ```
 
 ## 数据流
@@ -246,9 +307,10 @@ ScaffoldMessenger.showSnackBar('已删除「${bank.name}」')
 | 风险 | 缓解 |
 |------|------|
 | 用户误删（无撤销） | Dialog 强制展示题库名 + 列出"将删除什么"；按钮文案直接说"删除题库"而非"确定" |
-| 大题库删除卡顿 | cascade 是单事务 SQLite 操作，对 ≤ 10000 题的题库应 < 100ms；超大数据集未来可加分批删除 |
+| 大题库删除卡顿 | drift FK cascade 是单事务 SQLite 递归操作（题库→题→三层子表）。对 ≤ 5000 题的题库应 < 100ms；超大数据集（如 10k+ 题）可能 0.5-2s 阻塞 UI。建议：未来加分批删除 + 进度指示器，本次不做（YAGNI）。 |
 | Riverpod invalidate 时序导致 stale UI | `invalidate` 在 `pop` 之前；如未来发现问题再加 `Future.microtask` 延迟 |
 | 移动端 SAF 来源字节占用 | 不删除 source 字段；用户重新导入即可重建 |
+| 快速双击触发两次删除 | `_performDelete` 入口置 `_isDeleting = true` 并 disable 按钮，事务完成或失败后重置 |
 
 ## 未来扩展（不在本次范围）
 

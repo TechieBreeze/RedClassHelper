@@ -132,9 +132,30 @@ class BankDetailController extends _$BankDetailController {
 
 3. **新增 `_showDeleteConfirmDialog`**：弹 `AlertDialog`，标题 `删除「${bank.name}」？`，正文 "将一并删除 ${questions.length} 道题、错题、答题记录。此操作不可撤销。" 取消/删除按钮。
 
-4. **新增 `_performDelete`**：调用 `ref.read(bankDetailControllerProvider.notifier).deleteBank(bankId)`，成功后 `context.safePop()` + SnackBar。
-
-> 不要使用 `ref.read(bankDetailControllerProvider.notifier).deleteBank` 直接调，因为要保证 widget 仍然 mounted。
+4. **新增 `_performDelete`**：
+   ```dart
+   if (_isDeleting) return;             // 防双击
+   setState(() => _isDeleting = true);
+   try {
+     await ref.read(bankDetailControllerProvider.notifier).deleteBank(bankId);
+     if (!context.mounted) return;      // await 后必须检查
+     context.safePop();
+     ScaffoldMessenger.of(context).showSnackBar(
+       SnackBar(content: Text('已删除「${bank.name}」'), behavior: SnackBarBehavior.floating),
+     );
+   } on Exception catch (e) {
+     if (!context.mounted) return;
+     ScaffoldMessenger.of(context).showSnackBar(
+       SnackBar(
+         content: Text('删除失败: $e'),
+         behavior: SnackBarBehavior.floating,
+         backgroundColor: Theme.of(context).colorScheme.error,
+       ),
+     );
+   } finally {
+     if (mounted) setState(() => _isDeleting = false);
+   }
+   ```
 
 ### 测试
 

@@ -194,13 +194,6 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () {
-                  ref.read(importNotifierProvider.notifier).reset();
-                  context.go('/');
-                },
-                child: const Text('返回首页'),
-              ),
             ],
           ),
         ),
@@ -330,14 +323,6 @@ class _ImportSummaryScreenState extends ConsumerState<ImportSummaryScreen> {
                       style: FilledButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
-                      onPressed: () {
-                        ref.read(importNotifierProvider.notifier).reset();
-                        context.go('/');
-                      },
-                      child: const Text('返回首页'),
                     ),
                   ],
                 ),

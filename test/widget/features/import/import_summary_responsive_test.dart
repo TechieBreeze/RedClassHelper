@@ -181,4 +181,32 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'does NOT render a "返回首页" button (compact + medium + expanded)',
+    (tester) async {
+      // Regression: user requested the "返回首页" OutlinedButton be removed
+      // from the summary screen on 2026-06-28. The summary page should
+      // only expose the primary "开始复习" CTA.
+      final cases = <(Size, AppPlatform)>[
+        (const Size(400, 800), AppPlatform.android),
+        (const Size(700, 900), AppPlatform.android),
+        (const Size(1500, 1000), AppPlatform.windows),
+      ];
+
+      for (final (size, platform) in cases) {
+        await tester.binding.setSurfaceSize(size);
+        await tester.pumpWidget(
+          _harness(size: size, platform: platform),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('返回首页'),
+          findsNothing,
+          reason: 'No "返回首页" button should render at ${size.toString()}',
+        );
+      }
+    },
+  );
 }

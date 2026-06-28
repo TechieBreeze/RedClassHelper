@@ -24,6 +24,7 @@ import '../../import/parsing/heuristic_parser.dart';
 import '../../import/parsing/llm/canonicalizer.dart';
 import '../../import/parsing/llm/chunker.dart';
 import '../../import/parsing/parse_candidate.dart';
+import '../../quiz/providers/bank_pick_provider.dart';
 import 'import_state.dart';
 
 part 'import_notifier.g.dart';
@@ -271,6 +272,9 @@ class ImportNotifier extends _$ImportNotifier {
         progress: 1.0,
         bankId: bankId,
       );
+      // bankPickList is a plain Future provider — it does NOT listen to drift.
+      // Without this invalidate, navigating back to /banks shows a stale list.
+      ref.invalidate(bankPickListProvider);
     } on Exception catch (e) {
       state = state.copyWith(
         phase: ImportPhase.editing,
@@ -591,6 +595,9 @@ class ImportNotifier extends _$ImportNotifier {
         bankId: bankId,
         bankName: converted.bankName,
       );
+      // bankPickList is a plain Future provider — invalidate so the bank list
+      // page re-queries the DB and shows the newly imported bank.
+      ref.invalidate(bankPickListProvider);
     } on FormatException catch (e) {
       // Validation errors from userJsonToEntities (bad key format, etc.)
       state = state.copyWith(

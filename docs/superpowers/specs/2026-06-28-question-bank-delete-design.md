@@ -112,12 +112,11 @@ class BankDetailController extends _$BankDetailController {
     final repo = await ref.read(bankRepositoryProvider.future);
     await repo.deleteBank(bankId);
     ref.invalidate(bankPickListProvider);
-    ref.invalidate(bankDetailProvider(bankId));
   }
 }
 ```
 
-> 注：`bankDetailProvider(bankId)` 是 `BankDetailScreen.build` 当前已 `ref.watch` 的 provider；如实际未拆分为独立 provider，则只 `invalidate(bankPickListProvider)` 即可。在实现 plan 阶段确认。
+> 注：`BankDetailScreen.build` 当前没有拆出独立的 `bankDetailProvider` —— 直接在 widget 里调 `_loadBankData(db)` 加载数据。删除后 widget 本身会随 `safePop` 销毁，无需 invalidate 自身状态。只 invalidate `bankPickListProvider` 即可让列表页实时反映删除。
 
 ### 改动
 
@@ -145,7 +144,7 @@ group('BankRepository.deleteBank', () {
   late BankRepository repo;
 
   setUp(() async {
-    db = AppDatabase.forTesting(NativeDatabase.memory());  // 见测试约定
+    db = AppDatabase.openInMemoryDatabase();  // 见 ledger_repository_test.dart
     repo = BankRepositoryImpl(db);
   });
 
@@ -214,7 +213,6 @@ db.transaction(() async {
 })
         ↓
 ref.invalidate(bankPickListProvider)
-ref.invalidate(bankDetailProvider(bankId))  // 如存在
         ↓
 context.safePop()
         ↓

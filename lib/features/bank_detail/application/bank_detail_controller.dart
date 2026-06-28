@@ -7,7 +7,7 @@ import '../../quiz/providers/bank_pick_provider.dart';
 part 'bank_detail_controller.g.dart';
 
 /// 题库详情页控制器 — 持有删除等写操作。
-@riverpod
+@Riverpod(keepAlive: true)
 class BankDetailController extends _$BankDetailController {
   @override
   void build() {}

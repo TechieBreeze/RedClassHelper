@@ -227,6 +227,104 @@ void main() {
     expect(goRouterRepo.deletedIds, ['b1']);
   });
 
+  testWidgets(
+    'after confirm, deletes bank AND pops back to previous page (/banks)',
+    (tester) async {
+      await setLargeSurface(tester);
+      // Simulate the real user flow: user is on /banks list, taps a row which
+      // pushes /bank/b1 on top. Then deletes the bank. The screen must pop
+      // back to /banks automatically.
+      appRouter.go('/banks');
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWith((_) async => db),
+            bankRepositoryProvider.overrideWith((_) async => fakeRepo),
+          ],
+          child: MaterialApp.router(
+            theme: buildAppTheme(Brightness.light, null),
+            routerConfig: appRouter,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      appRouter.push('/bank/b1');
+      await tester.pumpAndSettle();
+
+      // Sanity: we're on the detail page now.
+      expect(
+        appRouter.routerDelegate.currentConfiguration.matches.last.matchedLocation,
+        '/bank/b1',
+      );
+      expect(find.byType(BankDetailScreen), findsOneWidget);
+
+      await tester.tap(find.text('删除题库'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, '删除题库'));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepo.deletedIds, ['b1']);
+      expect(
+        appRouter.routerDelegate.currentConfiguration.matches.last.matchedLocation,
+        '/banks',
+        reason:
+            'After deleting the only bank, the detail page must pop back to /banks',
+      );
+      expect(find.byType(BankDetailScreen), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'real delete: screen does NOT show "题库不存在" — auto-pops back to /banks',
+    (tester) async {
+      // Regression: _FakeBankRepository does NOT touch the real DB, so the
+      // FutureBuilder's _loadBankData still finds the bank after delete and
+      // the test never sees the real bug. Use the real BankRepositoryImpl
+      // (constructed from the overridden in-memory DB) so the bank row is
+      // actually removed, which causes the FutureBuilder to re-fetch and
+      // see null. The screen must auto-pop, not show "题库不存在".
+      await setLargeSurface(tester);
+      appRouter.go('/banks');
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWith((_) async => db),
+            // Intentionally do NOT override bankRepositoryProvider —
+            // let the real impl run against the in-memory DB.
+          ],
+          child: MaterialApp.router(
+            theme: buildAppTheme(Brightness.light, null),
+            routerConfig: appRouter,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      appRouter.push('/bank/b1');
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BankDetailScreen), findsOneWidget);
+
+      await tester.tap(find.text('删除题库'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, '删除题库'));
+      await tester.pumpAndSettle();
+
+      // Bank row must actually be gone from DB.
+      final banks = await db.select(db.questionBanks).get();
+      expect(banks, isEmpty);
+
+      // The user-visible failure was: stuck on "题库不存在" page after delete.
+      expect(find.text('题库不存在'), findsNothing);
+      // Should have popped back to /banks.
+      expect(
+        appRouter.routerDelegate.currentConfiguration.matches.last.matchedLocation,
+        '/banks',
+      );
+      expect(find.byType(BankDetailScreen), findsNothing);
+    },
+  );
+
   testWidgets('delete card shows spinner during in-flight deletion', (
     tester,
   ) async {

@@ -73,7 +73,7 @@ class _BankDetailScreenState extends ConsumerState<BankDetailScreen> {
   }
 
   Widget _buildContent(BuildContext context, AppDatabase db) {
-    return FutureBuilder<({QuestionBank bank, List<Question> questions})>(
+    return FutureBuilder<({QuestionBank bank, List<Question> questions})?>(
       future: _loadBankData(db),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -82,24 +82,44 @@ class _BankDetailScreenState extends ConsumerState<BankDetailScreen> {
             body: const Center(child: CircularProgressIndicator()),
           );
         }
-        if (snapshot.hasError || snapshot.data == null) {
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('题库详情')),
+            body: Center(child: Text('错误: ${snapshot.error}')),
+          );
+        }
+        final data = snapshot.data;
+        if (data == null) {
+          // Bank is gone (deleted, or never existed). Auto-pop so the user
+          // lands on the previous page instead of a dead-end error screen.
+          // If pop fails (e.g. canPop is false because /bank/:id was opened
+          // as the initial route), fall back to the "题库不存在" message.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && context.canPop()) {
+              context.pop();
+            }
+          });
           return Scaffold(
             appBar: AppBar(title: const Text('题库详情')),
             body: const Center(child: Text('题库不存在')),
           );
         }
-        final (:bank, :questions) = snapshot.data!;
+        final (:bank, :questions) = data;
         return _buildScaffold(context, bank, questions);
       },
     );
   }
 
-  Future<({QuestionBank bank, List<Question> questions})> _loadBankData(
+  Future<({QuestionBank bank, List<Question> questions})?> _loadBankData(
     AppDatabase db,
   ) async {
+    // getSingleOrNull returns null when the row is missing instead of throwing.
+    // After deletion, the FutureBuilder re-fires and would otherwise render
+    // "题库不存在" — see _buildContent for the auto-pop fallback.
     final bank = await (db.select(
       db.questionBanks,
-    )..where((b) => b.id.equals(widget.bankId))).getSingle();
+    )..where((b) => b.id.equals(widget.bankId))).getSingleOrNull();
+    if (bank == null) return null;
     final questions = await (db.select(
       db.questions,
     )..where((q) => q.bankId.equals(widget.bankId))).get();
